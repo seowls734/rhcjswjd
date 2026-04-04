@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>TACTICAL SURVIVAL</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
+#ui{position:absolute;top:18px;left:18px;color:#e0e0e0;z-index:10;pointer-events:none;text-shadow:1px 1px 6px #000;user-select:none}
+.label{font-size:11px;letter-spacing:2px;color:#aaa;margin-bottom:3px}
+.bar-wrap{width:220px;height:14px;background:rgba(255,0,0,0.2);border:1px solid rgba(255,80,80,0.5);margin-bottom:14px}
+#hp-bar{height:100%;background:linear-gradient(90deg,#c0392b,#e74c3c);transition:width 0.1s}
+#score-text{font-size:20px;font-weight:bold;margin-bottom:6px}
+#weapon-text{font-size:16px;color:#7ecfff;margin-bottom:3px}
+#ammo-text{font-size:14px;margin-bottom:4px}
+#reload-text{font-size:13px;color:#7ec8ff;min-height:18px}
+#dmg-text{font-size:13px;color:#ffaa44;min-height:18px}
+#ehp-text{font-size:11px;color:#ff9966;min-height:16px}
+#weapon-bar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:10;pointer-events:none}
+.wslot{width:60px;height:50px;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#888;font-size:9px;transition:all 0.12s}
+.wslot.active{background:rgba(30,100,180,0.4);border-color:rgba(80,180,255,0.7);color:#fff}
+.wslot .wk{font-size:9px;color:#555;margin-bottom:2px}
+.wslot.active .wk{color:#7ecfff}
+.wslot .wn{font-size:8px;text-align:center;line-height:1.3}
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;pointer-events:none}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(0,255,100,0.9);transition:all 0.08s}
+#crosshair::before{width:2px;height:16px;top:-8px;left:-1px}
+#crosshair::after{width:16px;height:2px;left:-8px;top:-1px}
+#crosshair.ads::before{height:6px;top:-3px}
+#crosshair.ads::after{width:6px;left:-3px}
+#crosshair .dot{position:absolute;width:3px;height:3px;background:rgba(0,255,100,0.95);border-radius:50%;top:-1.5px;left:-1.5px}
+#instructions{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.93);color:#fff;padding:36px 48px;text-align:center;border:1px solid rgba(0,255,100,0.35);cursor:pointer;z-index:20;min-width:460px}
+#instructions h1{font-size:28px;letter-spacing:6px;color:#00ff88;margin-bottom:14px}
+#instructions p{color:#bbb;margin:6px 0;font-size:13px;line-height:1.8}
+.hint{color:#555;font-size:11px;margin-top:16px}
+#hit-flash{position:absolute;inset:0;background:rgba(255,0,0,0);pointer-events:none;z-index:8;transition:background 0.1s}
+#fire-flash{position:absolute;inset:0;background:rgba(255,255,255,0);pointer-events:none;z-index:8;transition:background 0.06s}
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <div class="label">SURVIVOR HP</div>
+  <div class="bar-wrap"><div id="hp-bar"></div></div>
+  <div id="score-text">SCORE: <span id="score">0</span></div>
+  <div id="weapon-text">WEAPON: <span id="wname">PISTOL</span></div>
+  <div id="ammo-text">AMMO: <span id="ammo">15</span> / <span id="maxammo">15</span></div>
+  <div id="reload-text"></div>
+  <div id="dmg-text"></div>
+  <div id="ehp-text"></div>
+</div>
+
+<div id="crosshair"><div class="dot"></div></div>
+<div id="weapon-bar"></div>
+<div id="hit-flash"></div>
+<div id="fire-flash"></div>
+
+<div id="instructions">
+  <h1>TACTICAL SURVIVAL</h1>
+  <p>클릭하여 전투 시작</p>
+  <p>W A S D 이동 &nbsp;|&nbsp; SPACE 점프 &nbsp;|&nbsp; 좌클릭 사격 &nbsp;|&nbsp; 우클릭 조준 &nbsp;|&nbsp; R 재장전</p>
+  <p>1~0 &nbsp;/&nbsp; Q &nbsp;/&nbsp; E &nbsp;&nbsp; 무기 선택 (12종)</p>
+  <div class="hint">12종 무기 · 적 체력바 · 총기 반동 · 벽 슬라이딩</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+// ── SCENE ──────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080c11);
+scene.fog = new THREE.Fog(0x080c11, 30, 240);
+
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.01, 1500);
+camera.position.set(0, 1.7, 60);
+
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0x606878, 2.2));
+const dirL = new THREE.DirectionalLight(0xffffff, 1.8);
+dirL.position.set(20,35,10); dirL.castShadow=true; dirL.shadow.mapSize.set(2048,2048); scene.add(dirL);
+scene.add(Object.assign(new THREE.PointLight(0x3366ff,12,100,2),{position:{x:55,y:8,z:-20}}));
+scene.add(Object.assign(new THREE.PointLight(0xff4422,12,100,2),{position:{x:-45,y:8,z:35}}));
+
+// ── CONTROLS ───────────────────────────────────────────────────
+const ctrl = new PointerLockControls(camera, document.body);
+scene.add(ctrl.getObject());
+
+// ── GUN GROUP ──────────────────────────────────────────────────
+const gunGrp = new THREE.Group();
+camera.add(gunGrp);
+gunGrp.position.set(0.24, -0.24, -0.50);
+let gunModel = null;
+let gunKickZ = 0, gunKickRX = 0;
+
+// ── UI ─────────────────────────────────────────────────────────
+const hpBar   = document.getElementById('hp-bar');
+const scoreEl = document.getElementById('score');
+const ammoEl  = document.getElementById('ammo');
+const maxAmEl = document.getElementById('maxammo');
+const rldTxt  = document.getElementById('reload-text');
+const dmgTxt  = document.getElementById('dmg-text');
+const ehpTxt  = document.getElementById('ehp-text');
+const instrEl = document.getElementById('instructions');
+const wnameEl = document.getElementById('wname');
+const wbarEl  = document.getElementById('weapon-bar');
+const hitFl   = document.getElementById('hit-flash');
+const fireFl  = document.getElementById('fire-flash');
+const xhEl    = document.getElementById('crosshair');
+
+// ── WEAPON DATA ────────────────────────────────────────────────
+const WD = {
+  pistol:  {n:'PISTOL',        k:'1', mag:15,  rld:1.3, spd:50,  dmg:1.0,  spr:0.004,  pel:1,  cd:0.22, aFov:58, hFov:75, rcG:0.07,  rcRX:0.10, bs:[0.04,0.04,0.15],  bc:0xd4b06a, mdl:'pistol'},
+  smg:     {n:'SMG',           k:'2', mag:32,  rld:1.4, spd:46,  dmg:0.7,  spr:0.013,  pel:1,  cd:0.08, aFov:60, hFov:75, rcG:0.035, rcRX:0.05, bs:[0.03,0.03,0.12],  bc:0xffaa44, mdl:'smg'},
+  ar:      {n:'ASSAULT RIFLE', k:'3', mag:30,  rld:1.8, spd:56,  dmg:1.2,  spr:0.006,  pel:1,  cd:0.10, aFov:55, hFov:75, rcG:0.055, rcRX:0.08, bs:[0.038,0.038,0.18],bc:0xcccccc, mdl:'ar'},
+  shotgun: {n:'SHOTGUN',       k:'4', mag:6,   rld:1.9, spd:34,  dmg:0.8,  spr:0.048,  pel:7,  cd:0.76, aFov:62, hFov:75, rcG:0.14,  rcRX:0.20, bs:[0.04,0.04,0.14],  bc:0xffcc66, mdl:'shotgun'},
+  sniper:  {n:'SNIPER RIFLE',  k:'5', mag:5,   rld:2.6, spd:105, dmg:3.5,  spr:0.0005, pel:1,  cd:1.2,  aFov:18, hFov:75, rcG:0.20,  rcRX:0.28, bs:[0.028,0.028,0.26],bc:0xcfcfcf, mdl:'sniper'},
+  revolver:{n:'REVOLVER',      k:'6', mag:6,   rld:2.3, spd:62,  dmg:2.2,  spr:0.002,  pel:1,  cd:0.52, aFov:56, hFov:75, rcG:0.11,  rcRX:0.16, bs:[0.048,0.048,0.18],bc:0xbb8833, mdl:'revolver'},
+  mg:      {n:'MACHINE GUN',   k:'7', mag:80,  rld:3.5, spd:52,  dmg:0.9,  spr:0.018,  pel:1,  cd:0.07, aFov:58, hFov:75, rcG:0.045, rcRX:0.06, bs:[0.04,0.04,0.16],  bc:0xff8844, mdl:'mg'},
+  burst:   {n:'BURST RIFLE',   k:'8', mag:24,  rld:1.9, spd:58,  dmg:1.1,  spr:0.005,  pel:1,  cd:0.45, aFov:54, hFov:75, rcG:0.07,  rcRX:0.10, bs:[0.036,0.036,0.17],bc:0x88aaff, mdl:'burst', bst:3, bdt:0.08},
+  laser:   {n:'LASER CANNON',  k:'9', mag:20,  rld:2.0, spd:140, dmg:1.5,  spr:0.0,    pel:1,  cd:0.18, aFov:50, hFov:75, rcG:0.025, rcRX:0.03, bs:[0.025,0.025,0.35],bc:0x00ffff, mdl:'laser'},
+  dbshot:  {n:'DOUBLE BARREL', k:'0', mag:2,   rld:1.6, spd:30,  dmg:1.5,  spr:0.06,   pel:10, cd:0.85, aFov:64, hFov:75, rcG:0.24,  rcRX:0.32, bs:[0.042,0.042,0.13],bc:0xffee88, mdl:'dbshot'},
+  minigun: {n:'MINIGUN',       k:'Q', mag:200, rld:5.0, spd:55,  dmg:0.55, spr:0.024,  pel:1,  cd:0.042,aFov:65, hFov:75, rcG:0.022, rcRX:0.03, bs:[0.034,0.034,0.13],bc:0xff4444, mdl:'minigun'},
+  crossbow:{n:'CROSSBOW',      k:'E', mag:1,   rld:2.8, spd:90,  dmg:4.5,  spr:0.0,    pel:1,  cd:2.8,  aFov:48, hFov:75, rcG:0.13,  rcRX:0.18, bs:[0.04,0.018,0.32], bc:0x44ff88, mdl:'crossbow'},
+};
+const WKEYS = Object.keys(WD);
+
+// ── MATERIALS ──────────────────────────────────────────────────
+function mat(c,r=0.7,m=0,e=0){ return new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m,emissive:e}); }
+const M = {
+  blk: mat(0x0d0d0d,0.5,0.2),       // matte black polymer
+  gry: mat(0x252525,0.7,0.3),        // dark grey metal
+  mlt: mat(0x606060,0.4,0.6),        // polished metal
+  slt: mat(0x888888,0.3,0.7),        // silver steel
+  brn: mat(0x4a3220,0.8),            // walnut wood
+  lwd: mat(0x6b4c2a,0.9),            // light wood
+  tan: mat(0x8a7355,0.8),            // tan/desert
+  red: mat(0xcc2222,0.6,0.1),        // red accent
+  grn: mat(0x1a8a1a,0.7),            // olive green
+  cyn: mat(0x00bbcc,0.25,0.8,0x002233), // cyan energy
+  ylw: mat(0xddaa22,0.4,0.3),        // brass/gold
+  blz: mat(0xff6600,0.3,0.2,0x331100), // orange emissive
+  rub: mat(0x111111,0.95),           // rubber grip
+  alu: mat(0xaaaaaa,0.2,0.8),        // aluminium
+  cop: mat(0xb87333,0.4,0.6),        // copper
+};
+
+const H = Math.PI/2;
+
+function bx(w,h,d,m){ const s=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); s.castShadow=true; return s; }
+function cy(r1,r2,h,seg,m){ const s=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),m); s.castShadow=true; return s; }
+function cn(r,h,seg,m){ const s=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),m); s.castShadow=true; return s; }
+function sp(r,seg,m){ const s=new THREE.Mesh(new THREE.SphereGeometry(r,seg,seg),m); s.castShadow=true; return s; }
+
+// add(group, mesh, x,y,z, rx,ry,rz)
+function a(g,m,x=0,y=0,z=0,rx=0,ry=0,rz=0){
+  m.rotation.set(rx,ry,rz); m.position.set(x,y,z); g.add(m); return m;
+}
+
+// ── GUN BUILDER ────────────────────────────────────────────────
+function buildGun(t){
+  const g = new THREE.Group();
+
+  if(t==='pistol'){
+    // Slide
+    a(g,bx(0.095,0.07,0.28,M.gry),   0, 0.055,-0.06);
+    // Slide serrations (6 cuts)
+    for(let i=0;i<5;i++) a(g,bx(0.098,0.072,0.008,M.blk), 0,0.055,-0.16+i*0.022);
+    // Frame / lower
+    a(g,bx(0.090,0.055,0.24,M.blk),  0, 0.005,-0.05);
+    // Barrel protruding
+    a(g,cy(0.018,0.018,0.06,10,M.mlt),0,0.045,-0.24,H);
+    // Muzzle crown ring
+    a(g,cy(0.021,0.021,0.008,12,M.slt),0,0.045,-0.27,H);
+    // Trigger guard
+    a(g,bx(0.088,0.007,0.12,M.blk), 0,-0.026, 0.00);
+    a(g,bx(0.007,0.025,0.007,M.blk), 0,-0.018,-0.06);
+    a(g,bx(0.007,0.025,0.007,M.blk), 0,-0.018, 0.06);
+    // Trigger
+    a(g,bx(0.006,0.028,0.012,M.mlt), 0,-0.028, 0.01, 0.3);
+    // Grip / handle
+    a(g,bx(0.088,0.175,0.082,M.rub), 0,-0.120, 0.058,-0.22);
+    // Grip panels texture strips
+    for(let i=0;i<4;i++) a(g,bx(0.092,0.012,0.075,M.blk),0,-0.062-i*0.026,0.06,-0.22);
+    // Magazine base
+    a(g,bx(0.075,0.012,0.072,M.mlt), 0,-0.216, 0.055,-0.22);
+    // Front sight post
+    a(g,bx(0.006,0.014,0.006,M.mlt), 0, 0.094,-0.22);
+    // Rear sight (U-notch)
+    a(g,bx(0.032,0.010,0.006,M.mlt), 0, 0.090, 0.02);
+    a(g,bx(0.010,0.014,0.006,M.mlt),-0.014,0.095,0.02);
+    a(g,bx(0.010,0.014,0.006,M.mlt), 0.014,0.095,0.02);
+    // Hammer
+    a(g,bx(0.020,0.022,0.016,M.mlt), 0, 0.090, 0.10,-0.3);
+    // Rail under barrel
+    a(g,bx(0.030,0.008,0.12,M.alu),  0,-0.008,-0.10);
+  }
+
+  else if(t==='smg'){
+    // Receiver body
+    a(g,bx(0.098,0.110,0.40,M.gry),  0, 0.010,-0.04);
+    // Upper rail
+    a(g,bx(0.030,0.014,0.38,M.alu),  0, 0.068,-0.04);
+    // Barrel
+    a(g,cy(0.016,0.016,0.34,10,M.mlt),0,0.010,-0.27,H);
+    // Barrel shroud vents (5 holes represented as dark cuts)
+    for(let i=0;i<5;i++) a(g,bx(0.020,0.022,0.012,M.blk),0,0.026,-0.10-i*0.034);
+    // Flash hider
+    a(g,cy(0.022,0.018,0.038,6,M.mlt),0,0.010,-0.445,H);
+    a(g,cy(0.010,0.010,0.045,6,M.blk),0,0.010,-0.448,H);
+    // Foregrip vertical
+    a(g,bx(0.048,0.095,0.040,M.rub), 0,-0.058,-0.22,-0.15);
+    a(g,bx(0.040,0.010,0.036,M.blk), 0,-0.108,-0.22);
+    // Magazine angled
+    a(g,bx(0.062,0.200,0.058,M.mlt), 0,-0.110, 0.00,-0.18);
+    a(g,bx(0.060,0.012,0.054,M.gry), 0,-0.215, 0.00,-0.18);
+    // Pistol grip
+    a(g,bx(0.072,0.130,0.072,M.rub), 0,-0.082, 0.20,-0.20);
+    // Folding stock arm
+    a(g,bx(0.018,0.012,0.22,M.mlt),  0, 0.008, 0.38);
+    a(g,bx(0.018,0.012,0.22,M.mlt),  0,-0.030, 0.38);
+    a(g,bx(0.018,0.068,0.012,M.mlt), 0,-0.011, 0.49);
+    // Charging handle
+    a(g,bx(0.008,0.018,0.030,M.mlt), 0.055, 0.030,-0.01);
+    // Trigger guard + trigger
+    a(g,bx(0.094,0.008,0.10,M.blk),  0,-0.014, 0.10);
+    a(g,bx(0.006,0.030,0.012,M.mlt), 0,-0.016, 0.14, 0.3);
+    // Front + rear iron sights
+    a(g,bx(0.007,0.020,0.007,M.mlt), 0, 0.082,-0.36);
+    a(g,bx(0.028,0.014,0.007,M.mlt), 0, 0.080, 0.06);
+    a(g,bx(0.008,0.018,0.007,M.mlt),-0.012,0.086,0.06);
+    a(g,bx(0.008,0.018,0.007,M.mlt), 0.012,0.086,0.06);
+  }
+
+  else if(t==='ar'){
+    // Upper receiver
+    a(g,bx(0.098,0.080,0.50,M.gry),   0, 0.030,-0.04);
+    // Lower receiver
+    a(g,bx(0.092,0.065,0.38,M.blk),   0,-0.025,-0.00);
+    // Barrel
+    a(g,cy(0.016,0.016,0.60,12,M.mlt),0, 0.030,-0.40,H);
+    // Gas tube above barrel
+    a(g,cy(0.007,0.007,0.36,6,M.mlt), 0, 0.058,-0.28,H);
+    // Flash hider (birdcage)
+    a(g,cy(0.022,0.016,0.048,6,M.mlt),0, 0.030,-0.70,H);
+    for(let i=0;i<6;i++){const ang=i/6*Math.PI*2; a(g,cy(0.005,0.005,0.040,4,M.blk),Math.cos(ang)*0.022,0.030+Math.sin(ang)*0.022,-0.70,H);}
+    // Handguard (KeyMod/MLOK style)
+    a(g,bx(0.082,0.082,0.32,M.alu),   0, 0.030,-0.26);
+    // Rail slots on handguard
+    for(let i=0;i<6;i++) a(g,bx(0.085,0.010,0.008,M.gry),0,0.074,-0.12-i*0.034);
+    // Trigger guard
+    a(g,bx(0.090,0.008,0.110,M.blk),  0,-0.020,-0.00);
+    a(g,bx(0.008,0.028,0.008,M.blk),  0,-0.010,-0.055);
+    a(g,bx(0.008,0.028,0.008,M.blk),  0,-0.010, 0.055);
+    // Trigger + trigger bow
+    a(g,bx(0.007,0.034,0.013,M.mlt),  0,-0.025, 0.01, 0.3);
+    // Pistol grip
+    a(g,bx(0.072,0.140,0.072,M.rub),  0,-0.100, 0.20,-0.22);
+    for(let i=0;i<3;i++) a(g,bx(0.075,0.010,0.068,M.blk),0,-0.050-i*0.032,0.20,-0.22);
+    // Buffer tube
+    a(g,cy(0.025,0.025,0.22,10,M.gry),0,-0.012, 0.42,H);
+    // Stock
+    a(g,bx(0.062,0.090,0.18,M.blk),   0,-0.020, 0.52);
+    a(g,bx(0.055,0.055,0.12,M.rub),   0,-0.020, 0.60);
+    // Cheek rest
+    a(g,bx(0.058,0.028,0.10,M.blk),   0, 0.035, 0.54);
+    // Magazine
+    a(g,bx(0.062,0.210,0.070,M.blk),  0,-0.140,-0.06,-0.12);
+    a(g,bx(0.058,0.014,0.066,M.mlt),  0,-0.252,-0.06,-0.12);
+    // Charging handle (T shape)
+    a(g,bx(0.008,0.020,0.028,M.mlt),  0, 0.072, 0.04);
+    a(g,bx(0.034,0.014,0.016,M.mlt),  0, 0.078, 0.04);
+    // Dust cover
+    a(g,bx(0.100,0.018,0.090,M.gry),  0, 0.012,-0.05);
+    // Iron sights (flip-up style)
+    a(g,bx(0.028,0.008,0.014,M.mlt),  0, 0.076,-0.60);
+    a(g,bx(0.007,0.026,0.007,M.mlt),  0, 0.083,-0.60);
+    a(g,bx(0.028,0.008,0.014,M.mlt),  0, 0.076, 0.06);
+    a(g,bx(0.008,0.020,0.007,M.mlt), -0.012,0.085,0.06);
+    a(g,bx(0.008,0.020,0.007,M.mlt),  0.012,0.085,0.06);
+    // Bolt catch / selector
+    a(g,bx(0.006,0.012,0.018,M.mlt),  0.049, 0.010, 0.10);
+    a(g,bx(0.006,0.012,0.018,M.mlt),  0.049, 0.010,-0.04);
+  }
+
+  else if(t==='burst'){
+    // Same as AR but blue-tinted with selector marking
+    a(g,bx(0.098,0.080,0.50,mat(0x1a1a2a,0.7,0.3)), 0, 0.030,-0.04);
+    a(g,bx(0.092,0.065,0.38,mat(0x111122,0.8)),      0,-0.025,-0.00);
+    a(g,cy(0.016,0.016,0.60,12,M.mlt), 0,0.030,-0.40,H);
+    a(g,cy(0.007,0.007,0.36,6,mat(0x4444aa,0.4,0.5)),0,0.058,-0.28,H);
+    a(g,cy(0.022,0.016,0.048,6,M.mlt), 0,0.030,-0.70,H);
+    a(g,bx(0.082,0.082,0.32,mat(0x222233,0.6)),  0, 0.030,-0.26);
+    for(let i=0;i<6;i++) a(g,bx(0.085,0.010,0.008,M.gry),0,0.074,-0.12-i*0.034);
+    a(g,bx(0.090,0.008,0.110,mat(0x111122,0.8)), 0,-0.020,-0.00);
+    a(g,bx(0.007,0.034,0.013,M.mlt),  0,-0.025, 0.01, 0.3);
+    a(g,bx(0.072,0.140,0.072,mat(0x111122,0.95)),0,-0.100, 0.20,-0.22);
+    a(g,cy(0.025,0.025,0.22,10,mat(0x222233,0.6)),0,-0.012, 0.42,H);
+    a(g,bx(0.062,0.090,0.18,mat(0x111122,0.8)), 0,-0.020, 0.52);
+    a(g,bx(0.062,0.210,0.070,mat(0x2222aa,0.6)),0,-0.140,-0.06,-0.12);
+    // "3RD" selector plate
+    a(g,bx(0.006,0.022,0.032,mat(0x4466ff,0.3,0.5,0x001133)),0.050,0.010,-0.04);
+    a(g,bx(0.028,0.008,0.014,M.mlt),  0, 0.076,-0.60);
+    a(g,bx(0.007,0.026,0.007,M.mlt),  0, 0.083,-0.60);
+    a(g,bx(0.028,0.008,0.014,M.mlt),  0, 0.076, 0.06);
+  }
+
+  else if(t==='shotgun'){
+    // Receiver
+    a(g,bx(0.112,0.138,0.46,M.gry),  0, 0.000,-0.04);
+    // Barrel (heavy)
+    a(g,cy(0.022,0.022,0.72,12,M.mlt),0, 0.000,-0.46,H);
+    // Mag tube under barrel
+    a(g,cy(0.014,0.014,0.58,10,M.mlt),0,-0.042,-0.39,H);
+    a(g,cy(0.017,0.017,0.014,10,M.mlt),0,-0.042,-0.69,H);
+    // Heat shield over barrel
+    a(g,bx(0.016,0.014,0.36,M.gry),  0, 0.030,-0.28);
+    for(let i=0;i<8;i++) a(g,bx(0.018,0.006,0.008,M.blk),0,0.038,-0.10-i*0.034);
+    // Pump forend
+    a(g,bx(0.095,0.072,0.180,M.lwd), 0,-0.010,-0.28);
+    a(g,bx(0.090,0.065,0.175,M.brn), 0,-0.010,-0.28);
+    // Front bead sight
+    a(g,sp(0.007,6,M.slt), 0, 0.028,-0.77);
+    // Ejection port
+    a(g,bx(0.040,0.040,0.075,M.blk), 0.058,0.020,-0.04);
+    // Trigger guard
+    a(g,bx(0.108,0.008,0.11,M.gry),  0,-0.026, 0.18);
+    a(g,bx(0.008,0.030,0.008,M.gry), 0,-0.014, 0.13);
+    a(g,bx(0.008,0.030,0.008,M.gry), 0,-0.014, 0.24);
+    // Trigger
+    a(g,bx(0.007,0.030,0.013,M.mlt), 0,-0.028, 0.19, 0.3);
+    // Stock (wood)
+    a(g,bx(0.105,0.148,0.28,M.brn),  0,-0.010, 0.36);
+    a(g,bx(0.100,0.130,0.14,M.lwd),  0,-0.008, 0.50, 0.18);
+    // Cheek weld swell
+    a(g,bx(0.095,0.040,0.14,M.brn),  0, 0.070, 0.44);
+    // Side saddle (shell holder)
+    a(g,bx(0.010,0.075,0.14,mat(0x333333,0.9)),-0.060,0.018,-0.01);
+    for(let i=0;i<4;i++) a(g,cy(0.008,0.008,0.072,8,M.cop),-0.065,0.018,-0.04+i*0.034,H,0,H);
+    // Action bars (two visible)
+    a(g,bx(0.006,0.008,0.28,M.mlt), -0.032,-0.040,-0.22);
+    a(g,bx(0.006,0.008,0.28,M.mlt),  0.032,-0.040,-0.22);
+  }
+
+  else if(t==='sniper'){
+    // Receiver / action
+    a(g,bx(0.100,0.090,0.56,M.gry),   0, 0.020,-0.04);
+    // Heavy fluted barrel
+    a(g,cy(0.018,0.016,1.04,12,M.mlt),0, 0.020,-0.62,H);
+    // Flute grooves
+    for(let i=0;i<4;i++){const ang=i/4*Math.PI*2; a(g,cy(0.004,0.004,0.70,4,M.blk),Math.cos(ang)*0.016,0.020+Math.sin(ang)*0.016,-0.55,H);}
+    // Muzzle brake
+    a(g,cy(0.028,0.028,0.046,8,M.mlt),0, 0.020,-1.14,H);
+    a(g,bx(0.040,0.020,0.010,M.blk),  0, 0.034,-1.12);
+    a(g,bx(0.040,0.020,0.010,M.blk),  0, 0.034,-1.16);
+    // Scope mount (Picatinny rail)
+    a(g,bx(0.030,0.018,0.44,M.alu),   0, 0.070,-0.04);
+    for(let i=0;i<8;i++) a(g,bx(0.032,0.010,0.008,M.gry),0,0.080,-0.22+i*0.040);
+    // Scope body
+    a(g,cy(0.026,0.026,0.36,12,mat(0x111111,0.4,0.3)), 0,0.110,-0.04,H);
+    // Scope bell (objective)
+    a(g,cy(0.036,0.026,0.060,12,mat(0x111111,0.4,0.3)),0,0.110,-0.24,H);
+    // Scope bell (eyepiece)
+    a(g,cy(0.032,0.026,0.048,12,mat(0x111111,0.4,0.3)),0,0.110, 0.20,H);
+    // Scope lens (blue tint)
+    a(g,cy(0.024,0.024,0.008,12,mat(0x003366,0.2,0.6,0x000011)),0,0.110,-0.26,H);
+    a(g,cy(0.022,0.022,0.008,12,mat(0x003366,0.2,0.6,0x000011)),0,0.110, 0.22,H);
+    // Scope rings (2)
+    a(g,cy(0.038,0.038,0.020,12,M.alu), 0,0.090,-0.10,H);
+    a(g,cy(0.038,0.038,0.020,12,M.alu), 0,0.090, 0.08,H);
+    // Scope turret knobs
+    a(g,cy(0.010,0.010,0.020,8,M.mlt),  0,0.140,-0.02);
+    a(g,cy(0.010,0.010,0.020,8,M.mlt),  0.048,0.110,-0.02,0,0,H);
+    // Bolt handle
+    a(g,cy(0.007,0.007,0.060,8,M.mlt),  0.052,0.020, 0.02,0,0,H);
+    a(g,sp(0.014,8,M.mlt),              0.082,0.020, 0.02);
+    // Magazine (detachable box)
+    a(g,bx(0.068,0.130,0.080,M.blk),    0,-0.090,-0.04,-0.08);
+    a(g,bx(0.064,0.014,0.076,M.gry),    0,-0.162,-0.04,-0.08);
+    // Pistol grip
+    a(g,bx(0.070,0.130,0.075,M.rub),    0,-0.085, 0.28,-0.20);
+    for(let i=0;i<3;i++) a(g,bx(0.073,0.010,0.070,M.blk),0,-0.050-i*0.030,0.28,-0.20);
+    // Stock
+    a(g,bx(0.090,0.110,0.30,M.gry),     0,-0.005, 0.46);
+    a(g,bx(0.080,0.085,0.14,M.rub),     0,-0.005, 0.58, 0.12);
+    // Cheek riser
+    a(g,bx(0.082,0.042,0.18,M.alu),     0, 0.065, 0.46);
+    // Bipod mount
+    a(g,bx(0.030,0.016,0.050,M.mlt),    0,-0.030,-0.52);
+    a(g,bx(0.006,0.080,0.010,M.mlt), -0.022,-0.070,-0.52);
+    a(g,bx(0.006,0.080,0.010,M.mlt),  0.022,-0.070,-0.52);
+  }
+
+  else if(t==='revolver'){
+    // Barrel with top rib
+    a(g,cy(0.020,0.020,0.34,12,M.mlt),  0, 0.000,-0.20,H);
+    a(g,bx(0.008,0.012,0.34,M.slt),     0, 0.025,-0.20);
+    // Front sight blade
+    a(g,bx(0.006,0.018,0.007,M.slt),    0, 0.038,-0.36);
+    // Cylinder (with visible chambers)
+    a(g,cy(0.044,0.044,0.038,12,M.mlt), 0, 0.000,-0.01,H);
+    for(let i=0;i<6;i++){const ang=i/6*Math.PI*2; a(g,cy(0.010,0.010,0.042,8,mat(0x050505,0.8)),Math.cos(ang)*0.028,Math.sin(ang)*0.028,-0.01,H);}
+    // Cylinder gap lines
+    a(g,cy(0.047,0.047,0.004,12,M.blk), 0, 0.000,-0.030,H);
+    a(g,cy(0.047,0.047,0.004,12,M.blk), 0, 0.000, 0.010,H);
+    // Frame
+    a(g,bx(0.092,0.075,0.26,M.mlt),     0, 0.000, 0.07);
+    a(g,bx(0.090,0.070,0.18,M.slt),     0,-0.010, 0.07);
+    // Top strap to barrel
+    a(g,bx(0.020,0.020,0.26,M.mlt),     0, 0.030,-0.12);
+    // Ejector rod housing
+    a(g,cy(0.012,0.012,0.26,8,M.mlt),   0,-0.028,-0.19,H);
+    a(g,cy(0.008,0.008,0.20,8,M.gry),   0,-0.028,-0.16,H);
+    // Hammer (external, cocked)
+    a(g,bx(0.022,0.038,0.024,M.mlt),    0, 0.048, 0.14,-0.4);
+    a(g,bx(0.020,0.010,0.030,M.mlt),    0, 0.064, 0.10,-0.4);
+    // Trigger + guard
+    a(g,bx(0.092,0.008,0.110,M.mlt),    0,-0.024, 0.18);
+    a(g,bx(0.007,0.032,0.013,M.mlt),    0,-0.026, 0.22, 0.3);
+    a(g,bx(0.008,0.032,0.008,M.mlt),    0,-0.010, 0.12);
+    a(g,bx(0.008,0.032,0.008,M.mlt),    0,-0.010, 0.23);
+    // Grip (wood panels)
+    a(g,bx(0.088,0.160,0.090,M.lwd),    0,-0.098, 0.17,-0.18);
+    a(g,bx(0.006,0.158,0.088,M.brn),   -0.047,-0.098,0.17,-0.18);
+    a(g,bx(0.006,0.158,0.088,M.brn),    0.047,-0.098,0.17,-0.18);
+    // Rear sight
+    a(g,bx(0.034,0.014,0.008,M.mlt),    0, 0.044, 0.10);
+    a(g,bx(0.010,0.018,0.008,M.mlt), -0.014,0.050,0.10);
+    a(g,bx(0.010,0.018,0.008,M.mlt),  0.014,0.050,0.10);
+    // Cylinder latch
+    a(g,bx(0.006,0.016,0.020,M.mlt), -0.048,0.010,-0.01);
+  }
+
+  else if(t==='mg'){
+    // Receiver (large)
+    a(g,bx(0.118,0.148,0.70,M.gry),     0, 0.010,-0.04);
+    // Heavy barrel
+    a(g,cy(0.022,0.020,0.88,12,M.mlt),  0, 0.010,-0.58,H);
+    // Barrel flutes
+    for(let i=0;i<4;i++) a(g,cy(0.004,0.004,0.60,4,M.blk),Math.cos(i/4*Math.PI*2)*0.020,0.010+Math.sin(i/4*Math.PI*2)*0.020,-0.52,H);
+    // Flash hider (large)
+    a(g,cy(0.030,0.022,0.054,8,M.mlt),  0, 0.010,-1.02,H);
+    // Top cover/feed tray
+    a(g,bx(0.112,0.030,0.26,mat(0x303030,0.7)), 0, 0.090,-0.04);
+    for(let i=0;i<5;i++) a(g,bx(0.114,0.012,0.008,M.blk),0,0.106,-0.12-i*0.034);
+    // Ammo box (side-mounted)
+    a(g,bx(0.040,0.130,0.180,mat(0x2a2a00,0.9)),0.085,-0.020,-0.02);
+    a(g,bx(0.014,0.126,0.176,mat(0x1a1a00,0.9)),0.088,-0.020,-0.02);
+    // Feed chute
+    a(g,bx(0.040,0.016,0.100,M.gry),    0.060, 0.046,-0.04);
+    // Rear sight assembly (tall)
+    a(g,bx(0.028,0.062,0.020,M.mlt),    0, 0.110, 0.24);
+    a(g,bx(0.008,0.062,0.008,M.mlt), -0.012,0.110, 0.24);
+    a(g,bx(0.008,0.062,0.008,M.mlt),  0.012,0.110, 0.24);
+    // Pistol grip
+    a(g,bx(0.075,0.145,0.075,M.rub),    0,-0.090, 0.28,-0.20);
+    for(let i=0;i<3;i++) a(g,bx(0.078,0.012,0.070,M.blk),0,-0.048-i*0.032,0.28,-0.20);
+    // Stock
+    a(g,bx(0.095,0.110,0.30,M.gry),     0,-0.010, 0.52);
+    a(g,bx(0.085,0.090,0.14,M.rub),     0,-0.010, 0.64, 0.10);
+    a(g,bx(0.085,0.034,0.16,M.alu),     0, 0.065, 0.52);
+    // Bipod (folded against barrel)
+    a(g,bx(0.016,0.014,0.28,M.mlt),    -0.036,-0.040,-0.50);
+    a(g,bx(0.016,0.014,0.28,M.mlt),     0.036,-0.040,-0.50);
+    a(g,bx(0.080,0.014,0.016,M.mlt),    0,-0.034,-0.50);
+    // Charging handle (right side)
+    a(g,bx(0.008,0.022,0.034,M.mlt),    0.065, 0.028, 0.12);
+    // Trigger guard + trigger
+    a(g,bx(0.114,0.009,0.120,M.gry),    0,-0.026, 0.18);
+    a(g,bx(0.007,0.034,0.013,M.mlt),    0,-0.028, 0.22, 0.3);
+  }
+
+  else if(t==='laser'){
+    // Main body (angular, futuristic)
+    a(g,bx(0.090,0.095,0.58,M.cyn),     0, 0.010,-0.04);
+    // Side panels
+    a(g,bx(0.014,0.092,0.54,mat(0x004455,0.4,0.6)), -0.052,0.010,-0.04);
+    a(g,bx(0.014,0.092,0.54,mat(0x004455,0.4,0.6)),  0.052,0.010,-0.04);
+    // Emitter barrel (glowing)
+    a(g,cy(0.024,0.020,0.72,12,M.cyn),  0, 0.010,-0.50,H);
+    // Emitter rings (3)
+    a(g,cy(0.030,0.030,0.010,12,mat(0x00ffff,0.2,0.5,0x00aaaa)),0,0.010,-0.84,H);
+    a(g,cy(0.026,0.026,0.010,12,mat(0x00eeff,0.2,0.5,0x008888)),0,0.010,-0.78,H);
+    a(g,cy(0.022,0.022,0.010,12,mat(0x00ddff,0.2,0.5,0x005555)),0,0.010,-0.72,H);
+    // Lens cap
+    a(g,cy(0.020,0.020,0.008,12,mat(0x0033ff,0.1,0.4,0x000066)),0,0.010,-0.86,H);
+    // Cooling vents
+    for(let i=0;i<6;i++) a(g,bx(0.095,0.012,0.018,mat(0x002233,0.4)), 0,0.060-i*0.016,-0.18-i*0.022);
+    // Energy cell
+    a(g,bx(0.068,0.130,0.095,mat(0x001122,0.5,0.7,0x000811)),0,-0.090, 0.06);
+    a(g,bx(0.064,0.012,0.090,mat(0x00aacc,0.3,0.5,0x003344)),0,-0.156, 0.06);
+    // Status LEDs
+    const ledCols=[0x00ff44,0xffaa00,0xff2200], ledEmit=[0x004422,0x442200,0x220000];
+    for(let i=0;i<3;i++) a(g,bx(0.008,0.008,0.008,mat(ledCols[i],0.2,0,ledEmit[i])), 0.048,0.050-i*0.012,-0.14);
+    // Scope rail + target sight
+    a(g,bx(0.028,0.016,0.38,M.alu),     0, 0.060,-0.04);
+    a(g,cy(0.022,0.022,0.12,10,mat(0x111111,0.4,0.3)),0,0.088,-0.04,H);
+    a(g,cy(0.014,0.014,0.008,10,mat(0x00ffff,0.1,0.5,0x008888)),0,0.088,-0.10,H);
+    // Handle / grip
+    a(g,bx(0.070,0.130,0.075,mat(0x001122,0.9)), 0,-0.085, 0.30,-0.18);
+    // Power cable (decorative)
+    a(g,cy(0.006,0.006,0.18,6,mat(0x004444,0.6)), 0.048,0.000, 0.08,0,0,H);
+  }
+
+  else if(t==='dbshot'){
+    // Twin barrels side by side
+    a(g,cy(0.019,0.019,0.76,12,M.mlt), -0.025,0.000,-0.44,H);
+    a(g,cy(0.019,0.019,0.76,12,M.mlt),  0.025,0.000,-0.44,H);
+    // Barrel rib between barrels
+    a(g,bx(0.010,0.008,0.76,M.slt),     0, 0.021,-0.44);
+    // Muzzle ends (crowned)
+    a(g,cy(0.022,0.022,0.010,10,M.mlt),-0.025,0.000,-0.82,H);
+    a(g,cy(0.022,0.022,0.010,10,M.mlt), 0.025,0.000,-0.82,H);
+    // Front bead sight
+    a(g,sp(0.007,6,M.slt), 0, 0.023,-0.80);
+    // Barrel flats / receiver
+    a(g,bx(0.110,0.112,0.38,M.gry),     0,-0.005,-0.04);
+    // Break-action hinge
+    a(g,cy(0.016,0.016,0.100,10,M.mlt), 0,-0.040,-0.24,0,0,H);
+    // External hammers (two)
+    a(g,bx(0.016,0.034,0.020,M.mlt), -0.030, 0.044, 0.10,-0.35);
+    a(g,bx(0.016,0.034,0.020,M.mlt),  0.030, 0.044, 0.10,-0.35);
+    a(g,bx(0.013,0.010,0.028,M.mlt), -0.030, 0.060, 0.06,-0.35);
+    a(g,bx(0.013,0.010,0.028,M.mlt),  0.030, 0.060, 0.06,-0.35);
+    // Double triggers
+    a(g,bx(0.007,0.030,0.012,M.mlt), -0.012,-0.024, 0.22, 0.3);
+    a(g,bx(0.007,0.030,0.012,M.mlt),  0.012,-0.024, 0.28, 0.3);
+    // Trigger guard (ornate)
+    a(g,bx(0.108,0.009,0.12,M.mlt),   0,-0.022, 0.19);
+    a(g,bx(0.009,0.034,0.009,M.mlt),  0,-0.008, 0.13);
+    a(g,bx(0.009,0.034,0.009,M.mlt),  0,-0.008, 0.25);
+    // Wood stock
+    a(g,bx(0.105,0.145,0.30,M.brn),   0,-0.010, 0.36);
+    a(g,bx(0.100,0.125,0.16,M.lwd),   0,-0.008, 0.52, 0.16);
+    // Wrist grip inlay
+    a(g,bx(0.006,0.14,0.28,M.lwd),   -0.054,-0.010,0.36);
+    a(g,bx(0.006,0.14,0.28,M.lwd),    0.054,-0.010,0.36);
+    // Cheek piece
+    a(g,bx(0.098,0.034,0.14,M.brn),   0, 0.074, 0.40);
+    // Auto-ejector lever
+    a(g,bx(0.100,0.012,0.016,M.slt),  0,-0.038,-0.06);
+  }
+
+  else if(t==='minigun'){
+    // Central drive housing
+    a(g,cy(0.060,0.060,0.72,12,M.gry), 0, 0.000,-0.02,H);
+    // 6 individual barrels rotating group
+    for(let i=0;i<6;i++){
+      const ang=i/6*Math.PI*2;
+      const bx2=Math.cos(ang)*0.068, by2=Math.sin(ang)*0.068;
+      a(g,cy(0.013,0.013,0.90,8,M.mlt), bx2,by2,-0.02,H);
+      // Barrel jacket ring at mid
+      a(g,cy(0.017,0.017,0.014,8,M.gry),bx2,by2,-0.25,H);
+    }
+    // Forward barrel clamp ring
+    a(g,cy(0.098,0.098,0.022,16,M.alu), 0, 0.000,-0.46,H);
+    a(g,cy(0.090,0.090,0.018,16,M.blk), 0, 0.000,-0.46,H);
+    // Rear rotor plate
+    a(g,cy(0.095,0.095,0.020,16,M.alu), 0, 0.000, 0.34,H);
+    // Motor housing (rear cylinder)
+    a(g,cy(0.045,0.045,0.20,12,mat(0x333333,0.6,0.3)), 0,0.000, 0.48,H);
+    // Cooling ribs on motor
+    for(let i=0;i<6;i++) a(g,cy(0.048,0.048,0.018,12,M.alu),0,0.000,0.39+i*0.020,H);
+    // Upper carry/mount frame
+    a(g,bx(0.030,0.070,0.46,M.alu),     0, 0.080,-0.02);
+    a(g,bx(0.028,0.014,0.46,M.gry),     0, 0.114,-0.02);
+    // Ammo feed chute (from side)
+    a(g,bx(0.040,0.060,0.28,mat(0x1a1a00,0.9)),0.090,0.010,-0.10);
+    a(g,cy(0.022,0.022,0.060,8,M.gry),  0.090,0.010,-0.24,0,0,H);
+    // Trigger / grip assembly
+    a(g,bx(0.075,0.145,0.075,M.rub),    0,-0.080, 0.30,-0.18);
+    for(let i=0;i<3;i++) a(g,bx(0.078,0.010,0.070,M.blk),0,-0.044-i*0.028,0.30,-0.18);
+    a(g,bx(0.007,0.034,0.013,M.mlt),    0,-0.028, 0.24, 0.3);
+    a(g,bx(0.110,0.009,0.120,M.gry),    0,-0.022, 0.20);
+    // Spade grip (rear)
+    a(g,bx(0.110,0.028,0.016,M.rub),    0,-0.014, 0.54);
+    a(g,bx(0.008,0.070,0.016,M.mlt),   -0.052,-0.010, 0.54);
+    a(g,bx(0.008,0.070,0.016,M.mlt),    0.052,-0.010, 0.54);
+  }
+
+  else if(t==='crossbow'){
+    // Tiller (stock body)
+    a(g,bx(0.072,0.080,0.56,M.brn),     0,-0.010,-0.03);
+    a(g,bx(0.066,0.074,0.52,M.lwd),     0,-0.010,-0.03);
+    // Barrel rail / flight groove
+    a(g,bx(0.024,0.022,0.62,M.alu),     0, 0.042,-0.03);
+    a(g,bx(0.012,0.010,0.58,M.blk),     0, 0.042,-0.03);
+    // Prod (limbs) — horizontal crosspiece
+    a(g,bx(0.380,0.022,0.048,M.brn),    0, 0.040,-0.14);
+    // Limb tip reinforcements
+    a(g,bx(0.024,0.034,0.040,M.mlt),   -0.190, 0.040,-0.14);
+    a(g,bx(0.024,0.034,0.040,M.mlt),    0.190, 0.040,-0.14);
+    // Cables / string
+    a(g,bx(0.006,0.006,0.372,mat(0xddddaa,0.9)),-0.093,0.062,-0.14,0,0, 0.52);
+    a(g,bx(0.006,0.006,0.372,mat(0xddddaa,0.9)), 0.093,0.062,-0.14,0,0,-0.52);
+    // Stirrup (foot brace, front loop)
+    a(g,bx(0.008,0.050,0.080,M.mlt),   -0.060,-0.018,-0.30);
+    a(g,bx(0.008,0.050,0.080,M.mlt),    0.060,-0.018,-0.30);
+    a(g,bx(0.124,0.008,0.074,M.mlt),    0,-0.040,-0.30);
+    // Trigger mechanism box
+    a(g,bx(0.060,0.060,0.076,mat(0x333322,0.7)), 0, 0.012, 0.10);
+    a(g,bx(0.007,0.042,0.013,M.mlt),    0,-0.020, 0.13, 0.3);
+    // Trigger guard
+    a(g,bx(0.062,0.008,0.088,M.mlt),    0,-0.018, 0.10);
+    // Scope rail
+    a(g,bx(0.026,0.014,0.32,M.alu),     0, 0.056, 0.04);
+    for(let i=0;i<5;i++) a(g,bx(0.028,0.008,0.010,M.gry),0,0.064,-0.06+i*0.036);
+    // Compact scope
+    a(g,cy(0.020,0.020,0.200,10,mat(0x111111,0.4,0.3)),0,0.088, 0.04,H);
+    a(g,cy(0.012,0.012,0.008,10,mat(0x003344,0.2,0.5,0x000011)),0,0.088,-0.06,H);
+    // Bolt retention clip
+    a(g,bx(0.010,0.018,0.060,M.slt),    0, 0.054,-0.12);
+    // Butt stock
+    a(g,bx(0.068,0.072,0.18,M.brn),     0,-0.014, 0.40);
+    a(g,bx(0.063,0.065,0.10,M.lwd),     0,-0.012, 0.52, 0.14);
+    // Cheek piece
+    a(g,bx(0.060,0.028,0.12,M.brn),     0, 0.044, 0.40);
+  }
+
+  return g;
+}
+
+// ── WEAPON STATE ───────────────────────────────────────────────
+let wKey='pistol', wD=WD.pistol;
+let ammo=wD.mag, reloading=false, rldT=0, cdT=0, aiming=false;
+let bstLeft=0, bstT=0;
+
+function rebuildGun(key){
+  if(gunModel){ gunGrp.remove(gunModel); gunModel=null; }
+  gunModel = buildGun(WD[key].mdl);
+  gunGrp.add(gunModel);
+  gunKickZ=0; gunKickRX=0;
+}
+
+// ── MAP ────────────────────────────────────────────────────────
+const LIM=100, PR=0.85, EYH=1.7;
+const OBST=[], PLATS=[];
+
+const gnd = new THREE.Mesh(new THREE.PlaneGeometry(260,260), new THREE.MeshStandardMaterial({color:0x161a20,roughness:1}));
+gnd.rotation.x=-Math.PI/2; gnd.receiveShadow=true; scene.add(gnd);
+scene.add(Object.assign(new THREE.GridHelper(260,120,0x00aa44,0x0e1a10),{position:{x:0,y:0.02,z:0}}));
+
+function addBox(x,y,z,w,h,d,col,coll=true){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:col,roughness:0.9}));
+  m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; scene.add(m);
+  if(coll) OBST.push({x,z,hw:w/2,hd:d/2});
+  return m;
+}
+function addPlat(x,y,z,w,h,d,col){
+  addBox(x,y,z,w,h,d,col,false);
+  PLATS.push({x,z,hw:w/2,hd:d/2,top:y+h/2});
+}
+
+// Boundary walls
+addBox(0,4,-LIM,200,8,2,0x4e535b); addBox(0,4,LIM,200,8,2,0x4e535b);
+addBox(-LIM,4,0,2,8,200,0x4e535b); addBox(LIM,4,0,2,8,200,0x4e535b);
+// Cover — NOTE: spawn is at z=60, all cover placed away from there
+addBox(0,1.5,0,12,3,4,0x6b4e34);
+addBox(-24,1.5,-14,6,3,6,0x6b4e34); addBox(26,2,-18,8,4,4,0x6b4e34);
+addBox(-20,1.5,22,8,3,5,0x6b4e34);  addBox(18,1.5,24,5,3,9,0x6b4e34);
+addBox(0,1.5,34,14,3,2,0x6b4e34);   addBox(0,1.5,-36,14,3,2,0x6b4e34);
+addBox(-40,2,0,10,4,4,0x3f4a56);    addBox(40,2,10,10,4,4,0x3f4a56);
+addBox(-42,3,-28,6,6,6,0x3f4a56);   addBox(36,3,-32,6,6,6,0x3f4a56);
+addBox(-60,2,50,8,4,4,0x3f4a56);    addBox(60,2,-50,8,4,4,0x3f4a56);
+addBox(0,2,-70,20,4,4,0x6b4e34);    addBox(-70,2,0,4,4,20,0x6b4e34);
+// New cover near spawn area (z≈60) — pushed to sides so spawn is clear
+addBox(-30,1.5,60,6,3,6,0x3f4a56);  addBox(30,1.5,60,6,3,6,0x3f4a56);
+addBox(0,1.5,75,14,3,4,0x6b4e34);
+// Platforms
+addPlat(70,1,70,8,2,8,0x00aa88);    addPlat(80,4,58,5,1,5,0x2f7df6);
+addPlat(93,8,47,4.5,1,4.5,0x2f7df6);addPlat(82,13,33,4,1,4,0x2f7df6);
+addPlat(98,19,20,3.8,1,3.8,0x2f7df6);addPlat(84,26,6,3.4,1,3.4,0x2f7df6);
+addPlat(102,34,-10,3.2,1,3.2,0x2f7df6);addPlat(86,43,-26,3,1,3,0x2f7df6);
+addPlat(105,53,-44,2.8,1,2.8,0x00ffcc);
+addBox(70,4,70,2,8,2,0x234d77); addBox(105,26,-44,2,52,2,0x234d77);
+
+function isBlocked(x,z,pad){
+  pad=pad||PR;
+  for(const o of OBST){ if(x>o.x-o.hw-pad&&x<o.x+o.hw+pad&&z>o.z-o.hd-pad&&z<o.z+o.hd+pad) return true; }
+  return false;
+}
+function getPlatFloor(x,y,z){
+  let b=0;
+  for(const p of PLATS){ if(x>p.x-p.hw-0.3&&x<p.x+p.hw+0.3&&z>p.z-p.hd-0.3&&z<p.z+p.hd+0.3&&y>=p.top-1.9&&y<=p.top+1.5&&p.top>b) b=p.top; }
+  return b;
+}
+
+// ── ENEMIES ────────────────────────────────────────────────────
+const enemies=[], bullets=[], parts=[];
+let score=0, playerHP=100, gameOver=false;
+function enemyMaxHP(){ return 3+Math.floor(score/800); }
+
+function makeEnemy(){
+  const g=new THREE.Group();
+  const maxHP=enemyMaxHP();
+  const bm=new THREE.MeshStandardMaterial({color:0xaa2222,roughness:0.8});
+  const dm=new THREE.MeshStandardMaterial({color:0x551111,roughness:0.8});
+  const sm=new THREE.MeshStandardMaterial({color:0xc78f6b,roughness:0.9});
+  const em=new THREE.MeshBasicMaterial({color:0xff3333});
+  function pa(geo,mat2,x,y,z){ const m=new THREE.Mesh(geo,mat2); m.position.set(x,y,z); m.castShadow=true; g.add(m); return m; }
+  pa(new THREE.BoxGeometry(1.1,1.4,0.65),bm,0,2.2,0);
+  pa(new THREE.BoxGeometry(0.75,0.75,0.75),sm,0,3.35,0);
+  pa(new THREE.BoxGeometry(0.09,0.09,0.09),em,-0.16,3.38,0.39);
+  pa(new THREE.BoxGeometry(0.09,0.09,0.09),em, 0.16,3.38,0.39);
+  const aLG=new THREE.Group(); aLG.position.set(-0.72,2.65,0);
+  const al=new THREE.Mesh(new THREE.BoxGeometry(0.28,1.1,0.28),dm); al.position.y=-0.45; al.castShadow=true; aLG.add(al); g.add(aLG);
+  const aRG=new THREE.Group(); aRG.position.set(0.72,2.65,0);
+  const ar=new THREE.Mesh(new THREE.BoxGeometry(0.28,1.1,0.28),dm); ar.position.y=-0.45; ar.castShadow=true; aRG.add(ar); g.add(aRG);
+  const lLG=new THREE.Group(); lLG.position.set(-0.28,1.5,0);
+  const ll=new THREE.Mesh(new THREE.BoxGeometry(0.32,1.25,0.32),dm); ll.position.y=-0.62; ll.castShadow=true; lLG.add(ll); g.add(lLG);
+  const lRG=new THREE.Group(); lRG.position.set(0.28,1.5,0);
+  const lr=new THREE.Mesh(new THREE.BoxGeometry(0.32,1.25,0.32),dm); lr.position.y=-0.62; lr.castShadow=true; lRG.add(lr); g.add(lRG);
+  const barBg=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.16),new THREE.MeshBasicMaterial({color:0x330000,side:THREE.DoubleSide,depthTest:false}));
+  barBg.position.set(0,4.2,0); barBg.renderOrder=1; g.add(barBg);
+  const barFg=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.16),new THREE.MeshBasicMaterial({color:0x00ff44,side:THREE.DoubleSide,depthTest:false}));
+  barFg.position.set(0,4.2,0.01); barFg.renderOrder=2; g.add(barFg);
+  g.userData={aLG,aRG,lLG,lRG,walkT:Math.random()*10,hp:maxHP,maxHP,bm,sm,barBg,barFg,flashT:0};
+  return g;
+}
+function spawnEnemy(){
+  if(gameOver) return;
+  const e=makeEnemy(); let ok=false,t=0;
+  while(!ok&&t<40){
+    const ang=Math.random()*Math.PI*2,d=35+Math.random()*40;
+    const x=Math.cos(ang)*d,z=Math.sin(ang)*d;
+    if(!isBlocked(x,z,1.5)){e.position.set(x,0,z);ok=true;}
+    t++;
+  }
+  if(!ok) e.position.set(22,0,22);
+  scene.add(e); enemies.push(e);
+}
+setInterval(spawnEnemy,2400);
+
+// ── BULLETS ────────────────────────────────────────────────────
+function makeBullet(wd){
+  const g=new THREE.Group();
+  const tipM=new THREE.MeshStandardMaterial({color:wd.bc,roughness:0.3,metalness:0.6,emissive:wd.mdl==='laser'?0x004444:0});
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(wd.bs[0],wd.bs[2]*0.45,10),tipM);
+  tip.rotation.x=H; tip.position.z=-wd.bs[2]*0.15; g.add(tip);
+  const shell=new THREE.Mesh(new THREE.CylinderGeometry(wd.bs[1],wd.bs[1],wd.bs[2]*0.6,10),new THREE.MeshStandardMaterial({color:0xb68b3b,roughness:0.4,metalness:0.75}));
+  shell.rotation.x=H; shell.position.z=wd.bs[2]*0.18; g.add(shell);
+  return g;
+}
+
+// ── PLAYER ─────────────────────────────────────────────────────
+let mF=false,mB=false,mL=false,mR=false;
+const vel=new THREE.Vector3(); let yVel=0,onGnd=true;
+const GRAV=18, JUMP=8;
+let lastT=performance.now();
+
+// ── EVENTS ─────────────────────────────────────────────────────
+instrEl.addEventListener('click',()=>{ if(gameOver||(score===0&&enemies.length===0)) resetGame(); ctrl.lock(); });
+ctrl.addEventListener('lock',()=>instrEl.style.display='none');
+ctrl.addEventListener('unlock',()=>{ if(!gameOver) instrEl.style.display='block'; });
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('mousedown',e=>{ if(!ctrl.isLocked||gameOver) return; if(e.button===0) shoot(); if(e.button===2) aiming=true; });
+document.addEventListener('mouseup',e=>{ if(e.button===2) aiming=false; });
+document.addEventListener('keydown',e=>{
+  if(e.code==='KeyW') mF=true; if(e.code==='KeyS') mB=true;
+  if(e.code==='KeyA') mL=true; if(e.code==='KeyD') mR=true;
+  if(e.code==='KeyR') startReload();
+  if(e.code==='Space'&&onGnd&&ctrl.isLocked&&!gameOver){ yVel=JUMP; onGnd=false; }
+  const mp={Digit1:'pistol',Digit2:'smg',Digit3:'ar',Digit4:'shotgun',Digit5:'sniper',
+            Digit6:'revolver',Digit7:'mg',Digit8:'burst',Digit9:'laser',Digit0:'dbshot',
+            KeyQ:'minigun',KeyE:'crossbow'};
+  if(mp[e.code]) switchWep(mp[e.code]);
+});
+document.addEventListener('keyup',e=>{
+  if(e.code==='KeyW') mF=false; if(e.code==='KeyS') mB=false;
+  if(e.code==='KeyA') mL=false; if(e.code==='KeyD') mR=false;
+});
+
+// ── WEAPON FNS ─────────────────────────────────────────────────
+function updateUI(){ wnameEl.innerText=wD.n; ammoEl.innerText=ammo; maxAmEl.innerText=wD.mag; }
+function updateWBar(){
+  wbarEl.innerHTML='';
+  WKEYS.forEach(k=>{ const d=document.createElement('div'); d.className='wslot'+(k===wKey?' active':''); d.innerHTML=`<div class="wk">${WD[k].k}</div><div class="wn">${WD[k].n}</div>`; wbarEl.appendChild(d); });
+}
+function switchWep(key){
+  if(gameOver||key===wKey) return;
+  wKey=key; wD=WD[key]; ammo=wD.mag;
+  reloading=false; rldT=0; cdT=0; bstLeft=0; bstT=0; rldTxt.innerText='';
+  rebuildGun(key); updateUI(); updateWBar();
+}
+function startReload(){ if(gameOver||reloading||ammo===wD.mag) return; reloading=true; rldT=wD.rld; rldTxt.innerText='재장전 중...'; }
+function finishReload(){ ammo=wD.mag; reloading=false; rldT=0; rldTxt.innerText=''; ammoEl.innerText=ammo; }
+
+function fireSingle(){
+  const spr=aiming?wD.spr*0.35:wD.spr;
+  for(let i=0;i<wD.pel;i++){
+    const b=makeBullet(wD);
+    const dir=new THREE.Vector3(); camera.getWorldDirection(dir);
+    dir.x+=(Math.random()-0.5)*spr; dir.y+=(Math.random()-0.5)*spr; dir.z+=(Math.random()-0.5)*spr; dir.normalize();
+    b.position.copy(camera.position).addScaledVector(dir,0.9); b.position.y-=0.08;
+    b.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir);
+    b.userData.vel=dir.clone().multiplyScalar(wD.spd); b.userData.life=0;
+    scene.add(b); bullets.push(b);
+  }
+  ammo--; ammoEl.innerText=ammo;
+  if(ammo<=0) rldTxt.innerText='탄약 없음! R키로 재장전';
+  gunKickZ+=wD.rcG; gunKickRX+=wD.rcRX;
+  fireFl.style.background='rgba(255,255,255,0.08)';
+  setTimeout(()=>fireFl.style.background='rgba(255,255,255,0)',55);
+}
+function shoot(){
+  if(gameOver||reloading||cdT>0) return;
+  if(ammo<=0){ rldTxt.innerText='탄약 없음! R키로 재장전'; return; }
+  if(wD.bst){ fireSingle(); bstLeft=wD.bst-1; bstT=wD.bdt; } else fireSingle();
+  cdT=wD.cd;
+}
+
+// ── RESET / END ────────────────────────────────────────────────
+function clearAll(){
+  enemies.forEach(e=>scene.remove(e)); enemies.length=0;
+  bullets.forEach(b=>scene.remove(b)); bullets.length=0;
+  parts.forEach(p=>scene.remove(p));   parts.length=0;
+}
+function resetGame(){
+  clearAll();
+  score=0; playerHP=100; gameOver=false;
+  wKey='pistol'; wD=WD.pistol; ammo=wD.mag;
+  reloading=false; rldT=0; cdT=0; bstLeft=0; bstT=0; aiming=false;
+  mF=mB=mL=mR=false; vel.set(0,0,0); yVel=0; onGnd=true;
+  gunKickZ=0; gunKickRX=0;
+  scoreEl.innerText='0'; hpBar.style.width='100%';
+  rldTxt.innerText=''; dmgTxt.innerText=''; ehpTxt.innerText='';
+  // Spawn at (0, EYH, 60) — open area, no obstacles
+  ctrl.getObject().position.set(0, EYH, 60);
+  camera.rotation.set(0,0,0);
+  camera.fov=75; camera.updateProjectionMatrix();
+  gunGrp.position.set(0.24,-0.24,-0.50);
+  gunGrp.rotation.set(0,0,0);
+  rebuildGun('pistol'); updateUI(); updateWBar();
+  instrEl.innerHTML=`<h1>TACTICAL SURVIVAL</h1>
+    <p>클릭하여 전투 시작</p>
+    <p>W A S D 이동 &nbsp;|&nbsp; SPACE 점프 &nbsp;|&nbsp; 좌클릭 사격 &nbsp;|&nbsp; 우클릭 조준 &nbsp;|&nbsp; R 재장전</p>
+    <p>1~0 / Q / E &nbsp;무기 선택 (12종)</p>
+    <div class="hint">12종 무기 · 적 체력바 · 총기 반동 · 벽 슬라이딩</div>`;
+  for(let i=0;i<5;i++) spawnEnemy();
+}
+function endGame(){
+  gameOver=true; ctrl.unlock(); instrEl.style.display='block';
+  instrEl.innerHTML=`<h1>GAME OVER</h1><p style="font-size:20px;margin:12px 0;color:#ff5555;">최종 점수: <strong style="color:#fff">${score}</strong></p><p>클릭해서 다시 시작</p>`;
+}
+
+// ── UPDATE PLAYER ──────────────────────────────────────────────
+function updatePlayer(dt){
+  vel.x-=vel.x*10*dt; vel.z-=vel.z*10*dt;
+  if(mF) vel.z-=120*dt; if(mB) vel.z+=120*dt;
+  if(mL) vel.x-=120*dt; if(mR) vel.x+=120*dt;
+  const yawObj=ctrl.getObject();
+  const px=yawObj.position.x, pz=yawObj.position.z;
+  ctrl.moveRight(vel.x*dt); ctrl.moveForward(-vel.z*dt);
+  const dx=yawObj.position.x-px, dz=yawObj.position.z-pz;
+  yawObj.position.x=px; yawObj.position.z=pz;
+  yawObj.position.x=Math.max(-LIM+2,Math.min(LIM-2,px+dx));
+  if(isBlocked(yawObj.position.x,yawObj.position.z,PR)) yawObj.position.x=px;
+  yawObj.position.z=Math.max(-LIM+2,Math.min(LIM-2,pz+dz));
+  if(isBlocked(yawObj.position.x,yawObj.position.z,PR)) yawObj.position.z=pz;
+  const pf=getPlatFloor(yawObj.position.x,yawObj.position.y-EYH,yawObj.position.z);
+  const flY=Math.max(0,pf);
+  yVel-=GRAV*dt; yawObj.position.y+=yVel*dt;
+  const minY=flY+EYH;
+  if(yawObj.position.y<=minY){ yawObj.position.y=minY; yVel=0; onGnd=true; } else onGnd=false;
+}
+
+// ── UPDATE GUN RECOIL ──────────────────────────────────────────
+function updateGunRecoil(dt){
+  gunKickZ*=Math.pow(0.04,dt); gunKickRX*=Math.pow(0.04,dt);
+  if(Math.abs(gunKickZ)<0.0005) gunKickZ=0;
+  if(Math.abs(gunKickRX)<0.0005) gunKickRX=0;
+  const ax=aiming?0.02:0.24, ay=aiming?-0.13:-0.24, az=aiming?-0.28:-0.50;
+  gunGrp.position.x+=(ax-gunGrp.position.x)*0.16;
+  gunGrp.position.y+=(ay-gunGrp.position.y)*0.16;
+  gunGrp.position.z+=(az+gunKickZ-gunGrp.position.z)*0.14;
+  gunGrp.rotation.x+=(gunKickRX-gunGrp.rotation.x)*0.16;
+  gunGrp.rotation.y+=(0-gunGrp.rotation.y)*0.14;
+  gunGrp.rotation.z+=(0-gunGrp.rotation.z)*0.14;
+}
+
+// ── UPDATE AIM ─────────────────────────────────────────────────
+function updateAim(){
+  const tFov=aiming?wD.aFov:wD.hFov;
+  camera.fov+=(tFov-camera.fov)*0.16; camera.updateProjectionMatrix();
+  if(aiming) xhEl.classList.add('ads'); else xhEl.classList.remove('ads');
+}
+
+// ── UPDATE TIMERS ──────────────────────────────────────────────
+function updateTimers(dt){
+  if(reloading){ rldT-=dt; rldTxt.innerText='재장전 중... '+Math.max(0,rldT).toFixed(1)+'초'; if(rldT<=0) finishReload(); }
+  if(cdT>0) cdT-=dt;
+  if(bstLeft>0){ bstT-=dt; if(bstT<=0&&ammo>0&&!reloading){ fireSingle(); bstLeft--; bstT=wD.bdt; } else if(ammo<=0) bstLeft=0; }
+  if(wKey==='minigun'&&gunModel) gunModel.rotation.z+=dt*(cdT>0?25:5);
+}
+
+// ── UPDATE ENEMIES ─────────────────────────────────────────────
+let ehpFlash=0;
+function updateEnemies(dt){
+  const yawObj=ctrl.getObject();
+  const cf=new THREE.Vector3(yawObj.position.x,0,yawObj.position.z);
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i]; const ud=e.userData;
+    const ef=new THREE.Vector3(e.position.x,0,e.position.z);
+    const dir=new THREE.Vector3().subVectors(cf,ef); const dist=dir.length();
+    if(dist>0.001) dir.normalize();
+    if(dist>2.3){ const op=e.position.clone(); e.position.addScaledVector(dir,0.85*dt); if(isBlocked(e.position.x,e.position.z,0.8)) e.position.copy(op); }
+    e.lookAt(camera.position.x,2.2,camera.position.z);
+    if(dist>2.3) ud.walkT+=dt*7;
+    const sw=dist>2.3?Math.sin(ud.walkT)*0.6:0;
+    ud.aLG.rotation.x=sw; ud.aRG.rotation.x=-sw; ud.lLG.rotation.x=-sw; ud.lRG.rotation.x=sw;
+    const ratio=Math.max(0,ud.hp/ud.maxHP);
+    if(ud.barFg){ ud.barFg.scale.x=ratio; ud.barFg.position.x=(ratio-1)*0.6; ud.barFg.material.color.setHSL(ratio*0.33,1,0.45); ud.barFg.lookAt(camera.position); }
+    if(ud.barBg) ud.barBg.lookAt(camera.position);
+    if(ud.flashT>0){ ud.flashT-=dt; const t=Math.max(0,ud.flashT/0.15); ud.bm.color.setRGB(1,t*0.4,t*0.4); ud.sm.color.setRGB(0.78+t*0.22,0.56+t*0.44,0.42+t*0.58); }
+    if(dist<2.3&&Math.abs(yawObj.position.y-EYH)<3.5){
+      playerHP-=13*dt; if(playerHP<0) playerHP=0;
+      hpBar.style.width=playerHP+'%';
+      hitFl.style.background='rgba(255,0,0,0.2)';
+      setTimeout(()=>hitFl.style.background='rgba(255,0,0,0)',120);
+      if(playerHP<=0){ endGame(); return; }
+    }
+  }
+}
+
+// ── UPDATE BULLETS ─────────────────────────────────────────────
+function updateBullets(dt){
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    b.position.addScaledVector(b.userData.vel,dt); b.userData.life+=dt;
+    if(isBlocked(b.position.x,b.position.z,0.1)){ scene.remove(b); bullets.splice(i,1); continue; }
+    let rm=false;
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j]; const ud=e.userData;
+      if(Math.abs(b.position.x-e.position.x)<0.95&&Math.abs(b.position.z-e.position.z)<0.95&&b.position.y>0.2&&b.position.y<4.0){
+        ud.hp-=wD.dmg; ud.flashT=0.15;
+        dmgTxt.innerText='-'+wD.dmg.toFixed(1)+' DMG'; ehpFlash=1.5;
+        if(ud.hp>0) ehpTxt.innerText='적 HP: '+ud.hp.toFixed(1)+' / '+ud.maxHP;
+        else { spawnFX(e.position.clone()); scene.remove(e); enemies.splice(j,1); score+=100; scoreEl.innerText=score; ehpTxt.innerText='적 처치!'; }
+        scene.remove(b); bullets.splice(i,1); rm=true; break;
+      }
+    }
+    if(rm) continue;
+    if(b.userData.life>3.8){ scene.remove(b); bullets.splice(i,1); }
+  }
+  if(ehpFlash>0){ ehpFlash-=dt; if(ehpFlash<=0){ ehpTxt.innerText=''; dmgTxt.innerText=''; } }
+}
+
+function spawnFX(pos){
+  for(let i=0;i<10;i++){
+    const p=new THREE.Mesh(new THREE.SphereGeometry(0.07+Math.random()*0.06,4,4),new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(0,0.9,0.3+Math.random()*0.3)}));
+    p.position.copy(pos); p.position.y=1.5+Math.random()*1.5;
+    p.userData.vel=new THREE.Vector3((Math.random()-0.5)*6,1+Math.random()*3,(Math.random()-0.5)*6); p.userData.life=0.55+Math.random()*0.4;
+    scene.add(p); parts.push(p);
+  }
+}
+function updateFX(dt){ for(let i=parts.length-1;i>=0;i--){ const p=parts[i]; p.userData.vel.y-=14*dt; p.position.addScaledVector(p.userData.vel,dt); p.userData.life-=dt; if(p.userData.life<=0){scene.remove(p);parts.splice(i,1);} } }
+
+// ── MAIN LOOP ──────────────────────────────────────────────────
+function animate(){
+  requestAnimationFrame(animate);
+  const now=performance.now(), dt=Math.min((now-lastT)/1000,0.05); lastT=now;
+  if(ctrl.isLocked&&!gameOver){
+    updatePlayer(dt); updateGunRecoil(dt); updateAim();
+    updateTimers(dt); updateEnemies(dt); updateBullets(dt); updateFX(dt);
+  }
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{ camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+hpBar.style.width='100%';
+rebuildGun('pistol');
+updateWBar();
+resetGame();
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>TACTICAL SURVIVAL</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
+#ui{position:absolute;top:18px;left:18px;color:#e0e0e0;z-index:10;pointer-events:none;text-shadow:1px 1px 6px #000;user-select:none}
+.label{font-size:11px;letter-spacing:2px;color:#aaa;margin-bottom:3px}
+.bar-wrap{width:220px;height:14px;background:rgba(255,0,0,0.2);border:1px solid rgba(255,80,80,0.5);margin-bottom:14px}
+#hp-bar{height:100%;background:linear-gradient(90deg,#c0392b,#e74c3c);transition:width 0.1s}
+#score-text{font-size:20px;font-weight:bold;margin-bottom:6px}
+#weapon-text{font-size:16px;color:#7ecfff;margin-bottom:3px}
+#ammo-text{font-size:14px;margin-bottom:4px}
+#reload-text{font-size:13px;color:#7ec8ff;min-height:18px}
+#dmg-text{font-size:13px;color:#ffaa44;min-height:18px}
+#ehp-text{font-size:11px;color:#ff9966;min-height:16px}
+#weapon-bar{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:10;pointer-events:none}
+.wslot{width:60px;height:50px;background:rgba(0,0,0,0.65);border:1px solid rgba(255,255,255,0.12);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#888;font-size:9px;transition:all 0.12s}
+.wslot.active{background:rgba(30,100,180,0.4);border-color:rgba(80,180,255,0.7);color:#fff}
+.wslot .wk{font-size:9px;color:#555;margin-bottom:2px}
+.wslot.active .wk{color:#7ecfff}
+.wslot .wn{font-size:8px;text-align:center;line-height:1.3}
+.wslot.wlocked{opacity:0.2;cursor:not-allowed;pointer-events:none;}
+#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;pointer-events:none}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(0,255,100,0.9);transition:all 0.08s}
+#crosshair::before{width:2px;height:16px;top:-8px;left:-1px}
+#crosshair::after{width:16px;height:2px;left:-8px;top:-1px}
+#crosshair.ads::before{height:6px;top:-3px}
+#crosshair.ads::after{width:6px;left:-3px}
+#crosshair .dot{position:absolute;width:3px;height:3px;background:rgba(0,255,100,0.95);border-radius:50%;top:-1.5px;left:-1.5px}
+#instructions{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.93);color:#fff;padding:36px 48px;text-align:center;border:1px solid rgba(0,255,100,0.35);cursor:pointer;z-index:20;min-width:460px}
+#instructions h1{font-size:28px;letter-spacing:6px;color:#00ff88;margin-bottom:14px}
+#instructions p{color:#bbb;margin:6px 0;font-size:13px;line-height:1.8}
+.hint{color:#555;font-size:11px;margin-top:16px}
+/* Hit zone indicator */
+#hit-zone-txt{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);z-index:15;pointer-events:none;font-family:'Courier New',monospace;font-weight:bold;font-size:22px;letter-spacing:3px;text-shadow:0 0 12px currentColor;opacity:0;transition:opacity 0.06s;white-space:nowrap}
+#hit-zone-txt.headshot{color:#ff4444;font-size:28px;letter-spacing:4px}
+#hit-zone-txt.bodyshot{color:#ffaa33}
+#hit-zone-txt.armshot{color:#88ccff}
+#hit-zone-txt.legshot{color:#aaaaff}
+#hit-flash{position:absolute;inset:0;background:rgba(255,0,0,0);pointer-events:none;z-index:8;transition:background 0.1s}
+#fire-flash{position:absolute;inset:0;background:rgba(255,255,255,0);pointer-events:none;z-index:8;transition:background 0.06s}
+/* Wave HUD */
+#wave-hud{position:absolute;top:18px;right:18px;color:#e0e0e0;z-index:10;pointer-events:none;text-align:right;text-shadow:1px 1px 6px #000}
+#wave-hud .wlabel{font-size:11px;letter-spacing:2px;color:#aaa}
+#wave-hud .wval{font-size:22px;font-weight:bold;color:#00ff88}
+#wave-hud .kprog{font-size:13px;color:#aaa;margin-top:3px}
+#wave-hud .kbar-wrap{width:160px;height:8px;background:rgba(0,255,80,0.12);border:1px solid rgba(0,255,80,0.3);margin-top:4px;margin-left:auto}
+#wave-hud .kbar{height:100%;background:linear-gradient(90deg,#00cc66,#00ff88);transition:width 0.2s}
+/* Upgrade select overlay (between waves within a stage) */
+#stage-select{display:none;position:absolute;inset:0;z-index:30;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;flex-direction:column}
+#stage-select.active{display:flex}
+#stage-select h2{font-size:30px;letter-spacing:5px;color:#00ff88;margin-bottom:6px;font-family:'Courier New',monospace}
+#stage-select .sub{color:#777;font-size:13px;letter-spacing:2px;margin-bottom:36px;font-family:'Courier New',monospace}
+#stage-cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;max-width:900px}
+.stage-card{width:240px;background:rgba(10,20,30,0.95);border:1px solid rgba(0,255,80,0.25);padding:26px 22px;cursor:pointer;font-family:'Courier New',monospace;transition:all 0.18s;position:relative;overflow:hidden}
+.stage-card:hover{border-color:rgba(0,255,140,0.8);background:rgba(0,40,20,0.95);transform:translateY(-3px);box-shadow:0 0 30px rgba(0,255,80,0.15)}
+.stage-card .icon{font-size:32px;margin-bottom:12px;display:block}
+.stage-card .cname{font-size:15px;color:#fff;letter-spacing:1px;margin-bottom:8px;font-weight:bold}
+.stage-card .cdesc{font-size:11px;color:#888;line-height:1.7}
+.stage-card .ctag{position:absolute;top:10px;right:12px;font-size:9px;letter-spacing:1px;padding:2px 6px;border-radius:2px}
+.tag-heal{background:rgba(0,200,100,0.2);color:#00cc66;border:1px solid rgba(0,200,100,0.3)}
+.tag-atk{background:rgba(255,80,0,0.2);color:#ff8844;border:1px solid rgba(255,80,0,0.3)}
+.tag-def{background:rgba(0,100,255,0.2);color:#4488ff;border:1px solid rgba(0,100,255,0.3)}
+.tag-util{background:rgba(180,0,255,0.2);color:#cc66ff;border:1px solid rgba(180,0,255,0.3)}
+.tag-risk{background:rgba(255,0,60,0.2);color:#ff4466;border:1px solid rgba(255,0,60,0.3)}
+#stage-select .wave-clear{font-size:16px;color:#ffdd88;margin-bottom:4px;font-family:'Courier New',monospace}
+/* Stage Lobby overlay */
+#stage-lobby{display:none;position:absolute;inset:0;z-index:35;background:rgba(0,0,2,0.97);align-items:center;justify-content:center;flex-direction:column}
+#stage-lobby.active{display:flex}
+#stage-lobby h2{font-size:34px;letter-spacing:7px;color:#00ff88;margin-bottom:6px;font-family:'Courier New',monospace}
+#stage-lobby .lsub{color:#555;font-size:12px;letter-spacing:3px;margin-bottom:28px;font-family:'Courier New',monospace}
+.lobby-clear-msg{font-size:19px;color:#ffdd88;margin-bottom:4px;font-family:'Courier New',monospace;letter-spacing:1px}
+.lobby-score{font-size:12px;color:#666;margin-bottom:26px;font-family:'Courier New',monospace;letter-spacing:1px}
+#lobby-cards{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;max-width:1300px}
+.lobby-card{width:160px;background:rgba(8,16,24,0.98);border:1px solid rgba(0,255,80,0.18);padding:26px 16px 20px;text-align:center;font-family:'Courier New',monospace;transition:all 0.18s;cursor:pointer;position:relative}
+.lobby-card:hover:not(.lk){border-color:rgba(0,255,140,0.75);background:rgba(0,35,18,0.98);transform:translateY(-4px);box-shadow:0 0 28px rgba(0,255,80,0.18)}
+.lobby-card.lk{opacity:0.3;cursor:not-allowed;pointer-events:none}
+.lobby-card.lclr{border-color:rgba(0,200,80,0.45)}
+.lobby-card .li{font-size:34px;display:block;margin-bottom:12px}
+.lobby-card .ln{font-size:13px;color:#eee;font-weight:bold;letter-spacing:1px;margin-bottom:3px}
+.lobby-card .ls{font-size:9px;color:#444;letter-spacing:1px;margin-bottom:10px;text-transform:uppercase}
+.lobby-card .ldiff{display:flex;gap:4px;justify-content:center;margin:8px 0}
+.lobby-card .lstar{width:9px;height:9px;border-radius:50%;background:#1a1a1a;border:1px solid #333}
+.lobby-card .lstar.on{background:#ffcc00;border-color:#ffcc00;box-shadow:0 0 5px rgba(255,200,0,0.5)}
+.lobby-card .ldesc{font-size:10px;color:#666;line-height:1.7;margin-top:6px}
+.lobby-card .lwv{font-size:10px;color:#444;margin-top:10px;letter-spacing:1px}
+.lobby-card .lbadge{position:absolute;top:8px;right:9px;font-size:9px;letter-spacing:1px;padding:2px 5px}
+.lbadge-clear{color:#00cc66;border:1px solid rgba(0,200,80,0.4);background:rgba(0,100,40,0.2)}
+.lbadge-lock{font-size:13px}
+#reset-save{margin-top:28px;padding:8px 22px;background:rgba(80,0,0,0.4);border:1px solid rgba(255,60,60,0.3);color:#aa5555;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;transition:all 0.15s}
+#reset-save:hover{background:rgba(120,0,0,0.6);border-color:rgba(255,80,80,0.6);color:#ff6666}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div class="label">SURVIVOR HP</div>
+  <div class="bar-wrap"><div id="hp-bar"></div></div>
+  <div id="score-text">SCORE: <span id="score">0</span></div>
+  <div id="weapon-text">WEAPON: <span id="wname">PISTOL</span></div>
+  <div id="ammo-text">AMMO: <span id="ammo">15</span> / <span id="maxammo">15</span></div>
+  <div id="reload-text"></div>
+  <div id="dmg-text"></div>
+  <div id="ehp-text"></div>
+</div>
+<div id="crosshair"></div>
+<div id="weapon-bar"></div>
+<div id="wave-hud">
+  <div class="wlabel">STAGE <span id="stage-num">1</span> · WAVE</div>
+  <div class="wval" id="wave-num">1/3</div>
+  <div class="kprog">KILLS: <span id="kill-cur">0</span> / <span id="kill-tgt">10</span></div>
+  <div class="kbar-wrap"><div class="kbar" id="kill-bar" style="width:0%"></div></div>
+</div>
+<div id="stage-select">
+  <div class="wave-clear" id="stage-clear-txt"></div>
+  <h2>UPGRADE SELECT</h2>
+  <div class="sub">업그레이드를 선택하세요</div>
+  <div id="stage-cards"></div>
+</div>
+<div id="stage-lobby">
+  <div class="lobby-clear-msg" id="lobby-clear-msg"></div>
+  <div class="lobby-score" id="lobby-score-txt"></div>
+  <h2>STAGE SELECT</h2>
+  <div class="lsub">스테이지를 선택하세요</div>
+  <div id="lobby-cards"></div>
+</div>
+<div id="hit-flash"></div>
+<div id="fire-flash"></div>
+<div id="hit-zone-txt"></div>
+<div id="scope-overlay" style="display:none;position:absolute;inset:0;z-index:11;pointer-events:none;">
+  <!-- Vignette only - NOT full black -->
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 340px 340px at center,transparent 48%,rgba(0,0,0,0.82) 62%,rgba(0,0,0,0.96) 100%);"></div>
+  <!-- Scope ring -->
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;height:340px;border-radius:50%;border:2px solid rgba(80,180,80,0.5);box-shadow:inset 0 0 20px rgba(0,200,80,0.08);"></div>
+  <!-- Reticle lines (thin) -->
+  <div style="position:absolute;top:50%;left:calc(50% - 170px);width:120px;height:1px;background:rgba(0,220,80,0.6);transform:translateY(-50%);"></div>
+  <div style="position:absolute;top:50%;right:calc(50% - 170px);width:120px;height:1px;background:rgba(0,220,80,0.6);transform:translate(0,-50%);"></div>
+  <div style="position:absolute;left:50%;top:calc(50% - 170px);height:120px;width:1px;background:rgba(0,220,80,0.6);transform:translateX(-50%);"></div>
+  <div style="position:absolute;left:50%;bottom:calc(50% - 170px);height:120px;width:1px;background:rgba(0,220,80,0.6);transform:translate(-50%,0);"></div>
+  <!-- Center dot -->
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:4px;height:4px;border-radius:50%;background:rgba(0,255,80,0.95);box-shadow:0 0 4px rgba(0,255,80,0.6);"></div>
+  <!-- Mil-dots -->
+  <div style="position:absolute;top:50%;left:50%;transform:translate(calc(-50% + 55px),-50%);width:4px;height:4px;border-radius:50%;background:rgba(0,200,80,0.65);"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(calc(-50% - 55px),-50%);width:4px;height:4px;border-radius:50%;background:rgba(0,200,80,0.65);"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,calc(-50% + 55px));width:4px;height:4px;border-radius:50%;background:rgba(0,200,80,0.65);"></div>
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,calc(-50% - 55px));width:4px;height:4px;border-radius:50%;background:rgba(0,200,80,0.65);"></div>
+  <!-- Magnification label -->
+  <div style="position:absolute;top:calc(50% + 178px);left:50%;transform:translateX(-50%);font-family:'Courier New',monospace;font-size:11px;color:rgba(0,200,80,0.5);letter-spacing:2px;">8x</div>
+</div>
+<div id="instructions">
+  <h1>TACTICAL SURVIVAL</h1>
+  <p>클릭하여 전투 시작</p>
+  <p>W A S D 이동 | SPACE 점프 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p>
+  <p>1~0 / Q / E 무기 선택 (12종)</p>
+  <div class="hint">12종 무기 · 적 체력바 · 총기 반동 · 벽 슬라이딩</div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+// SCENE
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x080c11);
+scene.fog = new THREE.Fog(0x080c11, 30, 240);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.01, 1500);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+document.body.appendChild(renderer.domElement);
+
+// Lights
+const amb=new THREE.AmbientLight(0x606878,2.2); scene.add(amb);
+const dirL=new THREE.DirectionalLight(0xffffff,1.8);
+dirL.position.set(20,35,10); dirL.castShadow=true; dirL.shadow.mapSize.set(2048,2048); scene.add(dirL);
+const pl1=new THREE.PointLight(0x3366ff,12,100,2); pl1.position.set(55,8,-20); scene.add(pl1);
+const pl2=new THREE.PointLight(0xff4422,12,100,2); pl2.position.set(-45,8,35); scene.add(pl2);
+
+// Controls
+const ctrl=new PointerLockControls(camera,document.body);
+const yawObj=ctrl.getObject();
+scene.add(yawObj);
+yawObj.position.set(0,1.7,60);
+
+// Gun group on camera
+const gunGrp=new THREE.Group();
+camera.add(gunGrp);
+gunGrp.position.set(0.24,-0.24,-0.50);
+let gunModel=null, gunKickZ=0, gunKickRX=0;
+
+// UI
+const hpBar=document.getElementById('hp-bar');
+const scoreEl=document.getElementById('score');
+const ammoEl=document.getElementById('ammo');
+const maxAmEl=document.getElementById('maxammo');
+const rldTxt=document.getElementById('reload-text');
+const dmgTxt=document.getElementById('dmg-text');
+const ehpTxt=document.getElementById('ehp-text');
+const instrEl=document.getElementById('instructions');
+const wnameEl=document.getElementById('wname');
+const wbarEl=document.getElementById('weapon-bar');
+const hitFl=document.getElementById('hit-flash');
+const fireFl=document.getElementById('fire-flash');
+const xhEl=document.getElementById('crosshair');
+
+// Weapon data
+const WD={
+  // mag  rld  spd  dmg   spr     pel cd    aFov hFov  rcG  rcRX
+  pistol:  {n:'PISTOL',         k:'1',mag:18, rld:1.0,spd:55, dmg:1.2, spr:0.003, pel:1, cd:0.18,aFov:58,hFov:75,rcG:0.06, rcRX:0.08,bs:[0.04,0.04,0.15], bc:0xd4b06a,mdl:'pistol', auto:false},
+  smg:     {n:'SMG [AUTO]',     k:'2',mag:35, rld:1.3,spd:50, dmg:0.75,spr:0.011, pel:1, cd:0.07,aFov:62,hFov:75,rcG:0.03, rcRX:0.04,bs:[0.03,0.03,0.12], bc:0xffaa44,mdl:'smg',    auto:true},
+  ar:      {n:'RIFLE [AUTO]',   k:'3',mag:30, rld:1.6,spd:60, dmg:1.4, spr:0.005, pel:1, cd:0.09,aFov:56,hFov:75,rcG:0.05, rcRX:0.07,bs:[0.038,0.038,0.18],bc:0xcccccc,mdl:'ar',    auto:true},
+  shotgun: {n:'SHOTGUN',        k:'4',mag:8,  rld:1.6,spd:38, dmg:1.0, spr:0.042, pel:8, cd:0.65,aFov:63,hFov:75,rcG:0.13, rcRX:0.18,bs:[0.04,0.04,0.14], bc:0xffcc66,mdl:'shotgun',auto:false},
+  sniper:  {n:'SNIPER RIFLE',   k:'5',mag:5,  rld:2.2,spd:120,dmg:5.0, spr:0.0002,pel:1, cd:1.0, aFov:18,hFov:75,rcG:0.18, rcRX:0.25,bs:[0.028,0.028,0.26],bc:0xcfcfcf,mdl:'sniper',auto:false,scope:true},
+  revolver:{n:'REVOLVER',       k:'6',mag:6,  rld:1.8,spd:68, dmg:2.8, spr:0.002, pel:1, cd:0.40,aFov:56,hFov:75,rcG:0.10, rcRX:0.14,bs:[0.048,0.048,0.18],bc:0xbb8833,mdl:'revolver',auto:false},
+  lmg:     {n:'LMG [AUTO]',     k:'7',mag:80, rld:3.5,spd:52, dmg:1.6, spr:0.018, pel:1, cd:0.085,aFov:58,hFov:75,rcG:0.05,rcRX:0.06,bs:[0.042,0.042,0.18], bc:0xff8844,mdl:'lmg',    auto:true},
+  dmr:     {n:'DMR',            k:'8',mag:12, rld:1.6,spd:90, dmg:3.2, spr:0.001, pel:1, cd:0.32,aFov:38,hFov:75,rcG:0.09, rcRX:0.13,bs:[0.032,0.032,0.22],bc:0x88aaff,mdl:'dmr',auto:false},
+  laser:   {n:'LASER [AUTO]',   k:'9',mag:25, rld:1.8,spd:0,  dmg:2.5, spr:0.000, pel:1, cd:0.12,aFov:52,hFov:75,rcG:0.02, rcRX:0.025,bs:[0.025,0.025,0.35],bc:0x00ffff,mdl:'laser',auto:true,isLaser:true},
+  plasma:  {n:'PLASMA GUN',    k:'0',mag:6,  rld:2.0,spd:45, dmg:4.5, spr:0.008, pel:1, cd:0.80,aFov:60,hFov:75,rcG:0.16, rcRX:0.22,bs:[0.055,0.055,0.16],bc:0xff44ff,mdl:'plasma',auto:false,isSplash:true},
+  minigun: {n:'MINIGUN [AUTO]', k:'Q',mag:200,rld:4.5,spd:60, dmg:0.7, spr:0.020, pel:1, cd:0.038,aFov:65,hFov:75,rcG:0.02,rcRX:0.025,bs:[0.034,0.034,0.13],bc:0xff4444,mdl:'minigun',auto:true},
+  crossbow:{n:'CROSSBOW',       k:'E',mag:1,  rld:2.2,spd:100,dmg:6.0, spr:0.000, pel:1, cd:2.2, aFov:48,hFov:75,rcG:0.11, rcRX:0.15,bs:[0.04,0.018,0.32], bc:0x44ff88,mdl:'crossbow',auto:false},
+};
+const WKEYS=Object.keys(WD);
+
+// Materials
+function mat(c,r,m,e){return new THREE.MeshStandardMaterial({color:c,roughness:r||0.7,metalness:m||0,emissive:e||0});}
+const Mb=mat(0x0d0d0d,0.5,0.2),Mg=mat(0x252525,0.7,0.3),Mm=mat(0x606060,0.4,0.6),Ms=mat(0x888888,0.3,0.7);
+const Mw=mat(0x4a3220,0.85),Ml=mat(0x6b4c2a,0.9),Mr=mat(0x111111,0.95),Ma=mat(0xaaaaaa,0.2,0.8);
+const Mc=mat(0x00bbcc,0.25,0.8,0x002233),Mco=mat(0xb87333,0.4,0.6);
+const H2=Math.PI/2;
+function Box(w,h,d,m){const s=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);s.castShadow=true;return s;}
+function Cyl(r1,r2,h,sg,m){const s=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,sg),m);s.castShadow=true;return s;}
+function Sph(r,sg,m){const s=new THREE.Mesh(new THREE.SphereGeometry(r,sg,sg),m);s.castShadow=true;return s;}
+function add(grp,mesh,x,y,z,rx,ry,rz){if(rx)mesh.rotation.x=rx;if(ry)mesh.rotation.y=ry;if(rz)mesh.rotation.z=rz;mesh.position.set(x||0,y||0,z||0);grp.add(mesh);return mesh;}
+
+function buildGun(t){
+  const g=new THREE.Group();
+  if(t==='pistol'){
+    add(g,Box(0.095,0.070,0.28,Mg),0,0.055,-0.06);
+    for(let i=0;i<5;i++)add(g,Box(0.098,0.072,0.007,Mb),0,0.055,-0.16+i*0.022);
+    add(g,Box(0.090,0.055,0.24,Mb),0,0.005,-0.05);
+    add(g,Cyl(0.018,0.018,0.06,10,Mm),0,0.045,-0.235,H2);
+    add(g,Cyl(0.021,0.021,0.008,12,Ms),0,0.045,-0.268,H2);
+    add(g,Box(0.088,0.007,0.12,Mb),0,-0.026,0);
+    add(g,Box(0.007,0.025,0.007,Mb),0,-0.018,-0.06);
+    add(g,Box(0.007,0.025,0.007,Mb),0,-0.018,0.06);
+    add(g,Box(0.006,0.028,0.012,Mm),0,-0.028,0.012,0.3);
+    add(g,Box(0.088,0.175,0.082,Mr),0,-0.120,0.058,-0.22);
+    for(let i=0;i<4;i++)add(g,Box(0.092,0.010,0.075,Mb),0,-0.065-i*0.026,0.058,-0.22);
+    add(g,Box(0.075,0.012,0.072,Mm),0,-0.214,0.054,-0.22);
+    add(g,Box(0.006,0.014,0.006,Mm),0,0.094,-0.225);
+    add(g,Box(0.032,0.010,0.006,Mm),0,0.090,0.018);
+    add(g,Box(0.010,0.014,0.006,Mm),-0.014,0.095,0.018);
+    add(g,Box(0.010,0.014,0.006,Mm),0.014,0.095,0.018);
+    add(g,Box(0.020,0.022,0.016,Mm),0,0.090,0.100,-0.3);
+    add(g,Box(0.030,0.008,0.12,Ma),0,-0.008,-0.100);
+  }
+  else if(t==='smg'){
+    add(g,Box(0.098,0.110,0.40,Mg),0,0.010,-0.04);
+    add(g,Box(0.030,0.014,0.38,Ma),0,0.068,-0.04);
+    add(g,Cyl(0.016,0.016,0.34,10,Mm),0,0.010,-0.27,H2);
+    for(let i=0;i<5;i++)add(g,Box(0.020,0.022,0.011,Mb),0,0.025,-0.10-i*0.034);
+    add(g,Cyl(0.022,0.018,0.038,6,Mm),0,0.010,-0.446,H2);
+    add(g,Box(0.048,0.095,0.040,Mr),0,-0.058,-0.22,-0.15);
+    add(g,Box(0.062,0.200,0.058,Mm),0,-0.110,0,-0.18);
+    add(g,Box(0.060,0.012,0.054,Mg),0,-0.215,0,-0.18);
+    add(g,Box(0.072,0.130,0.072,Mr),0,-0.082,0.200,-0.20);
+    add(g,Box(0.018,0.012,0.22,Mm),0,0.008,0.380);
+    add(g,Box(0.018,0.012,0.22,Mm),0,-0.030,0.380);
+    add(g,Box(0.018,0.068,0.012,Mm),0,-0.011,0.490);
+    add(g,Box(0.094,0.008,0.10,Mb),0,-0.014,0.100);
+    add(g,Box(0.006,0.030,0.012,Mm),0,-0.016,0.140,0.3);
+    add(g,Box(0.007,0.020,0.007,Mm),0,0.082,-0.360);
+    add(g,Box(0.028,0.014,0.007,Mm),0,0.080,0.060);
+    add(g,Box(0.008,0.018,0.007,Mm),-0.012,0.086,0.060);
+    add(g,Box(0.008,0.018,0.007,Mm),0.012,0.086,0.060);
+  }
+  else if(t==='ar'||t==='dmr'){
+    const iB=t==='dmr';
+    const bC=iB?mat(0x1a1a2a,0.7,0.3):Mg,lC=iB?mat(0x111122,0.8):Mb;
+    add(g,Box(0.098,0.080,0.50,bC),0,0.030,-0.04);
+    add(g,Box(0.092,0.065,0.38,lC),0,-0.025,0);
+    add(g,Cyl(0.016,0.016,0.60,12,Mm),0,0.030,-0.40,H2);
+    add(g,Cyl(0.007,0.007,0.36,6,iB?mat(0x4444aa,0.4,0.5):Mm),0,0.058,-0.28,H2);
+    add(g,Cyl(0.022,0.016,0.048,6,Mm),0,0.030,-0.70,H2);
+    for(let i=0;i<6;i++){const a2=i/6*Math.PI*2;add(g,Cyl(0.005,0.005,0.040,4,Mb),Math.cos(a2)*0.022,0.030+Math.sin(a2)*0.022,-0.70,H2);}
+    add(g,Box(0.082,0.082,0.32,Ma),0,0.030,-0.26);
+    for(let i=0;i<6;i++)add(g,Box(0.085,0.010,0.008,Mg),0,0.074,-0.12-i*0.034);
+    add(g,Box(0.090,0.008,0.110,lC),0,-0.020,0);
+    add(g,Box(0.008,0.028,0.008,lC),0,-0.010,-0.055);
+    add(g,Box(0.008,0.028,0.008,lC),0,-0.010,0.055);
+    add(g,Box(0.007,0.034,0.013,Mm),0,-0.025,0.010,0.3);
+    add(g,Box(0.072,0.140,0.072,iB?mat(0x111122,0.95):Mr),0,-0.100,0.200,-0.22);
+    for(let i=0;i<3;i++)add(g,Box(0.075,0.010,0.068,Mb),0,-0.050-i*0.032,0.200,-0.22);
+    add(g,Cyl(0.025,0.025,0.22,10,Mg),0,-0.012,0.420,H2);
+    add(g,Box(0.062,0.090,0.18,lC),0,-0.020,0.520);
+    add(g,Box(0.055,0.055,0.12,Mr),0,-0.020,0.600);
+    add(g,Box(0.058,0.028,0.10,lC),0,0.035,0.540);
+    add(g,Box(0.062,0.210,0.070,iB?mat(0x2222aa,0.6):Mb),0,-0.140,-0.06,-0.12);
+    add(g,Box(0.058,0.014,0.066,Mg),0,-0.252,-0.060,-0.12);
+    add(g,Box(0.008,0.020,0.028,Mm),0,0.072,0.040);
+    add(g,Box(0.034,0.014,0.016,Mm),0,0.078,0.040);
+    add(g,Box(0.028,0.008,0.014,Mm),0,0.076,-0.600);
+    add(g,Box(0.007,0.026,0.007,Mm),0,0.083,-0.600);
+    add(g,Box(0.028,0.008,0.014,Mm),0,0.076,0.060);
+    add(g,Box(0.008,0.020,0.007,Mm),-0.012,0.085,0.060);
+    add(g,Box(0.008,0.020,0.007,Mm),0.012,0.085,0.060);
+    if(iB)add(g,Box(0.006,0.022,0.032,mat(0x4466ff,0.3,0.5,0x001133)),0.050,0.010,-0.040);
+  }
+  else if(t==='shotgun'){
+    add(g,Box(0.112,0.138,0.46,Mg),0,0,-0.04);
+    add(g,Cyl(0.022,0.022,0.72,12,Mm),0,0,-0.46,H2);
+    add(g,Cyl(0.014,0.014,0.58,10,Mm),0,-0.042,-0.39,H2);
+    add(g,Cyl(0.017,0.017,0.014,10,Mm),0,-0.042,-0.69,H2);
+    add(g,Box(0.016,0.014,0.36,Mg),0,0.030,-0.28);
+    for(let i=0;i<8;i++)add(g,Box(0.018,0.006,0.008,Mb),0,0.038,-0.10-i*0.034);
+    add(g,Box(0.095,0.072,0.180,Ml),0,-0.010,-0.28);
+    add(g,Sph(0.007,6,Ms),0,0.028,-0.77);
+    add(g,Box(0.040,0.040,0.075,Mb),0.058,0.020,-0.04);
+    add(g,Box(0.108,0.008,0.11,Mg),0,-0.026,0.180);
+    add(g,Box(0.008,0.030,0.008,Mg),0,-0.014,0.130);
+    add(g,Box(0.008,0.030,0.008,Mg),0,-0.014,0.240);
+    add(g,Box(0.007,0.030,0.013,Mm),0,-0.028,0.190,0.3);
+    add(g,Box(0.105,0.148,0.28,Mw),0,-0.010,0.360);
+    add(g,Box(0.100,0.130,0.14,Ml),0,-0.008,0.500,0.18);
+    add(g,Box(0.095,0.040,0.14,Mw),0,0.070,0.440);
+    add(g,Box(0.010,0.075,0.14,Mg),-0.060,0.018,-0.010);
+    for(let i=0;i<4;i++)add(g,Cyl(0.008,0.008,0.072,8,Mco),-0.065,0.018,-0.04+i*0.034,H2,0,H2);
+    add(g,Box(0.006,0.008,0.28,Mm),-0.032,-0.040,-0.22);
+    add(g,Box(0.006,0.008,0.28,Mm),0.032,-0.040,-0.22);
+  }
+  else if(t==='sniper'){
+    add(g,Box(0.100,0.090,0.56,Mg),0,0.020,-0.04);
+    add(g,Cyl(0.018,0.016,1.04,12,Mm),0,0.020,-0.62,H2);
+    for(let i=0;i<4;i++){const a2=i/4*Math.PI*2;add(g,Cyl(0.004,0.004,0.70,4,Mb),Math.cos(a2)*0.016,0.020+Math.sin(a2)*0.016,-0.55,H2);}
+    add(g,Cyl(0.028,0.028,0.046,8,Mm),0,0.020,-1.14,H2);
+    add(g,Box(0.040,0.020,0.010,Mb),0,0.034,-1.120);
+    add(g,Box(0.040,0.020,0.010,Mb),0,0.034,-1.160);
+    add(g,Box(0.030,0.018,0.44,Ma),0,0.070,-0.040);
+    for(let i=0;i<8;i++)add(g,Box(0.032,0.010,0.008,Mg),0,0.080,-0.22+i*0.040);
+    add(g,Cyl(0.026,0.026,0.36,12,mat(0x111111,0.4,0.3)),0,0.110,-0.04,H2);
+    add(g,Cyl(0.036,0.026,0.060,12,mat(0x111111,0.4,0.3)),0,0.110,-0.24,H2);
+    add(g,Cyl(0.032,0.026,0.048,12,mat(0x111111,0.4,0.3)),0,0.110,0.20,H2);
+    add(g,Cyl(0.024,0.024,0.008,12,mat(0x003366,0.2,0.6,0x000011)),0,0.110,-0.26,H2);
+    add(g,Cyl(0.022,0.022,0.008,12,mat(0x003366,0.2,0.6,0x000011)),0,0.110,0.22,H2);
+    add(g,Cyl(0.038,0.038,0.020,12,Ma),0,0.090,-0.10,H2);
+    add(g,Cyl(0.038,0.038,0.020,12,Ma),0,0.090,0.08,H2);
+    add(g,Cyl(0.010,0.010,0.020,8,Mm),0,0.140,-0.02);
+    add(g,Cyl(0.010,0.010,0.020,8,Mm),0.048,0.110,-0.02,0,0,H2);
+    add(g,Cyl(0.007,0.007,0.060,8,Mm),0.052,0.020,0.02,0,0,H2);
+    add(g,Sph(0.014,8,Mm),0.082,0.020,0.02);
+    add(g,Box(0.068,0.130,0.080,Mb),0,-0.090,-0.040,-0.08);
+    add(g,Box(0.070,0.130,0.075,Mr),0,-0.085,0.280,-0.20);
+    for(let i=0;i<3;i++)add(g,Box(0.073,0.010,0.070,Mb),0,-0.050-i*0.030,0.280,-0.20);
+    add(g,Box(0.090,0.110,0.30,Mg),0,-0.005,0.460);
+    add(g,Box(0.080,0.085,0.14,Mr),0,-0.005,0.580,0.12);
+    add(g,Box(0.082,0.042,0.18,Ma),0,0.065,0.460);
+    add(g,Box(0.030,0.016,0.050,Mm),0,-0.030,-0.520);
+    add(g,Box(0.006,0.080,0.010,Mm),-0.022,-0.070,-0.520);
+    add(g,Box(0.006,0.080,0.010,Mm),0.022,-0.070,-0.520);
+  }
+  else if(t==='revolver'){
+    add(g,Cyl(0.020,0.020,0.34,12,Mm),0,0,-0.20,H2);
+    add(g,Box(0.008,0.012,0.34,Ms),0,0.025,-0.20);
+    add(g,Box(0.006,0.018,0.007,Ms),0,0.038,-0.360);
+    add(g,Cyl(0.044,0.044,0.038,12,Mm),0,0,-0.010,H2);
+    for(let i=0;i<6;i++){const a2=i/6*Math.PI*2;add(g,Cyl(0.010,0.010,0.042,8,mat(0x050505,0.8)),Math.cos(a2)*0.028,Math.sin(a2)*0.028,-0.010,H2);}
+    add(g,Cyl(0.047,0.047,0.004,12,Mb),0,0,-0.030,H2);
+    add(g,Cyl(0.047,0.047,0.004,12,Mb),0,0,0.010,H2);
+    add(g,Box(0.092,0.075,0.26,Mm),0,0,0.070);
+    add(g,Box(0.020,0.020,0.26,Mm),0,0.030,-0.120);
+    add(g,Cyl(0.012,0.012,0.26,8,Mm),0,-0.028,-0.190,H2);
+    add(g,Box(0.022,0.038,0.024,Mm),0,0.048,0.140,-0.4);
+    add(g,Box(0.020,0.010,0.030,Mm),0,0.064,0.100,-0.4);
+    add(g,Box(0.092,0.008,0.110,Mm),0,-0.024,0.180);
+    add(g,Box(0.007,0.032,0.013,Mm),0,-0.026,0.220,0.3);
+    add(g,Box(0.008,0.032,0.008,Mm),0,-0.010,0.120);
+    add(g,Box(0.008,0.032,0.008,Mm),0,-0.010,0.230);
+    add(g,Box(0.088,0.160,0.090,Ml),0,-0.098,0.170,-0.18);
+    add(g,Box(0.006,0.158,0.088,Mw),-0.047,-0.098,0.170,-0.18);
+    add(g,Box(0.006,0.158,0.088,Mw),0.047,-0.098,0.170,-0.18);
+    add(g,Box(0.034,0.014,0.008,Mm),0,0.044,0.100);
+    add(g,Box(0.010,0.018,0.008,Mm),-0.014,0.050,0.100);
+    add(g,Box(0.010,0.018,0.008,Mm),0.014,0.050,0.100);
+  }
+  else if(t==='lmg'){
+    add(g,Box(0.118,0.148,0.70,Mg),0,0.010,-0.04);
+    add(g,Cyl(0.022,0.020,0.88,12,Mm),0,0.010,-0.58,H2);
+    for(let i=0;i<4;i++){const a2=i/4*Math.PI*2;add(g,Cyl(0.004,0.004,0.60,4,Mb),Math.cos(a2)*0.020,0.010+Math.sin(a2)*0.020,-0.52,H2);}
+    add(g,Cyl(0.030,0.022,0.054,8,Mm),0,0.010,-1.02,H2);
+    add(g,Box(0.112,0.030,0.26,mat(0x303030,0.7)),0,0.090,-0.04);
+    for(let i=0;i<5;i++)add(g,Box(0.114,0.012,0.008,Mb),0,0.106,-0.12-i*0.034);
+    add(g,Box(0.040,0.130,0.180,mat(0x2a2a00,0.9)),0.085,-0.020,-0.02);
+    add(g,Box(0.040,0.016,0.100,Mg),0.060,0.046,-0.04);
+    add(g,Box(0.028,0.062,0.020,Mm),0,0.110,0.240);
+    add(g,Box(0.008,0.062,0.008,Mm),-0.012,0.110,0.240);
+    add(g,Box(0.008,0.062,0.008,Mm),0.012,0.110,0.240);
+    add(g,Box(0.075,0.145,0.075,Mr),0,-0.090,0.280,-0.20);
+    for(let i=0;i<3;i++)add(g,Box(0.078,0.012,0.070,Mb),0,-0.048-i*0.032,0.280,-0.20);
+    add(g,Box(0.095,0.110,0.30,Mg),0,-0.010,0.520);
+    add(g,Box(0.085,0.034,0.16,Ma),0,0.065,0.520);
+    add(g,Box(0.016,0.014,0.28,Mm),-0.036,-0.040,-0.50);
+    add(g,Box(0.016,0.014,0.28,Mm),0.036,-0.040,-0.50);
+    add(g,Box(0.080,0.014,0.016,Mm),0,-0.034,-0.50);
+    add(g,Box(0.114,0.009,0.120,Mg),0,-0.026,0.180);
+    add(g,Box(0.007,0.034,0.013,Mm),0,-0.028,0.220,0.3);
+  }
+  else if(t==='laser'){
+    add(g,Box(0.090,0.095,0.58,Mc),0,0.010,-0.04);
+    add(g,Box(0.014,0.092,0.54,mat(0x004455,0.4,0.6)),-0.052,0.010,-0.04);
+    add(g,Box(0.014,0.092,0.54,mat(0x004455,0.4,0.6)),0.052,0.010,-0.04);
+    add(g,Cyl(0.024,0.020,0.72,12,Mc),0,0.010,-0.50,H2);
+    add(g,Cyl(0.030,0.030,0.010,12,mat(0x00ffff,0.2,0.5,0x00aaaa)),0,0.010,-0.84,H2);
+    add(g,Cyl(0.026,0.026,0.010,12,mat(0x00eeff,0.2,0.5,0x008888)),0,0.010,-0.78,H2);
+    add(g,Cyl(0.022,0.022,0.010,12,mat(0x00ddff,0.2,0.5,0x005555)),0,0.010,-0.72,H2);
+    add(g,Cyl(0.020,0.020,0.008,12,mat(0x0033ff,0.1,0.4,0x000066)),0,0.010,-0.86,H2);
+    for(let i=0;i<6;i++)add(g,Box(0.095,0.012,0.018,mat(0x002233,0.4)),0,0.060-i*0.016,-0.18-i*0.022);
+    add(g,Box(0.068,0.130,0.095,mat(0x001122,0.5,0.7,0x000811)),0,-0.090,0.060);
+    add(g,Box(0.064,0.012,0.090,mat(0x00aacc,0.3,0.5,0x003344)),0,-0.156,0.060);
+    const lC=[0x00ff44,0xffaa00,0xff2200],lE=[0x004422,0x442200,0x220000];
+    for(let i=0;i<3;i++)add(g,Box(0.008,0.008,0.008,mat(lC[i],0.2,0,lE[i])),0.048,0.050-i*0.012,-0.14);
+    add(g,Box(0.028,0.016,0.38,Ma),0,0.060,-0.04);
+    add(g,Cyl(0.022,0.022,0.12,10,mat(0x111111,0.4,0.3)),0,0.088,-0.04,H2);
+    add(g,Cyl(0.014,0.014,0.008,10,mat(0x00ffff,0.1,0.5,0x008888)),0,0.088,-0.10,H2);
+    add(g,Box(0.070,0.130,0.075,mat(0x001122,0.9)),0,-0.085,0.300,-0.18);
+    add(g,Cyl(0.006,0.006,0.18,6,mat(0x004444,0.6)),0.048,0,0.080,0,0,H2);
+  }
+  else if(t==='plasma'){
+    add(g,Cyl(0.019,0.019,0.76,12,Mm),-0.025,0,-0.44,H2);
+    add(g,Cyl(0.019,0.019,0.76,12,Mm),0.025,0,-0.44,H2);
+    add(g,Box(0.010,0.008,0.76,Ms),0,0.021,-0.44);
+    add(g,Cyl(0.022,0.022,0.010,10,Mm),-0.025,0,-0.82,H2);
+    add(g,Cyl(0.022,0.022,0.010,10,Mm),0.025,0,-0.82,H2);
+    add(g,Sph(0.007,6,Ms),0,0.023,-0.800);
+    add(g,Box(0.110,0.112,0.38,Mg),0,-0.005,-0.040);
+    add(g,Cyl(0.016,0.016,0.100,10,Mm),0,-0.040,-0.240,0,0,H2);
+    add(g,Box(0.016,0.034,0.020,Mm),-0.030,0.044,0.100,-0.35);
+    add(g,Box(0.016,0.034,0.020,Mm),0.030,0.044,0.100,-0.35);
+    add(g,Box(0.007,0.030,0.012,Mm),-0.012,-0.024,0.220,0.3);
+    add(g,Box(0.007,0.030,0.012,Mm),0.012,-0.024,0.280,0.3);
+    add(g,Box(0.108,0.009,0.12,Mm),0,-0.022,0.190);
+    add(g,Box(0.009,0.034,0.009,Mm),0,-0.008,0.130);
+    add(g,Box(0.009,0.034,0.009,Mm),0,-0.008,0.250);
+    add(g,Box(0.105,0.145,0.30,Mw),0,-0.010,0.360);
+    add(g,Box(0.100,0.125,0.16,Ml),0,-0.008,0.520,0.16);
+    add(g,Box(0.006,0.140,0.28,Ml),-0.054,-0.010,0.360);
+    add(g,Box(0.006,0.140,0.28,Ml),0.054,-0.010,0.360);
+    add(g,Box(0.098,0.034,0.14,Mw),0,0.074,0.400);
+    add(g,Box(0.100,0.012,0.016,Ms),0,-0.038,-0.060);
+  }
+  else if(t==='minigun'){
+    add(g,Cyl(0.060,0.060,0.72,12,Mg),0,0,-0.020,H2);
+    for(let i=0;i<6;i++){const a2=i/6*Math.PI*2;const bx2=Math.cos(a2)*0.068,by2=Math.sin(a2)*0.068;add(g,Cyl(0.013,0.013,0.90,8,Mm),bx2,by2,-0.020,H2);add(g,Cyl(0.017,0.017,0.014,8,Mg),bx2,by2,-0.250,H2);}
+    add(g,Cyl(0.098,0.098,0.022,16,Ma),0,0,-0.460,H2);
+    add(g,Cyl(0.095,0.095,0.020,16,Ma),0,0,0.340,H2);
+    add(g,Cyl(0.045,0.045,0.20,12,mat(0x333333,0.6,0.3)),0,0,0.480,H2);
+    for(let i=0;i<6;i++)add(g,Cyl(0.048,0.048,0.018,12,Ma),0,0,0.390+i*0.020,H2);
+    add(g,Box(0.030,0.070,0.46,Ma),0,0.080,-0.020);
+    add(g,Box(0.040,0.060,0.28,mat(0x1a1a00,0.9)),0.090,0.010,-0.100);
+    add(g,Cyl(0.022,0.022,0.060,8,Mg),0.090,0.010,-0.240,0,0,H2);
+    add(g,Box(0.075,0.145,0.075,Mr),0,-0.080,0.300,-0.18);
+    for(let i=0;i<3;i++)add(g,Box(0.078,0.010,0.070,Mb),0,-0.044-i*0.028,0.300,-0.18);
+    add(g,Box(0.007,0.034,0.013,Mm),0,-0.028,0.240,0.3);
+    add(g,Box(0.110,0.009,0.120,Mg),0,-0.022,0.200);
+    add(g,Box(0.110,0.028,0.016,Mr),0,-0.014,0.540);
+    add(g,Box(0.008,0.070,0.016,Mm),-0.052,-0.010,0.540);
+    add(g,Box(0.008,0.070,0.016,Mm),0.052,-0.010,0.540);
+  }
+  else if(t==='crossbow'){
+    add(g,Box(0.072,0.080,0.56,Mw),0,-0.010,-0.030);
+    add(g,Box(0.066,0.074,0.52,Ml),0,-0.010,-0.030);
+    add(g,Box(0.024,0.022,0.62,Ma),0,0.042,-0.030);
+    add(g,Box(0.012,0.010,0.58,Mb),0,0.042,-0.030);
+    add(g,Box(0.380,0.022,0.048,Mw),0,0.040,-0.140);
+    add(g,Box(0.024,0.034,0.040,Mm),-0.190,0.040,-0.140);
+    add(g,Box(0.024,0.034,0.040,Mm),0.190,0.040,-0.140);
+    add(g,Box(0.006,0.006,0.372,mat(0xddddaa,0.9)),-0.093,0.062,-0.140,0,0,0.52);
+    add(g,Box(0.006,0.006,0.372,mat(0xddddaa,0.9)),0.093,0.062,-0.140,0,0,-0.52);
+    add(g,Box(0.008,0.050,0.080,Mm),-0.060,-0.018,-0.300);
+    add(g,Box(0.008,0.050,0.080,Mm),0.060,-0.018,-0.300);
+    add(g,Box(0.124,0.008,0.074,Mm),0,-0.040,-0.300);
+    add(g,Box(0.060,0.060,0.076,mat(0x333322,0.7)),0,0.012,0.100);
+    add(g,Box(0.007,0.042,0.013,Mm),0,-0.020,0.130,0.3);
+    add(g,Box(0.062,0.008,0.088,Mm),0,-0.018,0.100);
+    add(g,Box(0.026,0.014,0.32,Ma),0,0.056,0.040);
+    for(let i=0;i<5;i++)add(g,Box(0.028,0.008,0.010,Mg),0,0.064,-0.06+i*0.036);
+    add(g,Cyl(0.020,0.020,0.200,10,mat(0x111111,0.4,0.3)),0,0.088,0.040,H2);
+    add(g,Cyl(0.012,0.012,0.008,10,mat(0x003344,0.2,0.5,0x000011)),0,0.088,-0.060,H2);
+    add(g,Box(0.010,0.018,0.060,Ms),0,0.054,-0.120);
+    add(g,Box(0.068,0.072,0.18,Mw),0,-0.014,0.400);
+    add(g,Box(0.063,0.065,0.10,Ml),0,-0.012,0.520,0.14);
+    add(g,Box(0.060,0.028,0.12,Mw),0,0.044,0.400);
+  }
+  return g;
+}
+
+// Weapon state
+let wKey='pistol',wD=WD.pistol,ammo=wD.mag,reloading=false,rldT=0,cdT=0,aiming=false,bstLeft=0,bstT=0;
+function rebuildGun(k){if(gunModel){gunGrp.remove(gunModel);gunModel=null;}gunModel=buildGun(WD[k].mdl);gunGrp.add(gunModel);gunKickZ=0;gunKickRX=0;}
+
+// Map
+const LIM=100,PR=0.85,EYH=1.7,OBST=[],PLATS=[];
+const gndM=new THREE.Mesh(new THREE.PlaneGeometry(260,260),new THREE.MeshStandardMaterial({color:0x161a20,roughness:1}));
+gndM.rotation.x=-Math.PI/2;gndM.receiveShadow=true;scene.add(gndM);
+const gridH=new THREE.GridHelper(260,120,0x00aa44,0x0e1a10);gridH.position.y=0.02;scene.add(gridH);
+
+let mapMeshes=[];
+function clearMap(){
+  mapMeshes.forEach(m=>{scene.remove(m);m.geometry.dispose();});
+  mapMeshes=[];OBST.length=0;PLATS.length=0;
+}
+function addBox(x,y,z,w,h,d,col,coll){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:col,roughness:0.88,metalness:0.1}));
+  m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);
+  mapMeshes.push(m);
+  if(coll!==false)OBST.push({x:x,z:z,hw:w/2,hd:d/2});
+}
+function addPlat(x,y,z,w,h,d,col){addBox(x,y,z,w,h,d,col,false);PLATS.push({x:x,z:z,hw:w/2,hd:d/2,top:y+h/2});}
+
+function buildMap(sid){
+  clearMap();
+  const s=STAGES.find(st=>st.id===sid)||STAGES[0];
+  // Update ground color and fog
+  scene.background.set(s.fogColor);
+  scene.fog.color.set(s.fogColor);
+  scene.fog.near=s.fogNear;
+  scene.fog.far=s.fogFar;
+  gndM.material.color.set(s.fogColor===0x0c1820?0x1a2535:s.fogColor===0x050508?0x0a0a10:s.fogColor===0x140005?0x1a0008:s.fogColor===0x0a1408?0x111c0e:s.fogColor===0x0a1a08?0x0e2010:0x141820);
+  // Ambient light color
+  amb.color.set(s.ambCol);
+  // Grid color update
+  if(Array.isArray(gridH.material)){gridH.material[0].color.set(s.ambCol);gridH.material[1].color.set(s.fogColor);}
+
+  const C={
+    concrete:0x4a5058,darkConcrete:0x353840,rust:0x7a4a28,metal:0x485058,wood:0x6b4c2a,
+    darkWood:0x4a3418,stone:0x606468,darkStone:0x3a3c40,sand:0x8a7a5a,
+    ice:0xaaccdd,darkIce:0x607888,green:0x3a5a28,darkGreen:0x1a2e12,
+    orange:0xcc6a20,red:0x8a2020,blue:0x2a4a6a,purple:0x4a2a6a,
+    black:0x181818,yellow:0xccaa30,
+  };
+
+  // Always add boundary walls
+  addBox(0,4,-LIM,200,8,2,C.concrete);addBox(0,4,LIM,200,8,2,C.concrete);
+  addBox(-LIM,4,0,2,8,200,C.concrete);addBox(LIM,4,0,2,8,200,C.concrete);
+
+  if(sid===1){// 훈련장 - military training field, green, simple
+    const W=C.green,D=C.darkGreen,S=C.sand;
+    // Central sandbag compound
+    addBox(0,1.5,0,16,3,2,S);addBox(0,1.5,16,16,3,2,S);addBox(-9,1.5,8,2,3,16,S);addBox(9,1.5,8,2,3,16,S);
+    // Wooden target frames
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2,r=28;addBox(Math.cos(a)*r,1.5,Math.sin(a)*r,1,3,0.5,C.wood);}
+    // Sandbag walls scattered
+    addBox(-25,1,-15,10,2,2,S);addBox(25,1,-15,10,2,2,S);addBox(-25,1,15,10,2,2,S);addBox(25,1,15,10,2,2,S);
+    addBox(0,1,-30,8,2,2,S);addBox(-40,1,0,2,2,10,S);addBox(40,1,0,2,2,10,S);
+    // Training bunkers
+    addBox(-50,2,-40,12,4,10,W);addBox(50,2,-40,12,4,10,W);addBox(-50,2,40,12,4,10,W);addBox(50,2,40,12,4,10,W);
+    // Supply crates
+    addBox(-15,1,-50,4,2,4,C.wood);addBox(15,1,-50,4,2,4,C.wood);addBox(0,1,-50,4,2,4,C.wood);
+    // Low barriers near spawn
+    addBox(-30,1,55,6,2,2,S);addBox(30,1,55,6,2,2,S);
+    // Elevated platform - command post
+    addBox(-70,1,0,18,2,18,D);addBox(-70,3,0,12,4,12,W);addBox(-70,4,-8,12,1,4,C.wood);
+    addBox(70,1,0,18,2,18,D);addBox(70,3,0,12,4,12,W);
+    // Corner watchtowers
+    addBox(-75,3,-75,6,6,6,W);addBox(75,3,-75,6,6,6,W);addBox(-75,3,75,6,6,6,W);addBox(75,3,75,6,6,6,W);
+  } else if(sid===2){// 도시 골목 - urban concrete city
+    const W=C.concrete,D=C.darkConcrete,B=0x6a5040;
+    // City block grid
+    addBox(-30,4,-30,12,8,3,W);addBox(-30,4,30,12,8,3,W);addBox(30,4,-30,12,8,3,W);addBox(30,4,30,12,8,3,W);
+    addBox(-30,4,-30,3,8,12,W);addBox(-30,4,30,3,8,12,W);addBox(30,4,-30,3,8,12,W);addBox(30,4,30,3,8,12,W);
+    // Apartment blocks
+    addBox(-55,6,-20,10,12,20,B);addBox(55,6,-20,10,12,20,B);addBox(-55,6,20,10,12,20,B);addBox(55,6,20,10,12,20,B);
+    addBox(-20,6,-55,20,12,10,B);addBox(20,6,-55,20,12,10,B);addBox(-20,6,55,20,12,10,B);addBox(20,6,55,20,12,10,B);
+    // Street barricades - cars/dumpsters
+    addBox(-15,1,5,5,2,2,C.metal);addBox(15,1,5,5,2,2,C.metal);addBox(-15,1,-5,5,2,2,C.metal);addBox(15,1,-5,5,2,2,C.metal);
+    // Concrete barriers
+    addBox(0,1,-20,18,2,2,D);addBox(0,1,20,18,2,2,D);addBox(-20,1,0,2,2,18,D);addBox(20,1,0,2,2,18,D);
+    // Low walls
+    addBox(-40,1.5,0,2,3,20,W);addBox(40,1.5,0,2,3,20,W);addBox(0,1.5,-40,20,3,2,W);addBox(0,1.5,40,20,3,2,W);
+    // Dumpsters
+    addBox(-8,1,-8,3,2,2,C.orange);addBox(8,1,-8,3,2,2,C.orange);addBox(-8,1,8,3,2,2,C.orange);addBox(8,1,8,3,2,2,C.orange);
+    // Corner pillars
+    addBox(-50,2,0,4,4,4,D);addBox(50,2,0,4,4,4,D);addBox(0,2,-50,4,4,4,D);addBox(0,2,50,4,4,4,D);
+    // Near-spawn covers
+    addBox(-25,1,60,6,3,3,W);addBox(25,1,60,6,3,3,W);addBox(0,1,70,10,3,2,W);
+  } else if(sid===3){// 산업 단지 - industrial factory
+    const R=C.rust,M=C.metal,D=C.darkConcrete;
+    // Factory buildings
+    addBox(-40,5,-30,20,10,15,M);addBox(40,5,-30,20,10,15,M);addBox(-40,5,30,20,10,15,M);addBox(40,5,30,20,10,15,M);
+    // Central machinery complex
+    addBox(-10,2.5,0,8,5,8,R);addBox(10,2.5,0,8,5,8,R);addBox(0,2.5,-12,10,5,6,M);addBox(0,2.5,12,10,5,6,M);
+    // Large cylindrical tanks (boxes approximate)
+    addBox(-60,4,-10,8,8,8,M);addBox(60,4,-10,8,8,8,M);addBox(-60,4,10,8,8,8,M);addBox(60,4,10,8,8,8,M);
+    // Pipe runs
+    addBox(-30,2,0,2,3,40,R);addBox(30,2,0,2,3,40,R);addBox(0,2,-30,40,3,2,R);
+    // Low barriers
+    addBox(-20,1,-20,10,2,2,D);addBox(20,1,-20,10,2,2,D);addBox(-20,1,20,10,2,2,D);addBox(20,1,20,10,2,2,D);
+    // Stacked crates
+    addBox(-5,1,-40,6,2,4,C.wood);addBox(5,1,-40,6,2,4,C.wood);addBox(0,3,-40,6,2,4,C.wood);
+    addBox(-5,1,40,6,2,4,C.wood);addBox(5,1,40,6,2,4,C.wood);
+    // Catwalks / elevated platforms
+    addBox(-25,3,-45,20,1,6,M);addBox(25,3,-45,20,1,6,M);
+    // Corner smokestacks
+    addBox(-75,8,-75,5,16,5,D);addBox(75,8,-75,5,16,5,D);addBox(-75,8,75,5,16,5,D);addBox(75,8,75,5,16,5,D);
+    // Spawn covers
+    addBox(-30,1,55,6,3,4,M);addBox(30,1,55,6,3,4,M);
+  } else if(sid===4){// 항구 - harbor/docks
+    const Cnt=C.orange,Grn=C.darkGreen,Mtl=C.metal,Cnc=C.concrete;
+    // Shipping containers stacked
+    for(let i=-2;i<=2;i++){addBox(i*14,1.5,-35,12,3,6,i%2===0?Cnt:0x3a6a8a);addBox(i*14,4.5,-35,12,3,6,i%2===0?0x3a6a8a:Cnt);}
+    for(let i=-2;i<=2;i++){addBox(i*14,1.5,35,12,3,6,i%2===0?0x8a3a20:Cnt);}
+    // Dock buildings
+    addBox(-60,4,-40,16,8,20,Cnc);addBox(60,4,-40,16,8,20,Cnc);addBox(-60,4,40,16,8,20,Cnc);
+    // Crane base
+    addBox(-70,6,0,8,12,8,Mtl);addBox(70,6,0,8,12,8,Mtl);
+    // Low concrete barriers
+    addBox(-25,1,0,2,2,30,Cnc);addBox(25,1,0,2,2,30,Cnc);addBox(0,1,-18,30,2,2,Cnc);addBox(0,1,18,30,2,2,Cnc);
+    // Crates near player
+    addBox(-10,1,48,4,2,4,C.wood);addBox(10,1,48,4,2,4,C.wood);addBox(-10,3,48,4,2,4,C.wood);
+    // Bollards (small pillars)
+    for(let i=-4;i<=4;i++){addBox(i*10,1,-70,2,2,2,Cnc);addBox(i*10,1,70,2,2,2,Cnc);}
+    // Fuel tanks
+    addBox(-45,2,0,8,4,8,C.red);addBox(45,2,0,8,4,8,C.red);
+    // Spawn covers
+    addBox(-30,1,60,6,3,4,Cnt);addBox(30,1,60,6,3,4,Cnt);
+  } else if(sid===5){// 야간 정글 - night jungle
+    const Dk=C.darkGreen,Tr=0x3a2510,Rk=0x404848;
+    // Dense tree trunks (tall pillars)
+    const treePos=[[-20,-15],[-40,5],[20,-15],[40,5],[-10,30],[10,30],[-30,45],[30,45],
+                   [-60,-30],[60,-30],[-60,30],[60,30],[0,-45],[0,-60],[-50,-55],[50,-55],
+                   [-15,55],[15,55],[35,-40],[-35,-40],[0,0],[-25,20],[25,20]];
+    treePos.forEach(([x,z])=>{addBox(x,4,z,2.5,8,2.5,Tr);addBox(x,0.5,z,4,1,4,Rk);});
+    // Rock formations
+    addBox(-35,1.5,-30,7,3,5,Rk);addBox(35,1.5,-30,7,3,5,Rk);addBox(-35,1.5,30,7,3,5,Rk);addBox(35,1.5,30,7,3,5,Rk);
+    addBox(0,2,0,5,4,8,Rk);addBox(-50,1.5,0,8,3,5,Rk);addBox(50,1.5,0,8,3,5,Rk);
+    // Dense bush clusters (low wide boxes)
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2,r=25+Math.random()*20;addBox(Math.cos(a)*r,0.6,Math.sin(a)*r,3+Math.random()*4,1.2,3+Math.random()*4,Dk,false);}
+    // Log barricades
+    addBox(-15,1,15,10,2,2,Tr);addBox(15,1,15,10,2,2,Tr);addBox(-15,1,-15,10,2,2,Tr);addBox(15,1,-15,10,2,2,Tr);
+    // Ruins in jungle
+    addBox(-55,2,-55,10,4,10,0x3a3c38);addBox(55,2,-55,10,4,10,0x3a3c38);addBox(-55,2,55,10,4,10,0x3a3c38);addBox(55,2,55,10,4,10,0x3a3c38);
+    // Spawn cover
+    addBox(-20,1,60,6,3,4,Rk);addBox(20,1,60,6,3,4,Rk);
+  } else if(sid===6){// 핵 발전소 - nuclear plant
+    const Gn=0x2a5a20,Yl=0x888820,Cnt=C.concrete,Mtl=C.metal;
+    // Cooling towers (large square approximations)
+    addBox(-50,8,-50,18,16,18,Cnt);addBox(50,8,-50,18,16,18,Cnt);addBox(-50,8,50,18,16,18,Cnt);addBox(50,8,50,18,16,18,Cnt);
+    // Reactor building
+    addBox(0,6,0,22,12,22,0x404838);
+    // Pipe network
+    addBox(-30,2,0,2,3,50,Mtl);addBox(30,2,0,2,3,50,Mtl);addBox(0,2,-30,50,3,2,Mtl);addBox(0,2,30,50,3,2,Mtl);
+    addBox(-15,3,15,2,5,2,Mtl);addBox(15,3,15,2,5,2,Mtl);addBox(-15,3,-15,2,5,2,Mtl);addBox(15,3,-15,2,5,2,Mtl);
+    // Waste barrels
+    addBox(-10,1,-35,4,2,4,Gn);addBox(10,1,-35,4,2,4,Gn);addBox(-10,1,35,4,2,4,Gn);addBox(10,1,35,4,2,4,Gn);
+    // Containment walls
+    addBox(-22,2,0,2,4,30,Cnt);addBox(22,2,0,2,4,30,Cnt);addBox(0,2,-22,30,4,2,Cnt);addBox(0,2,22,30,4,2,Cnt);
+    // Security checkpoint
+    addBox(-5,1.5,55,3,3,2,Cnt);addBox(5,1.5,55,3,3,2,Cnt);addBox(-30,1.5,60,8,3,2,Cnt);addBox(30,1.5,60,8,3,2,Cnt);
+    // Elevated catwalks
+    addBox(-40,3,0,2,1,30,Mtl);addBox(40,3,0,2,1,30,Mtl);
+  } else if(sid===7){// 군사 기지 - military base
+    const Grn=0x3a4a28,Cnt=C.concrete,Stl=C.metal,Blk=C.black;
+    // Main compound
+    addBox(0,2.5,0,20,5,3,Cnt);addBox(0,2.5,20,20,5,3,Cnt);addBox(-11,2.5,10,3,5,20,Cnt);addBox(11,2.5,10,3,5,20,Cnt);
+    // Vehicle barricades (large)
+    addBox(-25,1.5,0,4,3,4,Stl);addBox(25,1.5,0,4,3,4,Stl);addBox(-25,1.5,20,4,3,4,Stl);addBox(25,1.5,20,4,3,4,Stl);
+    // Barracks buildings
+    addBox(-55,3,-30,14,6,22,Grn);addBox(55,3,-30,14,6,22,Grn);addBox(-55,3,30,14,6,22,Grn);addBox(55,3,30,14,6,22,Grn);
+    // Watchtowers
+    addBox(-75,5,-75,6,10,6,Cnt);addBox(75,5,-75,6,10,6,Cnt);addBox(-75,5,75,6,10,6,Cnt);addBox(75,5,75,6,10,6,Cnt);
+    // Trench systems (low wide barriers)
+    addBox(-30,0.5,-15,20,1,3,0x3a3020);addBox(30,0.5,-15,20,1,3,0x3a3020);addBox(0,0.5,-40,40,1,3,0x3a3020);
+    addBox(-30,0.5,40,20,1,3,0x3a3020);addBox(30,0.5,40,20,1,3,0x3a3020);
+    // Sandbag walls
+    addBox(-15,1.5,-25,12,3,2,0x8a7a5a);addBox(15,1.5,-25,12,3,2,0x8a7a5a);addBox(0,1.5,-45,16,3,2,0x8a7a5a);
+    // Spawn cover
+    addBox(-30,1.5,60,8,3,4,Cnt);addBox(30,1.5,60,8,3,4,Cnt);addBox(0,1.5,70,12,3,2,Cnt);
+    // Armored vehicles (large boxes)
+    addBox(-42,2,0,8,4,14,Blk);addBox(42,2,0,8,4,14,Blk);
+  } else if(sid===8){// 폐허 도시 - ruined city
+    const Rb=0x4a3830,Cr=0x3a3028,Bk=C.black,Gl=0x6a5848;
+    // Collapsed building hulks
+    addBox(-35,4,-35,14,8,14,Rb);addBox(35,4,-35,14,8,14,Rb);addBox(-35,4,35,14,8,14,Rb);addBox(35,4,35,14,8,14,Rb);
+    // Rubble piles (irregular low shapes)
+    addBox(-15,1,-15,8,2,6,Cr);addBox(15,1,-15,8,2,6,Cr);addBox(-15,1,15,8,2,6,Cr);addBox(15,1,15,8,2,6,Cr);
+    addBox(-8,1.5,-30,6,3,4,Rb);addBox(8,1.5,-30,6,3,4,Rb);addBox(0,1.5,-40,10,3,6,Rb);
+    // Broken walls
+    addBox(-25,2,0,2,4,18,Gl);addBox(25,2,0,2,4,18,Gl);addBox(0,2,-25,18,4,2,Gl);addBox(0,2,25,18,4,2,Gl);
+    addBox(-20,1.5,-50,14,3,2,Cr);addBox(20,1.5,50,14,3,2,Cr);
+    // Burnt-out vehicles
+    addBox(-50,1.5,0,10,3,5,Bk);addBox(50,1.5,0,10,3,5,Bk);addBox(0,1.5,-55,5,3,10,Bk);addBox(0,1.5,55,5,3,10,Bk);
+    // Debris clusters
+    for(let i=0;i<10;i++){const a=i/10*Math.PI*2,r=42;addBox(Math.cos(a)*r,1,Math.sin(a)*r,4+Math.random()*6,1.5+Math.random()*2,4+Math.random()*6,Cr);}
+    // Spawn cover
+    addBox(-25,1.5,60,8,3,4,Rb);addBox(25,1.5,60,8,3,4,Rb);
+  } else if(sid===9){// 요새 - fortress
+    const St=C.stone,Dk=C.darkStone,Bl=C.blue;
+    // Outer fortress walls
+    addBox(0,4,-70,140,8,5,St);addBox(0,4,70,140,8,5,St);addBox(-70,4,0,5,8,140,St);addBox(70,4,0,5,8,140,St);
+    // Gate towers
+    addBox(-75,6,-75,8,12,8,Dk);addBox(75,6,-75,8,12,8,Dk);addBox(-75,6,75,8,12,8,Dk);addBox(75,6,75,8,12,8,Dk);
+    // Inner compound walls
+    addBox(0,3,-35,60,6,4,St);addBox(0,3,35,60,6,4,St);addBox(-35,3,0,4,6,60,St);addBox(35,3,0,4,6,60,St);
+    // Battlements (crenellations)
+    for(let i=-3;i<=3;i++){addBox(i*18,6.5,-70,5,3,5,Dk);addBox(i*18,6.5,70,5,3,5,Dk);}
+    for(let i=-3;i<=3;i++){addBox(-70,6.5,i*18,5,3,5,Dk);addBox(70,6.5,i*18,5,3,5,Dk);}
+    // Keep (central tower)
+    addBox(0,8,0,16,16,16,Dk);
+    // Courtyard cover
+    addBox(-20,2,0,3,4,15,St);addBox(20,2,0,3,4,15,St);addBox(0,2,-20,15,4,3,St);addBox(0,2,20,15,4,3,St);
+    // Spawn area moat suggestion
+    addBox(-30,1.5,60,8,3,4,St);addBox(30,1.5,60,8,3,4,St);
+  } else if(sid===10){// 극지 작전 - arctic
+    const Ic=C.ice,DIc=C.darkIce,Sn=0xddeeff,Bk=C.black;
+    // Ice wall formations
+    addBox(-30,3,-30,8,6,4,Ic);addBox(30,3,-30,8,6,4,Ic);addBox(-30,3,30,8,6,4,Ic);addBox(30,3,30,8,6,4,Ic);
+    addBox(-55,4,-10,4,8,20,DIc);addBox(55,4,-10,4,8,20,DIc);addBox(-55,4,10,4,8,20,DIc);addBox(55,4,10,4,8,20,DIc);
+    // Bunkers
+    addBox(-45,2,-45,14,4,14,0x3a4850);addBox(45,2,-45,14,4,14,0x3a4850);addBox(-45,2,45,14,4,14,0x3a4850);addBox(45,2,45,14,4,14,0x3a4850);
+    // Snow drifts (low irregular)
+    for(let i=0;i<16;i++){const a=i/16*Math.PI*2,r=22+Math.random()*20;addBox(Math.cos(a)*r,0.8,Math.sin(a)*r,4+Math.random()*8,1.5+Math.random()*2,4+Math.random()*8,Sn,false);}
+    // Ice pillars
+    addBox(-15,3,0,3,6,3,Ic);addBox(15,3,0,3,6,3,Ic);addBox(0,3,-15,3,6,3,Ic);addBox(0,3,15,3,6,3,Ic);
+    // Crashed plane hull
+    addBox(0,2.5,-50,30,5,8,0x485868);addBox(-20,2.5,-50,6,5,8,0x485868);addBox(20,2.5,-50,6,5,8,0x485868);
+    // Research station
+    addBox(60,3,0,16,6,12,0x384858);
+    // Spawn cover
+    addBox(-25,1.5,60,8,3,4,DIc);addBox(25,1.5,60,8,3,4,DIc);
+  } else if(sid===11){// 지하 벙커 - underground bunker
+    const Cn=C.darkConcrete,Pp=C.metal,Lmp=0x3a3030;
+    // Corridor system - lots of walls creating narrow paths
+    addBox(-30,3,0,2,6,60,Cn);addBox(30,3,0,2,6,60,Cn);
+    addBox(-15,3,-30,2,6,20,Cn);addBox(15,3,-30,2,6,20,Cn);
+    addBox(-15,3,20,2,6,20,Cn);addBox(15,3,20,2,6,20,Cn);
+    addBox(0,3,-45,30,6,2,Cn);addBox(0,3,-15,30,6,2,Cn);addBox(0,3,15,30,6,2,Cn);addBox(0,3,45,30,6,2,Cn);
+    // Support pillars
+    for(let x=-50;x<=50;x+=25){for(let z=-50;z<=50;z+=25){addBox(x,3,z,3,6,3,Lmp);}}
+    // Equipment crates
+    addBox(-22,1,-22,4,2,4,Cn);addBox(22,1,-22,4,2,4,Cn);addBox(-22,1,22,4,2,4,Cn);addBox(22,1,22,4,2,4,Cn);
+    // Pipes along ceiling
+    addBox(-40,4,0,2,2,80,Pp);addBox(40,4,0,2,2,80,Pp);addBox(0,4,-40,80,2,2,Pp);
+    // Blast doors (partial)
+    addBox(-8,3,-60,16,6,3,0x484848);addBox(-8,3,60,16,6,3,0x484848);
+    // Spawn area
+    addBox(-20,1.5,65,6,3,3,Cn);addBox(20,1.5,65,6,3,3,Cn);
+  } else {// sid===12: 최후의 전투 - final stand
+    const Bk=C.black,Rd=C.red,Dr=0x3a1010,Sk=0x1a0808;
+    // Hellish burning ruins - mix of all previous elements
+    // Central ruined keep
+    addBox(0,6,0,20,12,20,Bk);addBox(0,1,0,12,2,12,Dr);
+    // Ruined walls
+    addBox(-35,3,-35,12,6,4,Dr);addBox(35,3,-35,12,6,4,Dr);addBox(-35,3,35,12,6,4,Dr);addBox(35,3,35,12,6,4,Dr);
+    addBox(-60,4,-60,8,8,8,Bk);addBox(60,4,-60,8,8,8,Bk);addBox(-60,4,60,8,8,8,Bk);addBox(60,4,60,8,8,8,Bk);
+    // Burning vehicles
+    addBox(-20,1.5,-20,10,3,5,Bk);addBox(20,1.5,-20,10,3,5,Bk);addBox(-20,1.5,20,10,3,5,Bk);addBox(20,1.5,20,10,3,5,Bk);
+    // Broken pillars
+    addBox(-45,3,0,4,6,4,Dr);addBox(45,3,0,4,6,4,Dr);addBox(0,3,-45,4,6,4,Dr);addBox(0,3,45,4,6,4,Dr);
+    // Rubble rings
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2,r=30;addBox(Math.cos(a)*r,1.5,Math.sin(a)*r,5,3,5,Dr);}
+    // Perimeter crater-edge barriers
+    addBox(-22,1.5,0,2,3,20,Bk);addBox(22,1.5,0,2,3,20,Bk);addBox(0,1.5,-22,20,3,2,Bk);addBox(0,1.5,22,20,3,2,Bk);
+    // Spawn cover
+    addBox(-25,1.5,65,8,3,4,Dr);addBox(25,1.5,65,8,3,4,Dr);
+  }
+}
+
+
+
+function isBlocked(x,z,p){p=p||PR;for(let o of OBST){if(x>o.x-o.hw-p&&x<o.x+o.hw+p&&z>o.z-o.hd-p&&z<o.z+o.hd+p)return true;}return false;}
+function getPF(x,y,z){return 0;} // no platforms
+
+// ── BUFF ITEM SYSTEM ─────────────────────────────────────────────
+const buffItems=[];
+const BUFF_COLORS={heal:0xff4466,speed:0x44aaff,ammo:0xffcc22,dmg:0xff6600};
+const BUFF_NAMES={heal:'💊 HEAL',speed:'⚡ SPEED',ammo:'🔴 AMMO',dmg:'🔥 DAMAGE'};
+
+function spawnBuffItem(x,y,z,type){
+  const grp=new THREE.Group();
+  // Floating orb
+  const orb=new THREE.Mesh(
+    new THREE.SphereGeometry(0.32,14,14),
+    new THREE.MeshStandardMaterial({color:BUFF_COLORS[type],roughness:0.2,metalness:0.3,emissive:BUFF_COLORS[type],emissiveIntensity:0.35})
+  );
+  grp.add(orb);
+  // Inner core (smaller, brighter)
+  const core=new THREE.Mesh(
+    new THREE.SphereGeometry(0.16,10,10),
+    new THREE.MeshBasicMaterial({color:0xffffff})
+  );
+  core.userData.isCore=true;
+  grp.add(core);
+  // Rotating ring
+  const ring=new THREE.Mesh(
+    new THREE.TorusGeometry(0.42,0.04,8,24),
+    new THREE.MeshStandardMaterial({color:BUFF_COLORS[type],roughness:0.3,emissive:BUFF_COLORS[type],emissiveIntensity:0.5})
+  );
+  ring.rotation.x=Math.PI/2;
+  ring.userData.isRing=true;
+  grp.add(ring);
+  // Point light
+  const pl=new THREE.PointLight(BUFF_COLORS[type],3,8,2);
+  pl.userData.isLight=true;
+  grp.add(pl);
+  grp.position.set(x,y+0.8,z);
+  grp.userData={type,baseY:y+0.8,t:Math.random()*Math.PI*2,active:true};
+  scene.add(grp);
+  buffItems.push(grp);
+}
+
+function updateBuffItems(dt){
+  const px=yawObj.position.x,py=yawObj.position.y,pz=yawObj.position.z;
+  for(let i=buffItems.length-1;i>=0;i--){
+    const b=buffItems[i];if(!b.userData.active)continue;
+    b.userData.t+=dt*1.8;
+    b.position.y=b.userData.baseY+Math.sin(b.userData.t)*0.18;
+    b.rotation.y+=dt*1.2;
+    // Ring spin
+    b.children.forEach(c=>{if(c.userData.isRing)c.rotation.z+=dt*2.5;});
+    // Pickup check
+    const dx=b.position.x-px,dz=b.position.z-pz;
+    if(Math.sqrt(dx*dx+dz*dz)<1.4&&Math.abs(b.position.y-py)<2.5){
+      applyBuff(b.userData.type);
+      scene.remove(b);buffItems.splice(i,1);
+      b.userData.active=false;
+      // Respawn after 18s
+      setTimeout(()=>{
+        if(!gameOver) spawnBuffItem(b.position.x,b.userData.baseY-0.8,b.position.z,b.userData.type);
+      },18000);
+    }
+  }
+}
+
+function applyBuff(type){
+  const el=document.getElementById('ehp-text');
+  if(type==='heal'){
+    playerHP=Math.min(playerHP+30,100);hpBar.style.width=playerHP+'%';
+    if(el){el.innerText='💊 체력 +30!';setTimeout(()=>el.innerText='',2000);}
+  } else if(type==='speed'){
+    mods.speedMult=Math.min(mods.speedMult+0.3,2.0);
+    if(el){el.innerText='⚡ 속도 부스트!';setTimeout(()=>el.innerText='',2000);}
+  } else if(type==='ammo'){
+    ammo=wD.mag;ammoEl.innerText=ammo;rldTxt.innerText='';
+    if(el){el.innerText='🔴 탄약 보충!';setTimeout(()=>el.innerText='',2000);}
+  } else if(type==='dmg'){
+    mods.dmgMult=Math.min(mods.dmgMult+0.25,2.5);
+    if(el){el.innerText='🔥 피해 증가!';setTimeout(()=>el.innerText='',2000);}
+  }
+}
+
+// Enemies
+const enemies=[],bullets=[],parts=[];
+let score=0,playerHP=100,gameOver=false;
+function eMaxHP(){return (3+Math.floor(score/800))*getCurStage().hpMult;}
+function makeEnemy(){
+  const g=new THREE.Group(),maxHP=eMaxHP();
+  // Materials with wave-based tinting
+  const stageBase=Math.floor((currentStageId-1)/3); // 0,1,2,3 based on stage group
+  const tier=Math.min(3, stageBase + Math.floor(stageWaveNum/3));
+  // Elite enemies in high stages move differently (handled in update) and are larger
+  const isElite=currentStageId>=10&&Math.random()<0.4;
+  const scl=isElite?1.25:0.85+Math.random()*0.3;
+  const bodyColors=[0xcc2222,0xcc6600,0x7722cc,0x222266];
+  const armorColors=[0x881111,0x884400,0x551188,0x111144];
+  const bc=bodyColors[Math.min(tier,3)], ac=armorColors[Math.min(tier,3)];
+  const bm=new THREE.MeshStandardMaterial({color:bc,roughness:0.75,metalness:0.1});
+  const am=new THREE.MeshStandardMaterial({color:ac,roughness:0.5,metalness:0.4});
+  const sm=new THREE.MeshStandardMaterial({color:0xc78f6b,roughness:0.9});
+  const dm=new THREE.MeshStandardMaterial({color:ac,roughness:0.7});
+  const em=new THREE.MeshBasicMaterial({color:0xff3333});
+  const wm=new THREE.MeshStandardMaterial({color:0xccaa88,roughness:0.85}); // white of eye
+  const pm=new THREE.MeshStandardMaterial({color:0xeeeeee,roughness:0.9}); // teeth
+  const blk=new THREE.MeshStandardMaterial({color:0x111111,roughness:0.9});
+
+  function pa(geo,m2,x,y,z,rx,ry){const mesh=new THREE.Mesh(geo,m2);mesh.position.set(x,y,z);if(rx)mesh.rotation.x=rx;if(ry)mesh.rotation.y=ry;mesh.castShadow=true;g.add(mesh);return mesh;}
+
+  // ── TORSO ──
+  pa(new THREE.BoxGeometry(1.0,1.3,0.60),bm,0,2.2,0);  // body
+  pa(new THREE.BoxGeometry(1.02,0.30,0.62),am,0,2.72,0); // chest plate
+  pa(new THREE.BoxGeometry(0.28,0.28,0.64),am,-0.36,2.20,0); // left shoulder pad
+  pa(new THREE.BoxGeometry(0.28,0.28,0.64),am, 0.36,2.20,0); // right shoulder pad
+  pa(new THREE.BoxGeometry(1.0,0.18,0.62),am,0,1.58,0); // belt plate
+  // Belt buckle
+  pa(new THREE.BoxGeometry(0.14,0.12,0.10),new THREE.MeshStandardMaterial({color:0xddaa22,roughness:0.4,metalness:0.8}),0,1.60,0.32);
+
+  // ── HEAD ──
+  pa(new THREE.BoxGeometry(0.72,0.68,0.68),sm,0,3.32,0);  // head
+  // Helmet
+  pa(new THREE.BoxGeometry(0.76,0.32,0.72),am,0,3.58,0);
+  pa(new THREE.BoxGeometry(0.72,0.10,0.74),am,0,3.44,-0.02);  // brim
+  // Visor slit
+  pa(new THREE.BoxGeometry(0.50,0.10,0.04),new THREE.MeshStandardMaterial({color:0xff2200,roughness:0.2,metalness:0.6,emissive:0x880000}),0,3.44,0.36);
+  // Eyes (glowing red)
+  const eyeM=new THREE.MeshBasicMaterial({color:0xff3300});
+  pa(new THREE.BoxGeometry(0.10,0.10,0.10),eyeM,-0.16,3.38,0.35);
+  pa(new THREE.BoxGeometry(0.10,0.10,0.10),eyeM, 0.16,3.38,0.35);
+  // Nose
+  pa(new THREE.BoxGeometry(0.06,0.06,0.08),sm,0,3.28,0.36);
+  // Mouth snarl (3 teeth)
+  pa(new THREE.BoxGeometry(0.26,0.06,0.06),blk,0,3.18,0.36);
+  pa(new THREE.BoxGeometry(0.06,0.10,0.06),pm,-0.08,3.20,0.35);
+  pa(new THREE.BoxGeometry(0.06,0.10,0.06),pm, 0.0, 3.20,0.35);
+  pa(new THREE.BoxGeometry(0.06,0.10,0.06),pm, 0.08,3.20,0.35);
+  // Ear guards
+  pa(new THREE.BoxGeometry(0.08,0.24,0.24),am,-0.40,3.32,0);
+  pa(new THREE.BoxGeometry(0.08,0.24,0.24),am, 0.40,3.32,0);
+  // Neck
+  pa(new THREE.BoxGeometry(0.30,0.20,0.30),sm,0,2.96,0);
+
+  // ── ARMS (groups for animation) ──
+  const aLG=new THREE.Group();aLG.position.set(-0.62,2.75,0);
+  function addArm(grp,flp){
+    const sign=flp?-1:1;
+    const up=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.60,0.26),bm);up.position.y=-0.30;up.castShadow=true;grp.add(up);
+    const elbow=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.12,0.28),am);elbow.position.y=-0.62;elbow.castShadow=true;grp.add(elbow);
+    const fore=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.52,0.22),dm);fore.position.y=-0.94;fore.castShadow=true;grp.add(fore);
+    const hand=new THREE.Mesh(new THREE.BoxGeometry(0.20,0.18,0.14),sm);hand.position.y=-1.22;hand.castShadow=true;grp.add(hand);
+    // Arm pad
+    const pad=new THREE.Mesh(new THREE.BoxGeometry(0.24,0.20,0.28),am);pad.position.y=-0.30;pad.castShadow=true;grp.add(pad);
+  }
+  addArm(aLG,false); g.add(aLG);
+  const aRG=new THREE.Group();aRG.position.set(0.62,2.75,0);
+  addArm(aRG,true); g.add(aRG);
+
+  // ── LEGS (groups for animation) ──
+  const lLG=new THREE.Group();lLG.position.set(-0.26,1.58,0);
+  function addLeg(grp){
+    const thigh=new THREE.Mesh(new THREE.BoxGeometry(0.30,0.60,0.30),bm);thigh.position.y=-0.30;thigh.castShadow=true;grp.add(thigh);
+    const knee=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.12,0.32),am);knee.position.y=-0.62;knee.castShadow=true;grp.add(knee);
+    const shin=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.56,0.26),dm);shin.position.y=-0.96;shin.castShadow=true;grp.add(shin);
+    const boot=new THREE.Mesh(new THREE.BoxGeometry(0.30,0.20,0.36),blk);boot.position.set(0,-1.26,0.04);boot.castShadow=true;grp.add(boot);
+    const kneePad=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.16,0.32),am);kneePad.position.y=-0.58;kneePad.castShadow=true;grp.add(kneePad);
+  }
+  addLeg(lLG); g.add(lLG);
+  const lRG=new THREE.Group();lRG.position.set(0.26,1.58,0);
+  addLeg(lRG); g.add(lRG);
+
+  // ── HP BAR ──
+  const barBg=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.16),new THREE.MeshBasicMaterial({color:0x330000,side:THREE.DoubleSide,depthTest:false}));
+  barBg.position.set(0,4.45,0);barBg.renderOrder=1;g.add(barBg);
+  const barFg=new THREE.Mesh(new THREE.PlaneGeometry(1.2,0.16),new THREE.MeshBasicMaterial({color:0x00ff44,side:THREE.DoubleSide,depthTest:false}));
+  barFg.position.set(0,4.45,0.01);barFg.renderOrder=2;g.add(barFg);
+
+  g.userData={aLG,aRG,lLG,lRG,walkT:Math.random()*10,hp:maxHP,maxHP,bm,am,sm,barBg,barFg,flashT:0};
+  g.scale.set(scl,scl,scl);
+  g.userData.isElite=isElite;
+  return g;
+}
+function spawnEnemy(){
+  if(gameOver||!waveActive||choosingStage||showingLobby)return;
+  const e=makeEnemy();let ok=false,t2=0;
+  while(!ok&&t2<40){const ang=Math.random()*Math.PI*2,d=35+Math.random()*40;const ex=Math.cos(ang)*d,ez=Math.sin(ang)*d;if(!isBlocked(ex,ez,1.5)){e.position.set(ex,0,ez);ok=true;}t2++;}
+  if(!ok)e.position.set(22,0,22);
+  scene.add(e);enemies.push(e);
+}
+
+function startWaveSpawn(){
+  if(spawnInterval) clearInterval(spawnInterval);
+  const rate=Math.max(500,getCurStage().spawnBase-stageWaveNum*100);
+  spawnInterval=setInterval(spawnEnemy,rate);
+}
+
+// Wave HUD refs
+const waveNumEl=document.getElementById('wave-num');
+const stageNumEl=document.getElementById('stage-num');
+const killCurEl=document.getElementById('kill-cur');
+const killTgtEl=document.getElementById('kill-tgt');
+const killBarEl=document.getElementById('kill-bar');
+const stageEl=document.getElementById('stage-select');
+const stageCardsEl=document.getElementById('stage-cards');
+const stageClearTxt=document.getElementById('stage-clear-txt');
+const lobbyEl=document.getElementById('stage-lobby');
+
+function updateWaveHUD(){
+  const st=getCurStage();
+  if(stageNumEl) stageNumEl.innerText=currentStageId;
+  if(waveNumEl) waveNumEl.innerText=stageWaveNum+'/'+st.waves;
+  if(killCurEl) killCurEl.innerText=waveKills;
+  if(killTgtEl) killTgtEl.innerText=waveTarget;
+  const pct=Math.min(100,waveKills/waveTarget*100);
+  if(killBarEl) killBarEl.style.width=pct+'%';
+}
+
+function onKill(){
+  waveKills++;
+  score+=Math.round(100*mods.bonusScore);
+  scoreEl.innerText=score;
+  updateWaveHUD();
+  // Splash damage
+  if(mods.splashRad>0){
+    const lastKilled=enemies.filter(e=>true);// splash handled in bullet update
+  }
+  if(waveKills>=waveTarget) waveComplete();
+}
+
+function waveComplete(){
+  waveActive=false;
+  if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}
+  setTimeout(()=>{
+    enemies.forEach(e=>scene.remove(e));enemies.length=0;
+    bullets.forEach(b=>scene.remove(b));bullets.length=0;
+    const st=getCurStage();
+    if(stageWaveNum>=st.waves){
+      // All waves in this stage done → stage cleared
+      stageComplete();
+    } else {
+      // More waves remain → show upgrade cards
+      showStageSelect();
+    }
+  },800);
+}
+
+function stageComplete(){
+  clearedStages.add(currentStageId);
+  totalScore+=score;
+  if(!bestScores[currentStageId]||score>bestScores[currentStageId]) bestScores[currentStageId]=score;
+  saveProg();
+  choosingStage=true;
+  ctrl.unlock();
+  showStageLobby(true);
+}
+
+function showStageLobby(afterClear){
+  showingLobby=true;
+  choosingStage=true;
+  ctrl.unlock();
+  instrEl.style.display='none';
+  const clearMsg=document.getElementById('lobby-clear-msg');
+  const scoreTxt=document.getElementById('lobby-score-txt');
+  if(afterClear){
+    const st=getCurStage();
+    clearMsg.innerText='✓  '+st.name+' 클리어!';
+    scoreTxt.innerText='스테이지 점수: '+score+'  |  누적 총점: '+totalScore;
+  } else {
+    clearMsg.innerText='';
+    scoreTxt.innerText=totalScore>0?'누적 총점: '+totalScore:'';
+  }
+  const cardsEl=document.getElementById('lobby-cards');
+  cardsEl.innerHTML='';
+  STAGES.forEach(s=>{
+    const unlocked=s.id===1||clearedStages.has(s.id-1);
+    const cleared=clearedStages.has(s.id);
+    const card=document.createElement('div');
+    card.className='lobby-card'+(cleared?' lclr':'')+(!unlocked?' lk':'');
+    const stars=Array.from({length:5},(_,i)=>'<div class="lstar'+(i<s.diff?' on':'')+'"></div>').join('');
+    const best=bestScores[s.id];
+    card.innerHTML=
+      (cleared?'<div class="lbadge lbadge-clear">CLEAR</div>':'')+
+      (!unlocked?'<div class="lbadge lbadge-lock">🔒</div>':'')+
+      '<span class="li">'+s.icon+'</span>'+
+      '<div class="ln">'+s.name+'</div>'+
+      '<div class="ls">'+s.sub+'</div>'+
+      '<div class="ldiff">'+stars+'</div>'+
+      '<div class="ldesc">'+s.desc+'</div>'+
+      (best?'<div class="lwv" style="color:#ffcc00;">BEST: '+best+'</div>':'')+
+      '<div class="lwv">WAVES: '+s.waves+'</div>';
+    if(unlocked) card.addEventListener('click',()=>startStage(s.id));
+    cardsEl.appendChild(card);
+  });
+  // Reset save button
+  let resetBtn=document.getElementById('reset-save');
+  if(!resetBtn){
+    resetBtn=document.createElement('button');
+    resetBtn.id='reset-save';
+    resetBtn.innerText='DATA RESET';
+    resetBtn.addEventListener('click',e=>{
+      e.stopPropagation();
+      if(confirm('모든 진행 데이터를 초기화하시겠습니까?')){
+        localStorage.removeItem(SAVE_KEY);
+        clearedStages.clear();totalScore=0;bestScores={};score=0;
+        showStageLobby(false);
+      }
+    });
+    lobbyEl.appendChild(resetBtn);
+  }
+  lobbyEl.classList.add('active');
+}
+
+function startStage(sid){
+  currentStageId=sid;
+  stageWaveNum=1;
+  const st=getCurStage();
+  // Clear world
+  clearAll();
+  playerHP=100;gameOver=false;
+  wKey='pistol';wD=WD.pistol;ammo=wD.mag;
+  reloading=false;rldT=0;cdT=0;bstLeft=0;bstT=0;aiming=false;
+  mF=mB=mL=mR=false;vel.set(0,0,0);yVel=0;onGnd=true;gunKickZ=0;gunKickRX=0;
+  score=0;scoreEl.innerText='0';hpBar.style.width='100%';rldTxt.innerText='';dmgTxt.innerText='';ehpTxt.innerText='';
+  wave=1;waveKills=0;waveTarget=st.waveBase;waveActive=true;choosingStage=false;showingLobby=false;
+  mods.dmgMult=1;mods.speedMult=1;mods.armorMult=1;mods.bonusScore=1;mods.splashRad=0;mods.fireRateMult=1;
+  if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}
+  stageEl.classList.remove('active');
+  lobbyEl.classList.remove('active');
+  buildMap(sid);
+  // Weapon restriction - apply stage weapons
+  const stW=st.weapons;
+  // disable unavailable weapons, switch to first available if current not allowed
+  if(!stW.includes(wKey)){switchWep(stW[0]);}
+  updateWaveHUD();
+  yawObj.position.set(0,EYH,60);camera.rotation.set(0,0,0);camera.fov=75;camera.updateProjectionMatrix();
+  gunGrp.position.set(0.24,-0.24,-0.50);gunGrp.rotation.set(0,0,0);
+  rebuildGun(stW.includes(wKey)?wKey:stW[0]);updateUI();updateWBar();
+  mouseDown=false;aiming=false;gunGrp.visible=true;
+  const scopeEl=document.getElementById('scope-overlay');
+  if(scopeEl) scopeEl.style.display='none';
+  xhEl.style.display='block';xhEl.classList.remove('ads');
+  spawnBuffItem(0,0.6,40,'heal');spawnBuffItem(-50,0.6,0,'heal');spawnBuffItem(50,0.6,0,'heal');
+  spawnBuffItem(0,0.6,-50,'speed');spawnBuffItem(-50,0.6,50,'speed');
+  spawnBuffItem(50,0.6,-50,'ammo');spawnBuffItem(-20,0.6,-20,'ammo');
+  spawnBuffItem(20,0.6,20,'dmg');spawnBuffItem(-60,0.6,-60,'dmg');spawnBuffItem(60,0.6,60,'dmg');
+  instrEl.innerHTML='<h1>'+st.name+'</h1><p style="color:#00ff88;letter-spacing:2px;font-size:13px;margin-bottom:8px">'+st.sub+'</p><p>클릭하여 전투 시작</p><p>W A S D 이동 | SPACE 점프 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p><p>1~0 / Q / E 무기 선택 · 마우스 휠 무기 전환</p><div class="hint">웨이브 클리어 시 업그레이드 선택 → '+st.waves+'웨이브 모두 클리어하면 다음 스테이지 해금</div>';
+  instrEl.style.display='block';
+  for(let i=0;i<5;i++) setTimeout(spawnEnemy,i*400);
+  startWaveSpawn();
+}
+
+function showStageSelect(){
+  choosingStage=true;
+  ctrl.unlock();
+  if(stageClearTxt) stageClearTxt.innerText='WAVE '+stageWaveNum+'/'+getCurStage().waves+' 클리어!  SCORE: '+score;
+  const pool=[...UPGRADES].sort(()=>Math.random()-0.5).slice(0,3);
+  stageCardsEl.innerHTML='';
+  pool.forEach(u=>{
+    const card=document.createElement('div');
+    card.className='stage-card';
+    card.innerHTML='<span class="icon">'+u.icon+'</span>'
+      +'<div class="ctag '+u.tc+'">'+u.tag+'</div>'
+      +'<div class="cname">'+u.name+'</div>'
+      +'<div class="cdesc">'+u.desc+'</div>';
+    card.addEventListener('click',()=>pickUpgrade(u));
+    stageCardsEl.appendChild(card);
+  });
+  stageEl.classList.add('active');
+}
+
+function pickUpgrade(u){
+  mods.dmgMult=1.0;mods.speedMult=1.0;mods.armorMult=1.0;
+  mods.bonusScore=1.0;mods.splashRad=0.0;mods.fireRateMult=1.0;
+  u.apply();
+  stageEl.classList.remove('active');
+  choosingStage=false;
+  wave++;stageWaveNum++;
+  waveKills=0;
+  waveTarget=getCurStage().waveBase+(stageWaveNum-1)*5;
+  waveActive=true;
+  updateWaveHUD();
+  ctrl.lock();
+  const initCount=Math.min(4+wave,10);
+  for(let i=0;i<initCount;i++) setTimeout(spawnEnemy,i*300);
+  startWaveSpawn();
+}
+
+function makeBullet(wd){
+  const g=new THREE.Group();
+  const tipM=new THREE.MeshStandardMaterial({color:wd.bc,roughness:0.3,metalness:0.6,emissive:wd.mdl==='laser'?0x004444:0});
+  const tip=new THREE.Mesh(new THREE.ConeGeometry(wd.bs[0],wd.bs[2]*0.45,10),tipM);
+  tip.rotation.x=H2;tip.position.z=-wd.bs[2]*0.15;g.add(tip);
+  const shell=new THREE.Mesh(new THREE.CylinderGeometry(wd.bs[1],wd.bs[1],wd.bs[2]*0.6,10),new THREE.MeshStandardMaterial({color:0xb68b3b,roughness:0.4,metalness:0.75}));
+  shell.rotation.x=H2;shell.position.z=wd.bs[2]*0.18;g.add(shell);
+  return g;
+}
+
+// Laser beams (visual)
+const laserBeams=[];
+
+// ── STAGE DEFINITIONS ────────────────────────────────────────
+const STAGES=[
+  {id:1,  name:'훈련장',     sub:'TRAINING GROUND',    icon:'🏕️',  waves:3, waveBase:6,  diff:1, hpMult:0.7,  spawnBase:2200, spd:3.0,  weapons:['pistol','smg'],                                                   fogColor:0x0a1408, fogNear:35, fogFar:280, ambCol:0x5a6850, desc:'기초 훈련 구역. 기본 무기만 지급.'},
+  {id:2,  name:'도시 골목',  sub:'URBAN ALLEY',         icon:'🏘️',  waves:3, waveBase:8,  diff:1, hpMult:0.9,  spawnBase:2000, spd:3.5,  weapons:['pistol','smg','ar'],                                              fogColor:0x080c11, fogNear:30, fogFar:220, ambCol:0x606878, desc:'콘크리트 골목. 근·중거리 교전.'},
+  {id:3,  name:'산업 단지',  sub:'INDUSTRIAL ZONE',     icon:'🏭',  waves:4, waveBase:10, diff:2, hpMult:1.1,  spawnBase:1800, spd:3.8,  weapons:['pistol','smg','ar','shotgun'],                                    fogColor:0x110e06, fogNear:28, fogFar:200, ambCol:0x706050, desc:'공장 지대. 짧은 사거리 전투.'},
+  {id:4,  name:'항구',       sub:'HARBOR',              icon:'⚓',  waves:4, waveBase:12, diff:2, hpMult:1.2,  spawnBase:1700, spd:4.0,  weapons:['ar','smg','revolver','sniper'],                                   fogColor:0x060e16, fogNear:22, fogFar:170, ambCol:0x405070, desc:'안개 낀 항구. 원거리 우위.'},
+  {id:5,  name:'야간 정글',  sub:'NIGHT JUNGLE',        icon:'🌙',  waves:4, waveBase:13, diff:3, hpMult:1.4,  spawnBase:1500, spd:4.5,  weapons:['ar','shotgun','smg','sniper','dmr'],                             fogColor:0x010804, fogNear:15, fogFar:110, ambCol:0x203018, desc:'칠흑 속 정글. 시야 극히 제한.'},
+  {id:6,  name:'핵 발전소',  sub:'NUCLEAR PLANT',       icon:'☢️',  waves:4, waveBase:15, diff:3, hpMult:1.6,  spawnBase:1400, spd:4.8,  weapons:['ar','dmr','lmg','sniper','revolver'],                             fogColor:0x0a1a08, fogNear:20, fogFar:150, ambCol:0x3a6030, desc:'방사능 오염 구역. 중화기 해금.'},
+  {id:7,  name:'군사 기지',  sub:'MILITARY BASE',       icon:'🪖',  waves:5, waveBase:16, diff:4, hpMult:1.8,  spawnBase:1300, spd:5.2,  weapons:['ar','dmr','lmg','smg','sniper','shotgun','revolver'],             fogColor:0x080c11, fogNear:28, fogFar:190, ambCol:0x506070, desc:'중무장 엘리트 부대. 중화기 전투.'},
+  {id:8,  name:'폐허 도시',  sub:'RUINED CITY',         icon:'🏚️',  waves:5, waveBase:18, diff:4, hpMult:2.0,  spawnBase:1200, spd:5.5,  weapons:['ar','dmr','lmg','sniper','minigun','laser'],                      fogColor:0x120808, fogNear:22, fogFar:140, ambCol:0x704040, desc:'폐허가 된 도시. 돌아오지 못할 수도.'},
+  {id:9,  name:'요새',       sub:'FORTRESS',            icon:'🏰',  waves:5, waveBase:20, diff:4, hpMult:2.3,  spawnBase:1100, spd:5.8,  weapons:['ar','dmr','lmg','sniper','minigun','laser','crossbow'],            fogColor:0x0a0a1a, fogNear:25, fogFar:170, ambCol:0x404060, desc:'난공불락 요새. 최정예 부대가 지킨다.'},
+  {id:10, name:'극지 작전',  sub:'ARCTIC OPS',          icon:'❄️',  waves:5, waveBase:22, diff:5, hpMult:2.6,  spawnBase:1000, spd:6.2,  weapons:['sniper','lmg','minigun','dmr','laser'],                           fogColor:0x0c1820, fogNear:18, fogFar:120, ambCol:0x607080, desc:'극한 환경. 스나이퍼·중화기만 사용 가능.'},
+  {id:11, name:'지하 벙커',  sub:'UNDERGROUND BUNKER',  icon:'🕳️',  waves:6, waveBase:25, diff:5, hpMult:3.0,  spawnBase:900,  spd:6.8,  weapons:['shotgun','smg','plasma','minigun','lmg','ar','dmr','laser','crossbow'],fogColor:0x050508, fogNear:12, fogFar:95,  ambCol:0x302835, desc:'탈출구 없는 지하 벙커. 근접전 지옥.'},
+  {id:12, name:'최후의 전투',sub:'FINAL STAND',          icon:'💀',  waves:6, waveBase:30, diff:5, hpMult:3.8,  spawnBase:750,  spd:7.5,  weapons:['pistol','smg','ar','shotgun','sniper','revolver','lmg','dmr','laser','plasma','minigun','crossbow'],fogColor:0x140005, fogNear:20, fogFar:140, ambCol:0x603040, desc:'지옥의 최전선. 모든 무기. 살아남아라.'},
+];
+let currentStageId=1,stageWaveNum=1;
+// Persistent save via localStorage
+const SAVE_KEY='tac_surv_save';
+function loadSave(){
+  try{
+    const d=JSON.parse(localStorage.getItem(SAVE_KEY));
+    if(d) return {
+      cleared: d.cleared ? new Set(d.cleared) : new Set(),
+      totalScore: d.totalScore || 0,
+      bestScores: d.bestScores || {},
+    };
+  }catch(e){}
+  return { cleared: new Set(), totalScore: 0, bestScores: {} };
+}
+function saveProg(){
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify({
+    cleared:[...clearedStages],
+    totalScore: totalScore,
+    bestScores: bestScores,
+  }));}catch(e){}
+}
+const saveData=loadSave();
+const clearedStages=saveData.cleared;
+let totalScore=saveData.totalScore;
+let bestScores=saveData.bestScores;
+let showingLobby=false;
+function getCurStage(){return STAGES.find(s=>s.id===currentStageId)||STAGES[0];}
+
+// Wave / Stage system
+let wave=1, waveKills=0, waveTarget=10;
+let waveActive=true, choosingStage=false;
+let spawnInterval=null;
+
+// Active modifiers
+const mods={
+  dmgMult:1.0,    // damage multiplier
+  speedMult:1.0,  // move speed multiplier
+  armorMult:1.0,  // incoming damage multiplier (lower = better)
+  bonusScore:1.0, // score multiplier
+  splashRad:0.0,  // splash radius (0 = none)
+  fireRateMult:1.0,// fire rate multiplier (lower cd = faster)
+};
+
+// Stage upgrade pool
+const UPGRADES=[
+  {id:'medkit',   icon:'🩹', name:'긴급 의무키트', desc:'즉시 HP +40 회복', tag:'HEAL',   tc:'tag-heal',
+   apply:()=>{ playerHP=Math.min(playerHP+40,100); hpBar.style.width=playerHP+'%'; }},
+  {id:'shield',   icon:'💊', name:'실드 부스터',   desc:'최대 HP +20 (이번 웨이브)', tag:'HEAL', tc:'tag-heal',
+   apply:()=>{ playerHP=Math.min(playerHP+20,120); hpBar.style.width=(playerHP/120*100)+'%'; }},
+  {id:'incendiary',icon:'🔥',name:'소이탄',         desc:'총알 피해 x1.8 (다음 웨이브)', tag:'ATK', tc:'tag-atk',
+   apply:()=>{ mods.dmgMult=1.8; }},
+  {id:'headhunter',icon:'🎯',name:'헤드헌터',       desc:'처치당 점수 x2', tag:'ATK',   tc:'tag-atk',
+   apply:()=>{ mods.bonusScore=2.0; }},
+  {id:'splash',   icon:'💣', name:'폭발탄',         desc:'총알에 범위 피해 추가', tag:'ATK',  tc:'tag-atk',
+   apply:()=>{ mods.splashRad=2.2; }},
+  {id:'kevlar',   icon:'🛡️', name:'방탄복',         desc:'받는 피해 -60%', tag:'DEF',   tc:'tag-def',
+   apply:()=>{ mods.armorMult=0.4; }},
+  {id:'adrenaline',icon:'⚡',name:'아드레날린',     desc:'이동속도 +50%', tag:'UTIL',  tc:'tag-util',
+   apply:()=>{ mods.speedMult=1.5; }},
+  {id:'reload',   icon:'🔄', name:'완전 재보급',    desc:'현재 무기 탄약 즉시 완충', tag:'UTIL',tc:'tag-util',
+   apply:()=>{ ammo=wD.mag; ammoEl.innerText=ammo; rldTxt.innerText=''; }},
+  {id:'frenzy',   icon:'⚡⚡',name:'광분 모드',     desc:'연사속도 x2 (다음 웨이브)', tag:'ATK', tc:'tag-atk',
+   apply:()=>{ mods.fireRateMult=0.5; }},
+  {id:'horde',    icon:'💀', name:'군집 모드',      desc:'적 2배 출현, 점수 x3 — 고위험', tag:'RISK',tc:'tag-risk',
+   apply:()=>{ mods.bonusScore=3.0; waveTarget=Math.floor(waveTarget*1.8); }},
+];
+
+// Player
+let mF=false,mB=false,mL=false,mR=false,mouseDown=false;
+const vel=new THREE.Vector3();let yVel=0,onGnd=true;
+const GRAV=18,JUMP=8;let lastT=performance.now();
+
+// Events
+instrEl.addEventListener('click',()=>{
+  if(showingLobby)return;
+  if(gameOver){showStageLobby(false);return;}
+  ctrl.lock();
+});
+ctrl.addEventListener('lock',()=>instrEl.style.display='none');
+ctrl.addEventListener('unlock',()=>{if(!gameOver&&!showingLobby&&!choosingStage)instrEl.style.display='block';mouseDown=false;aiming=false;});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('mousedown',e=>{
+  if(!ctrl.isLocked||gameOver)return;
+  if(e.button===0){mouseDown=true;shoot();}
+  if(e.button===2)aiming=true;
+});
+document.addEventListener('mouseup',e=>{
+  if(e.button===0)mouseDown=false;
+  if(e.button===2)aiming=false;
+});
+document.addEventListener('keydown',e=>{
+  if(e.code==='KeyW')mF=true;if(e.code==='KeyS')mB=true;if(e.code==='KeyA')mL=true;if(e.code==='KeyD')mR=true;
+  if(e.code==='KeyR')startReload();
+  if(e.code==='Space'&&onGnd&&ctrl.isLocked&&!gameOver){yVel=JUMP;onGnd=false;}
+  const mp={Digit1:'pistol',Digit2:'smg',Digit3:'ar',Digit4:'shotgun',Digit5:'sniper',Digit6:'revolver',Digit7:'lmg',Digit8:'dmr',Digit9:'laser',Digit0:'plasma',KeyQ:'minigun',KeyE:'crossbow'};
+  if(mp[e.code]&&getCurStage().weapons.includes(mp[e.code]))switchWep(mp[e.code]);
+});
+document.addEventListener('keyup',e=>{if(e.code==='KeyW')mF=false;if(e.code==='KeyS')mB=false;if(e.code==='KeyA')mL=false;if(e.code==='KeyD')mR=false;});
+document.addEventListener('wheel',e=>{
+  if(!ctrl.isLocked||gameOver||choosingStage)return;
+  e.preventDefault();
+  const stW=getCurStage().weapons;
+  let idx=WKEYS.indexOf(wKey);
+  const dir2=e.deltaY>0?1:-1;
+  let tries=0;
+  do{idx=(idx+dir2+WKEYS.length)%WKEYS.length;tries++;}while(!stW.includes(WKEYS[idx])&&tries<WKEYS.length);
+  switchWep(WKEYS[idx]);
+},{passive:false});
+
+function updateUI(){wnameEl.innerText=wD.n;ammoEl.innerText=ammo;maxAmEl.innerText=wD.mag;}
+function updateWBar(){
+  wbarEl.innerHTML='';
+  const stW=getCurStage().weapons;
+  WKEYS.forEach(k=>{
+    const d=document.createElement('div');
+    const avail=stW.includes(k);
+    d.className='wslot'+(k===wKey?' active':'')+(avail?'':' wlocked');
+    d.innerHTML='<div class="wk">'+WD[k].k+'</div><div class="wn">'+WD[k].n+'</div>';
+    if(avail) d.addEventListener('click',()=>switchWep(k));
+    wbarEl.appendChild(d);
+  });
+}
+function switchWep(k){
+  if(gameOver||k===wKey)return;
+  if(!getCurStage().weapons.includes(k))return; // blocked by stage
+  wKey=k;wD=WD[k];ammo=wD.mag;reloading=false;rldT=0;cdT=0;bstLeft=0;bstT=0;rldTxt.innerText='';rebuildGun(k);updateUI();updateWBar();
+}
+function startReload(){if(gameOver||reloading||ammo===wD.mag)return;reloading=true;rldT=wD.rld;rldTxt.innerText='재장전 중...';}
+function finishReload(){ammo=wD.mag;reloading=false;rldT=0;rldTxt.innerText='';ammoEl.innerText=ammo;}
+
+function fireSingle(){
+  const spr=aiming?wD.spr*0.35:wD.spr;
+  for(let i=0;i<wD.pel;i++){
+    const b=makeBullet(wD),dir=new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    dir.x+=(Math.random()-0.5)*spr;dir.y+=(Math.random()-0.5)*spr;dir.z+=(Math.random()-0.5)*spr;dir.normalize();
+    b.position.copy(camera.position).addScaledVector(dir,0.9);b.position.y-=0.08;
+    b.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir);
+    b.userData.vel=dir.clone().multiplyScalar(wD.spd);b.userData.life=0;
+    scene.add(b);bullets.push(b);
+  }
+  ammo--;ammoEl.innerText=ammo;
+  if(ammo<=0)rldTxt.innerText='탄약 없음! R키로 재장전';
+  gunKickZ+=wD.rcG;gunKickRX+=wD.rcRX;
+  fireFl.style.background='rgba(255,255,255,0.08)';
+  setTimeout(()=>fireFl.style.background='rgba(255,255,255,0)',55);
+}
+
+// Laser penetrating beam
+function fireLaser(){
+  const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+  const origin=camera.position.clone();origin.y-=0.06;
+
+  // Find wall distance along ray (step check)
+  let maxDist=180;
+  for(let t2=1;t2<maxDist;t2+=0.8){
+    if(isBlocked(origin.x+dir.x*t2,origin.z+dir.z*t2,0.05)){maxDist=t2;break;}
+  }
+
+  // Collect all hit enemies with XZ cylinder test
+  const hits=[];
+  for(let j=0;j<enemies.length;j++){
+    const e=enemies[j];
+    const dx=e.position.x-origin.x,dz=e.position.z-origin.z;
+    const denom=dir.x*dir.x+dir.z*dir.z;if(denom<0.0001)continue;
+    const t2=(dx*dir.x+dz*dir.z)/denom;
+    if(t2<0.5||t2>maxDist)continue;
+    const cx=origin.x+dir.x*t2,cz=origin.z+dir.z*t2;
+    if(Math.sqrt((cx-e.position.x)**2+(cz-e.position.z)**2)>0.9)continue;
+    const cy=origin.y+dir.y*t2;
+    if(cy<0.1||cy>4.3)continue;
+    hits.push({j,e,t2});
+  }
+  hits.sort((a,b)=>a.t2-b.t2);
+
+  // Damage all hit enemies; mark for removal
+  let killed=0;
+  const toRemove=[];
+  for(const h of hits){
+    const ud=h.e.userData;
+    // Laser: use body center Y for zone detection (beam is straight, hits body center)
+    const laserHitY=1.5+(Math.random()<0.25?1.8:0); // 25% chance to hit head region
+    const laserHitPos={x:h.e.position.x,y:laserHitY,z:h.e.position.z};
+    const lhz=getHitZone(laserHitPos,h.e.position);
+    const eld=wD.dmg*mods.dmgMult*lhz.mult;
+    ud.hp-=eld;ud.flashT=0.15;ehpFlash=1.5;
+    showHitZone(lhz,eld);
+    dmgTxt.innerText=(lhz.name==='HEAD'?'🎯 ':'')+'LASER -'+eld.toFixed(1);
+    if(ud.hp<=0){spawnFX(h.e.position.clone());scene.remove(h.e);toRemove.push(h.j);onKill();killed++;}
+    else ehpTxt.innerText='['+lhz.name+'] 적 HP: '+ud.hp.toFixed(1)+' / '+ud.maxHP;
+  }
+  // Splice in reverse order to preserve indices
+  toRemove.sort((a,b)=>b-a);
+  for(const idx of toRemove)enemies.splice(idx,1);
+  if(killed>0){ehpTxt.innerText='관통 처치 x'+killed+'!';}
+
+  // Beam visual: thick glowing cylinder
+  const endPt=origin.clone().addScaledVector(dir,maxDist);
+  const mid=origin.clone().lerp(endPt,0.5);
+  // Core beam
+  const core=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,maxDist,8),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.95}));
+  core.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
+  core.position.copy(mid);scene.add(core);laserBeams.push({mesh:core,initLife:0.12,life:0.12});
+  // Glow
+  const glow=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,maxDist,8),
+    new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:0.35}));
+  glow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);
+  glow.position.copy(mid);scene.add(glow);laserBeams.push({mesh:glow,initLife:0.12,life:0.12});
+  // Muzzle flash
+  fireFl.style.background='rgba(0,220,255,0.18)';
+  setTimeout(()=>fireFl.style.background='rgba(255,255,255,0)',80);
+
+  ammo--;ammoEl.innerText=ammo;
+  if(ammo<=0)rldTxt.innerText='탄약 없음! R키로 재장전';
+  gunKickZ+=wD.rcG;gunKickRX+=wD.rcRX;
+}
+
+function shoot(){
+  if(gameOver||reloading||cdT>0)return;
+  if(ammo<=0){rldTxt.innerText='탄약 없음! R키로 재장전';return;}
+  if(wD.isLaser){fireLaser();}
+  else if(wD.bst){fireSingle();bstLeft=wD.bst-1;bstT=wD.bdt;}
+  else fireSingle();
+  cdT=wD.cd*mods.fireRateMult;
+}
+
+function clearAll(){enemies.forEach(e=>scene.remove(e));enemies.length=0;bullets.forEach(b=>scene.remove(b));bullets.length=0;parts.forEach(p=>scene.remove(p));parts.length=0;laserBeams.forEach(lb=>{scene.remove(lb.mesh);});laserBeams.length=0;buffItems.forEach(b=>scene.remove(b));buffItems.length=0;}
+function resetGame(){
+  // Go to lobby on reset
+  clearAll();
+  if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}
+  stageEl.classList.remove('active');
+  gameOver=false;showingLobby=false;choosingStage=false;
+  hpBar.style.width='100%';scoreEl.innerText='0';
+  yawObj.position.set(0,EYH,60);camera.rotation.set(0,0,0);camera.fov=75;camera.updateProjectionMatrix();
+  gunGrp.position.set(0.24,-0.24,-0.50);gunGrp.rotation.set(0,0,0);
+  rebuildGun('pistol');updateUI();updateWBar();
+  mouseDown=false;aiming=false;gunGrp.visible=true;
+  const scopeEl=document.getElementById('scope-overlay');
+  if(scopeEl) scopeEl.style.display='none';
+  xhEl.style.display='block';xhEl.classList.remove('ads');
+  showStageLobby(false);
+}
+function endGame(){gameOver=true;ctrl.unlock();instrEl.style.display='block';instrEl.innerHTML='<h1>GAME OVER</h1><p style="font-size:20px;margin:12px 0;color:#ff5555;">스테이지 점수: <strong style="color:#fff">'+score+'</strong></p><p style="font-size:14px;color:#ffcc00;margin:6px 0;">누적 총점: '+totalScore+'</p><p style="color:#888;font-size:12px">클릭해서 스테이지 선택으로</p>';}
+
+function updatePlayer(dt){
+  vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
+  const spd=120*mods.speedMult;
+  if(mF)vel.z-=spd*dt;if(mB)vel.z+=spd*dt;if(mL)vel.x-=spd*dt;if(mR)vel.x+=spd*dt;
+  const px=yawObj.position.x,pz=yawObj.position.z;
+  ctrl.moveRight(vel.x*dt);ctrl.moveForward(-vel.z*dt);
+  const dx=yawObj.position.x-px,dz=yawObj.position.z-pz;
+  yawObj.position.x=px;yawObj.position.z=pz;
+  yawObj.position.x=Math.max(-LIM+2,Math.min(LIM-2,px+dx));
+  if(isBlocked(yawObj.position.x,yawObj.position.z,PR))yawObj.position.x=px;
+  yawObj.position.z=Math.max(-LIM+2,Math.min(LIM-2,pz+dz));
+  if(isBlocked(yawObj.position.x,yawObj.position.z,PR))yawObj.position.z=pz;
+  const pf=getPF(yawObj.position.x,yawObj.position.y-EYH,yawObj.position.z);
+  const flY=Math.max(0,pf);yVel-=GRAV*dt;yawObj.position.y+=yVel*dt;
+  const minY=flY+EYH;if(yawObj.position.y<=minY){yawObj.position.y=minY;yVel=0;onGnd=true;}else onGnd=false;
+}
+function updateGunRecoil(dt){
+  gunKickZ*=Math.pow(0.04,dt);gunKickRX*=Math.pow(0.04,dt);
+  if(Math.abs(gunKickZ)<0.0005)gunKickZ=0;if(Math.abs(gunKickRX)<0.0005)gunKickRX=0;
+  const ax=aiming?0.0:0.24,ay=aiming?-0.12:-0.24,az=aiming?-0.32:-0.50;
+  gunGrp.position.x+=(ax-gunGrp.position.x)*0.16;gunGrp.position.y+=(ay-gunGrp.position.y)*0.16;
+  gunGrp.position.z+=(az+gunKickZ-gunGrp.position.z)*0.14;
+  gunGrp.rotation.x+=(gunKickRX-gunGrp.rotation.x)*0.16;gunGrp.rotation.y+=(0-gunGrp.rotation.y)*0.14;gunGrp.rotation.z+=(0-gunGrp.rotation.z)*0.14;
+}
+function updateAim(){
+  const tF=aiming?wD.aFov:wD.hFov;
+  camera.fov+=(tF-camera.fov)*0.16;camera.updateProjectionMatrix();
+  const scopeEl=document.getElementById('scope-overlay');
+  const useScope=aiming&&wD.scope;
+  if(scopeEl) scopeEl.style.display=useScope?'block':'none';
+  // Crosshair: hide when scoping, show ads style otherwise
+  if(useScope){xhEl.style.display='none';}
+  else{xhEl.style.display='block';if(aiming)xhEl.classList.add('ads');else xhEl.classList.remove('ads');}
+  // When scoping: hide gun entirely
+  if(wD.scope) gunGrp.visible = !aiming;
+}
+function updateTimers(dt){
+  if(reloading){rldT-=dt;rldTxt.innerText='재장전 중... '+Math.max(0,rldT).toFixed(1)+'초';if(rldT<=0)finishReload();}
+  if(cdT>0)cdT-=dt;
+  // Auto-fire: hold left mouse button
+  if(mouseDown&&wD.auto&&!reloading&&cdT<=0&&ammo>0&&!gameOver)shoot();
+  if(bstLeft>0){bstT-=dt;if(bstT<=0&&ammo>0&&!reloading){fireSingle();bstLeft--;bstT=wD.bdt;}else if(ammo<=0)bstLeft=0;}
+  if(wKey==='minigun'&&gunModel)gunModel.rotation.z+=dt*(cdT>0?25:5);
+}
+let ehpFlash=0;
+function updateEnemies(dt){
+  const cf=new THREE.Vector3(yawObj.position.x,0,yawObj.position.z);
+  for(let i=enemies.length-1;i>=0;i--){
+    const e=enemies[i],ud=e.userData;
+    const ef=new THREE.Vector3(e.position.x,0,e.position.z);
+    const dir=new THREE.Vector3().subVectors(cf,ef);const dist=dir.length();
+    if(dist>0.001)dir.normalize();
+    const espd=getCurStage().spd;
+    if(dist>2.3){const op=e.position.clone();e.position.addScaledVector(dir,espd*dt);if(isBlocked(e.position.x,e.position.z,0.8))e.position.copy(op);}
+    e.lookAt(camera.position.x,2.2,camera.position.z);
+    if(dist>2.3)ud.walkT+=dt*(7*espd/0.85);
+    const sw=dist>2.3?Math.sin(ud.walkT)*0.6:0;
+    ud.aLG.rotation.x=sw;ud.aRG.rotation.x=-sw;ud.lLG.rotation.x=-sw;ud.lRG.rotation.x=sw;
+    const ratio=Math.max(0,ud.hp/ud.maxHP);
+    if(ud.barFg){ud.barFg.scale.x=ratio;ud.barFg.position.x=(ratio-1)*0.6;ud.barFg.material.color.setHSL(ratio*0.33,1,0.45);ud.barFg.lookAt(camera.position);}
+    if(ud.barBg)ud.barBg.lookAt(camera.position);
+    if(ud.flashT>0){ud.flashT-=dt;const t2=Math.max(0,ud.flashT/0.15);ud.bm.color.setRGB(1,t2*0.35,t2*0.35);if(ud.am)ud.am.color.setRGB(0.9+t2*0.1,t2*0.3,t2*0.3);}
+    if(dist<2.3&&Math.abs(yawObj.position.y-EYH)<3.5){
+      playerHP-=13*dt*mods.armorMult;if(playerHP<0)playerHP=0;hpBar.style.width=playerHP+'%';
+      hitFl.style.background='rgba(255,0,0,0.2)';setTimeout(()=>hitFl.style.background='rgba(255,0,0,0)',120);
+      if(playerHP<=0){endGame();return;}
+    }
+  }
+}
+function updateBullets(dt){
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];b.position.addScaledVector(b.userData.vel,dt);b.userData.life+=dt;
+    if(isBlocked(b.position.x,b.position.z,0.1)){scene.remove(b);bullets.splice(i,1);continue;}
+    let rm=false;
+    for(let j=enemies.length-1;j>=0;j--){
+      const e=enemies[j],ud=e.userData;
+      // Broad-phase: quick XZ+Y AABB check (generous bounds)
+      if(Math.abs(b.position.x-e.position.x)<1.1&&Math.abs(b.position.z-e.position.z)<1.1&&b.position.y>=0.0&&b.position.y<4.2){
+        // Narrow-phase: hitzone detection
+        const hz=getHitZone(b.position,e.position);
+        const effectiveDmg=wD.dmg*mods.dmgMult*hz.mult;
+        ud.hp-=effectiveDmg;ud.flashT=0.15;ehpFlash=1.5;
+        showHitZone(hz,effectiveDmg);
+        // Headshot special flash
+        if(hz.name==='HEAD'){
+          hitFl.style.background='rgba(255,60,0,0.12)';
+          setTimeout(()=>hitFl.style.background='rgba(255,0,0,0)',100);
+        }
+        const dmgLabel=(hz.name==='HEAD'?'🎯 ':'') + '-'+effectiveDmg.toFixed(1);
+        dmgTxt.innerText=dmgLabel;
+        if(ud.hp>0){ehpTxt.innerText='['+hz.name+'] 적 HP: '+ud.hp.toFixed(1)+' / '+ud.maxHP;}
+        else{
+          const ep=e.position.clone();spawnFX(ep);
+          if(mods.splashRad>0){
+            for(let k=enemies.length-1;k>=0;k--){
+              if(k===j)continue;
+              const ed=enemies[k];
+              if(ep.distanceTo(ed.position)<mods.splashRad){
+                ed.userData.hp-=effectiveDmg*0.5;ed.userData.flashT=0.15;
+                if(ed.userData.hp<=0){spawnFX(ed.position.clone());scene.remove(ed);enemies.splice(k,1);onKill();}
+              }
+            }
+          }
+          scene.remove(e);enemies.splice(j,1);onKill();ehpTxt.innerText='💀 처치! ['+hz.name+']';
+        }
+        scene.remove(b);bullets.splice(i,1);rm=true;break;
+      }
+    }
+    if(rm)continue;if(b.userData.life>3.8){scene.remove(b);bullets.splice(i,1);}
+  }
+  if(ehpFlash>0){ehpFlash-=dt;if(ehpFlash<=0){ehpTxt.innerText='';dmgTxt.innerText='';}}
+}
+function spawnFX(pos){for(let i=0;i<10;i++){const p=new THREE.Mesh(new THREE.SphereGeometry(0.07+Math.random()*0.06,4,4),new THREE.MeshBasicMaterial({color:new THREE.Color().setHSL(0,0.9,0.3+Math.random()*0.3)}));p.position.copy(pos);p.position.y=1.5+Math.random()*1.5;p.userData.vel=new THREE.Vector3((Math.random()-0.5)*6,1+Math.random()*3,(Math.random()-0.5)*6);p.userData.life=0.55+Math.random()*0.4;scene.add(p);parts.push(p);}}
+function updateFX(dt){for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.userData.vel.y-=14*dt;p.position.addScaledVector(p.userData.vel,dt);p.userData.life-=dt;if(p.userData.life<=0){scene.remove(p);parts.splice(i,1);}}}
+
+// ── HITZONE DETECTION ─────────────────────────────────────────
+// Returns {mult, zone} for bullet hitting enemy e at world pos bpos
+// Enemy model (local Y from ground):
+//   Head:   3.0 ~ 3.75   (box ±0.38 xz from center)
+//   Torso:  1.55~ 3.0    (box ±0.52 x, ±0.32 z)
+//   L Arm:  1.5 ~ 2.75   (x: -0.38 ~ -0.90, |z|<0.22)
+//   R Arm:  1.5 ~ 2.75   (x:  0.38 ~  0.90, |z|<0.22)
+//   Legs:   0.0 ~ 1.5    (box ±0.40 x, ±0.22 z)
+const ZONES=[
+  {name:'HEAD',    mult:3.0, css:'headshot', label:'💥 HEADSHOT!',
+   test:(lx,ly,lz)=>ly>=3.00&&ly<=3.78&&Math.abs(lx)<0.40&&Math.abs(lz)<0.40},
+  {name:'CHEST',   mult:1.2, css:'bodyshot', label:'CHEST',
+   test:(lx,ly,lz)=>ly>=2.40&&ly<3.00&&Math.abs(lx)<0.54&&Math.abs(lz)<0.34},
+  {name:'TORSO',   mult:1.0, css:'bodyshot', label:'BODY',
+   test:(lx,ly,lz)=>ly>=1.55&&ly<2.40&&Math.abs(lx)<0.54&&Math.abs(lz)<0.34},
+  {name:'L_ARM',   mult:0.70, css:'armshot', label:'ARM',
+   test:(lx,ly,lz)=>ly>=1.50&&ly<2.80&&lx>=-0.95&&lx<=-0.34&&Math.abs(lz)<0.26},
+  {name:'R_ARM',   mult:0.70, css:'armshot', label:'ARM',
+   test:(lx,ly,lz)=>ly>=1.50&&ly<2.80&&lx>=0.34&&lx<=0.95&&Math.abs(lz)<0.26},
+  {name:'LEGS',    mult:0.55, css:'legshot', label:'LEG',
+   test:(lx,ly,lz)=>ly>=0.00&&ly<1.50&&Math.abs(lx)<0.44&&Math.abs(lz)<0.24},
+];
+
+function getHitZone(bpos, epos){
+  // Transform bullet world pos to enemy local space (no rotation needed, enemy faces camera but body hitboxes are symmetric)
+  const lx = bpos.x - epos.x;
+  const ly = bpos.y;   // world Y = local Y (enemy is on ground)
+  const lz = bpos.z - epos.z;
+  for(const z of ZONES){ if(z.test(lx,ly,lz)) return z; }
+  // Fallback: torso
+  return ZONES[2];
+}
+
+let hzTimer=0;
+const hzEl=document.getElementById('hit-zone-txt');
+
+function showHitZone(zone, dmg){
+  if(!hzEl) return;
+  hzEl.className=zone.css;
+  hzEl.innerText = zone.name==='HEAD'
+    ? zone.label+'  -'+dmg.toFixed(1)
+    : zone.label+'  -'+dmg.toFixed(1);
+  hzEl.style.opacity='1';
+  hzTimer=0.55;
+  if(zone.name==='HEAD') hzTimer=0.75;
+}
+
+function tickHitZone(dt){
+  if(hzTimer>0){
+    hzTimer-=dt;
+    if(hzTimer<=0){hzEl.style.opacity='0';}
+    else if(hzTimer<0.15){hzEl.style.opacity=String(hzTimer/0.15);}
+  }
+}
+
+function updateLaserBeams(dt){
+  for(let i=laserBeams.length-1;i>=0;i--){
+    const lb=laserBeams[i];lb.life-=dt;
+    const alpha=lb.life/lb.initLife;
+    lb.mesh.material.opacity=Math.max(0,alpha)*(lb.mesh.material.color.getHex()===0xffffff?0.95:0.35);
+    if(lb.life<=0){scene.remove(lb.mesh);lb.mesh.geometry.dispose();lb.mesh.material.dispose();laserBeams.splice(i,1);}
+  }
+}
+
+function animate(){
+  requestAnimationFrame(animate);
+  const now=performance.now(),dt=Math.min((now-lastT)/1000,0.05);lastT=now;
+  if(ctrl.isLocked&&!gameOver){updatePlayer(dt);updateGunRecoil(dt);updateAim();updateTimers(dt);updateEnemies(dt);updateBullets(dt);updateLaserBeams(dt);updateFX(dt);updateBuffItems(dt);tickHitZone(dt);}
+  renderer.render(scene,camera);
+}
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+hpBar.style.width='100%';
+rebuildGun('pistol');
+updateWBar();
+// Start by showing stage lobby
+instrEl.style.display='none';
+showStageLobby(false);
+animate();
+</script>
+</body>
+</html>
