@@ -271,6 +271,7 @@ yawObj.position.set(0,1.7,60);
 // Mobile: manual yaw/pitch for touch look
 let mobileYaw=0, mobilePitch=0;
 let mobileActive=false; // true when game is running on mobile
+const _mEuler=new THREE.Euler(0,0,0,'YXZ');
 
 // Gun group on camera
 const gunGrp=new THREE.Group();
@@ -1421,12 +1422,8 @@ if(isMobile){
     mobileYaw-=dx*lookSens;
     mobilePitch-=dy*lookSens;
     mobilePitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,mobilePitch));
-    yawObj.rotation.y=mobileYaw;
-    yawObj.rotation.x=0;
-    yawObj.rotation.z=0;
-    camera.rotation.x=mobilePitch;
-    camera.rotation.y=0;
-    camera.rotation.z=0;
+    _mEuler.set(mobilePitch,mobileYaw,0);
+    camera.quaternion.setFromEuler(_mEuler);
   }
 
   // Global touch handling for look (right half of screen, including over buttons)
