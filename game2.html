@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>TACTICAL SURVIVAL</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -92,6 +93,34 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 .lbadge-lock{font-size:13px}
 #reset-save{margin-top:28px;padding:8px 22px;background:rgba(80,0,0,0.4);border:1px solid rgba(255,60,60,0.3);color:#aa5555;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;transition:all 0.15s}
 #reset-save:hover{background:rgba(120,0,0,0.6);border-color:rgba(255,80,80,0.6);color:#ff6666}
+/* Mobile touch controls */
+#mobile-controls{display:none;position:absolute;inset:0;z-index:12;pointer-events:none}
+#joystick-zone{position:absolute;bottom:20px;left:20px;width:150px;height:150px;pointer-events:auto;touch-action:none}
+#joystick-base{width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);position:absolute;bottom:15px;left:15px}
+#joystick-knob{width:50px;height:50px;border-radius:50%;background:rgba(0,255,100,0.3);border:2px solid rgba(0,255,100,0.5);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transition:none}
+#look-zone{position:absolute;top:0;right:0;width:55%;height:100%;pointer-events:auto;touch-action:none}
+.m-btn{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-weight:bold;color:rgba(255,255,255,0.7);user-select:none;-webkit-user-select:none}
+#btn-fire{bottom:30px;right:30px;width:80px;height:80px;background:rgba(255,60,60,0.25);border:2px solid rgba(255,60,60,0.5);font-size:11px;letter-spacing:1px}
+#btn-fire.active{background:rgba(255,60,60,0.5);border-color:rgba(255,80,80,0.8)}
+#btn-aim{bottom:130px;right:30px;width:60px;height:60px;background:rgba(0,150,255,0.2);border:2px solid rgba(0,150,255,0.4);font-size:10px}
+#btn-aim.active{background:rgba(0,150,255,0.45);border-color:rgba(0,180,255,0.8)}
+#btn-reload{bottom:130px;right:120px;width:52px;height:52px;background:rgba(255,200,0,0.15);border:2px solid rgba(255,200,0,0.35);font-size:10px}
+#btn-reload.active{background:rgba(255,200,0,0.4)}
+#btn-jump{bottom:30px;left:160px;width:56px;height:56px;background:rgba(0,255,100,0.15);border:2px solid rgba(0,255,100,0.3);font-size:10px}
+#btn-jump.active{background:rgba(0,255,100,0.4)}
+#btn-prev-wep,#btn-next-wep{bottom:200px;width:44px;height:44px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);font-size:16px}
+#btn-prev-wep{right:120px}
+#btn-next-wep{right:30px}
+#btn-prev-wep.active,#btn-next-wep.active{background:rgba(255,255,255,0.25)}
+@media(max-width:900px),(pointer:coarse){
+  #mobile-controls{display:block}
+  #weapon-bar{bottom:260px;pointer-events:auto}
+  .wslot{pointer-events:auto}
+  #instructions{min-width:auto;width:90vw;padding:24px 18px}
+  #instructions p{font-size:11px}
+  .pc-only{display:none!important}
+  .mob-only{display:block!important}
+}
 </style>
 </head>
 <body>
@@ -149,11 +178,22 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
   <!-- Magnification label -->
   <div style="position:absolute;top:calc(50% + 178px);left:50%;transform:translateX(-50%);font-family:'Courier New',monospace;font-size:11px;color:rgba(0,200,80,0.5);letter-spacing:2px;">8x</div>
 </div>
+<div id="mobile-controls">
+  <div id="joystick-zone"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
+  <div id="look-zone"></div>
+  <div class="m-btn" id="btn-fire">FIRE</div>
+  <div class="m-btn" id="btn-aim">ADS</div>
+  <div class="m-btn" id="btn-reload">R</div>
+  <div class="m-btn" id="btn-jump">JUMP</div>
+  <div class="m-btn" id="btn-prev-wep">◀</div>
+  <div class="m-btn" id="btn-next-wep">▶</div>
+</div>
 <div id="instructions">
   <h1>TACTICAL SURVIVAL</h1>
   <p>클릭하여 전투 시작</p>
-  <p>W A S D 이동 | SPACE 점프 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p>
-  <p>1~0 / Q / E 무기 선택 (12종)</p>
+  <p class="pc-only">W A S D 이동 | SPACE 점프 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p>
+  <p class="pc-only">1~0 / Q / E 무기 선택 (12종)</p>
+  <p class="mob-only" style="display:none">조이스틱 이동 | 드래그 시점 | FIRE 사격 | ADS 조준</p>
   <div class="hint">12종 무기 · 적 체력바 · 총기 반동 · 벽 슬라이딩</div>
 </div>
 
@@ -182,11 +222,18 @@ dirL.position.set(20,35,10); dirL.castShadow=true; dirL.shadow.mapSize.set(2048,
 const pl1=new THREE.PointLight(0x3366ff,12,100,2); pl1.position.set(55,8,-20); scene.add(pl1);
 const pl2=new THREE.PointLight(0xff4422,12,100,2); pl2.position.set(-45,8,35); scene.add(pl2);
 
+// Mobile detection
+const isMobile=('ontouchstart' in window)||(navigator.maxTouchPoints>0)||window.matchMedia('(pointer:coarse)').matches;
+
 // Controls
 const ctrl=new PointerLockControls(camera,document.body);
 const yawObj=ctrl.getObject();
 scene.add(yawObj);
 yawObj.position.set(0,1.7,60);
+
+// Mobile: manual yaw/pitch for touch look
+let mobileYaw=0, mobilePitch=0;
+let mobileActive=false; // true when game is running on mobile
 
 // Gun group on camera
 const gunGrp=new THREE.Group();
@@ -1028,6 +1075,7 @@ function stageComplete(){
 function showStageLobby(afterClear){
   showingLobby=true;
   choosingStage=true;
+  mobileActive=false;
   ctrl.unlock();
   instrEl.style.display='none';
   const clearMsg=document.getElementById('lobby-clear-msg');
@@ -1114,7 +1162,11 @@ function startStage(sid){
   spawnBuffItem(0,0.6,-50,'speed');spawnBuffItem(-50,0.6,50,'speed');
   spawnBuffItem(50,0.6,-50,'ammo');spawnBuffItem(-20,0.6,-20,'ammo');
   spawnBuffItem(20,0.6,20,'dmg');spawnBuffItem(-60,0.6,-60,'dmg');spawnBuffItem(60,0.6,60,'dmg');
-  instrEl.innerHTML='<h1>'+st.name+'</h1><p style="color:#00ff88;letter-spacing:2px;font-size:13px;margin-bottom:8px">'+st.sub+'</p><p>클릭하여 전투 시작</p><p>W A S D 이동 | SPACE 점프 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p><p>1~0 / Q / E 무기 선택 · 마우스 휠 무기 전환</p><div class="hint">웨이브 클리어 시 업그레이드 선택 → '+st.waves+'웨이브 모두 클리어하면 다음 스테이지 해금</div>';
+  if(isMobile){
+    instrEl.innerHTML='<h1>'+st.name+'</h1><p style="color:#00ff88;letter-spacing:2px;font-size:13px;margin-bottom:8px">'+st.sub+'</p><p>터치하여 전투 시작</p><p>왼쪽 조이스틱: 이동 | 오른쪽 드래그: 시점</p><p>FIRE: 사격 | ADS: 조준 | R: 재장전 | ◀▶: 무기</p><div class="hint">웨이브 클리어 시 업그레이드 선택 → '+st.waves+'웨이브 모두 클리어하면 다음 스테이지 해금</div>';
+  }else{
+    instrEl.innerHTML='<h1>'+st.name+'</h1><p style="color:#00ff88;letter-spacing:2px;font-size:13px;margin-bottom:8px">'+st.sub+'</p><p>클릭하여 전투 시작</p><p>W A S D 이동 | SPACE 점프 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p><p>1~0 / Q / E 무기 선택 · 마우스 휠 무기 전환</p><div class="hint">웨이브 클리어 시 업그레이드 선택 → '+st.waves+'웨이브 모두 클리어하면 다음 스테이지 해금</div>';
+  }
   instrEl.style.display='block';
   for(let i=0;i<5;i++) setTimeout(spawnEnemy,i*400);
   startWaveSpawn();
@@ -1122,7 +1174,7 @@ function startStage(sid){
 
 function showStageSelect(){
   choosingStage=true;
-  ctrl.unlock();
+  if(!isMobile)ctrl.unlock();
   if(stageClearTxt) stageClearTxt.innerText='WAVE '+stageWaveNum+'/'+getCurStage().waves+' 클리어!  SCORE: '+score;
   const pool=[...UPGRADES].sort(()=>Math.random()-0.5).slice(0,3);
   stageCardsEl.innerHTML='';
@@ -1150,7 +1202,7 @@ function pickUpgrade(u){
   waveTarget=getCurStage().waveBase+(stageWaveNum-1)*5;
   waveActive=true;
   updateWaveHUD();
-  ctrl.lock();
+  if(isMobile){mobileActive=true;}else{ctrl.lock();}
   const initCount=Math.min(4+wave,10);
   for(let i=0;i<initCount;i++) setTimeout(spawnEnemy,i*300);
   startWaveSpawn();
@@ -1260,7 +1312,8 @@ const GRAV=18,JUMP=8;let lastT=performance.now();
 instrEl.addEventListener('click',()=>{
   if(showingLobby)return;
   if(gameOver){showStageLobby(false);return;}
-  ctrl.lock();
+  if(isMobile){mobileActive=true;instrEl.style.display='none';}
+  else ctrl.lock();
 });
 ctrl.addEventListener('lock',()=>instrEl.style.display='none');
 ctrl.addEventListener('unlock',()=>{if(!gameOver&&!showingLobby&&!choosingStage)instrEl.style.display='block';mouseDown=false;aiming=false;});
@@ -1292,6 +1345,134 @@ document.addEventListener('wheel',e=>{
   do{idx=(idx+dir2+WKEYS.length)%WKEYS.length;tries++;}while(!stW.includes(WKEYS[idx])&&tries<WKEYS.length);
   switchWep(WKEYS[idx]);
 },{passive:false});
+
+// ─── MOBILE TOUCH CONTROLS ───
+if(isMobile){
+  const lookZone=document.getElementById('look-zone');
+  const joyZone=document.getElementById('joystick-zone');
+  const joyBase=document.getElementById('joystick-base');
+  const joyKnob=document.getElementById('joystick-knob');
+  const btnFire=document.getElementById('btn-fire');
+  const btnAim=document.getElementById('btn-aim');
+  const btnReload=document.getElementById('btn-reload');
+  const btnJump=document.getElementById('btn-jump');
+  const btnPrev=document.getElementById('btn-prev-wep');
+  const btnNext=document.getElementById('btn-next-wep');
+
+  let lookTouchId=null,lookLastX=0,lookLastY=0;
+  let joyTouchId=null,joyCX=0,joyCY=0;
+  const LOOK_SENS=0.004;
+  const JOY_MAX=50;
+
+  // Look zone - touch drag to rotate camera
+  lookZone.addEventListener('touchstart',e=>{
+    if(lookTouchId!==null)return;
+    const t=e.changedTouches[0];
+    lookTouchId=t.identifier;lookLastX=t.clientX;lookLastY=t.clientY;
+  },{passive:true});
+  lookZone.addEventListener('touchmove',e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier===lookTouchId){
+        const dx=t.clientX-lookLastX, dy=t.clientY-lookLastY;
+        lookLastX=t.clientX;lookLastY=t.clientY;
+        if(!mobileActive||gameOver)return;
+        mobileYaw-=dx*LOOK_SENS;
+        mobilePitch-=dy*LOOK_SENS;
+        mobilePitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,mobilePitch));
+        yawObj.rotation.y=mobileYaw;
+        camera.rotation.x=mobilePitch;
+      }
+    }
+  },{passive:true});
+  lookZone.addEventListener('touchend',e=>{
+    for(const t of e.changedTouches){if(t.identifier===lookTouchId)lookTouchId=null;}
+  },{passive:true});
+
+  // Joystick
+  joyZone.addEventListener('touchstart',e=>{
+    const t=e.changedTouches[0];
+    joyTouchId=t.identifier;
+    const r=joyBase.getBoundingClientRect();
+    joyCX=r.left+r.width/2;joyCY=r.top+r.height/2;
+  },{passive:true});
+  joyZone.addEventListener('touchmove',e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier===joyTouchId){
+        let dx=t.clientX-joyCX, dy=t.clientY-joyCY;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist>JOY_MAX){dx=dx/dist*JOY_MAX;dy=dy/dist*JOY_MAX;}
+        joyKnob.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;
+        const nx=dx/JOY_MAX, ny=dy/JOY_MAX;
+        mF=ny<-0.3;mB=ny>0.3;mL=nx<-0.3;mR=nx>0.3;
+      }
+    }
+  },{passive:true});
+  function resetJoy(){joyTouchId=null;joyKnob.style.transform='translate(-50%,-50%)';mF=mB=mL=mR=false;}
+  joyZone.addEventListener('touchend',e=>{
+    for(const t of e.changedTouches){if(t.identifier===joyTouchId)resetJoy();}
+  },{passive:true});
+  joyZone.addEventListener('touchcancel',e=>{
+    for(const t of e.changedTouches){if(t.identifier===joyTouchId)resetJoy();}
+  },{passive:true});
+
+  // Fire button (hold for auto)
+  let fireInterval=null;
+  btnFire.addEventListener('touchstart',e=>{
+    e.preventDefault();btnFire.classList.add('active');
+    if(!mobileActive||gameOver)return;
+    mouseDown=true;shoot();
+  });
+  btnFire.addEventListener('touchend',e=>{
+    e.preventDefault();btnFire.classList.remove('active');mouseDown=false;
+  });
+  btnFire.addEventListener('touchcancel',e=>{btnFire.classList.remove('active');mouseDown=false;});
+
+  // ADS button (toggle)
+  btnAim.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(!mobileActive||gameOver)return;
+    aiming=!aiming;
+    btnAim.classList.toggle('active',aiming);
+  });
+
+  // Reload
+  btnReload.addEventListener('touchstart',e=>{
+    e.preventDefault();btnReload.classList.add('active');
+    if(mobileActive&&!gameOver)startReload();
+  });
+  btnReload.addEventListener('touchend',e=>{e.preventDefault();btnReload.classList.remove('active');});
+
+  // Jump
+  btnJump.addEventListener('touchstart',e=>{
+    e.preventDefault();btnJump.classList.add('active');
+    if(mobileActive&&!gameOver&&onGnd){yVel=JUMP;onGnd=false;}
+  });
+  btnJump.addEventListener('touchend',e=>{e.preventDefault();btnJump.classList.remove('active');});
+
+  // Weapon switch buttons
+  function cycleWep(dir){
+    const stW=getCurStage().weapons;
+    let idx=WKEYS.indexOf(wKey);let tries=0;
+    do{idx=(idx+dir+WKEYS.length)%WKEYS.length;tries++;}while(!stW.includes(WKEYS[idx])&&tries<WKEYS.length);
+    switchWep(WKEYS[idx]);
+  }
+  btnPrev.addEventListener('touchstart',e=>{e.preventDefault();btnPrev.classList.add('active');if(mobileActive&&!gameOver)cycleWep(-1);});
+  btnPrev.addEventListener('touchend',e=>{e.preventDefault();btnPrev.classList.remove('active');});
+  btnNext.addEventListener('touchstart',e=>{e.preventDefault();btnNext.classList.add('active');if(mobileActive&&!gameOver)cycleWep(1);});
+  btnNext.addEventListener('touchend',e=>{e.preventDefault();btnNext.classList.remove('active');});
+
+  // Override instructions click for mobile
+  instrEl.removeEventListener('click',instrEl._pcClick);
+  instrEl.addEventListener('click',()=>{
+    if(showingLobby)return;
+    if(gameOver){showStageLobby(false);return;}
+    mobileActive=true;
+    instrEl.style.display='none';
+  });
+
+  // Make weapon bar slots touchable on mobile
+  document.getElementById('weapon-bar').style.pointerEvents='auto';
+}
 
 function updateUI(){wnameEl.innerText=wD.n;ammoEl.innerText=ammo;maxAmEl.innerText=wD.mag;}
 function updateWBar(){
@@ -1428,7 +1609,7 @@ function resetGame(){
   xhEl.style.display='block';xhEl.classList.remove('ads');
   showStageLobby(false);
 }
-function endGame(){gameOver=true;ctrl.unlock();instrEl.style.display='block';instrEl.innerHTML='<h1>GAME OVER</h1><p style="font-size:20px;margin:12px 0;color:#ff5555;">스테이지 점수: <strong style="color:#fff">'+score+'</strong></p><p style="font-size:14px;color:#ffcc00;margin:6px 0;">누적 총점: '+totalScore+'</p><p style="color:#888;font-size:12px">클릭해서 스테이지 선택으로</p>';}
+function endGame(){gameOver=true;mobileActive=false;ctrl.unlock();instrEl.style.display='block';instrEl.innerHTML='<h1>GAME OVER</h1><p style="font-size:20px;margin:12px 0;color:#ff5555;">스테이지 점수: <strong style="color:#fff">'+score+'</strong></p><p style="font-size:14px;color:#ffcc00;margin:6px 0;">누적 총점: '+totalScore+'</p><p style="color:#888;font-size:12px">클릭해서 스테이지 선택으로</p>';}
 
 function updatePlayer(dt){
   vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
@@ -1612,7 +1793,8 @@ function updateLaserBeams(dt){
 function animate(){
   requestAnimationFrame(animate);
   const now=performance.now(),dt=Math.min((now-lastT)/1000,0.05);lastT=now;
-  if(ctrl.isLocked&&!gameOver){updatePlayer(dt);updateGunRecoil(dt);updateAim();updateTimers(dt);updateEnemies(dt);updateBullets(dt);updateLaserBeams(dt);updateFX(dt);updateBuffItems(dt);tickHitZone(dt);}
+  const isPlaying=(ctrl.isLocked||mobileActive)&&!gameOver;
+  if(isPlaying){updatePlayer(dt);updateGunRecoil(dt);updateAim();updateTimers(dt);updateEnemies(dt);updateBullets(dt);updateLaserBeams(dt);updateFX(dt);updateBuffItems(dt);tickHitZone(dt);}
   renderer.render(scene,camera);
 }
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
