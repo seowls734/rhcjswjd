@@ -1076,6 +1076,10 @@ function onKill(){
   score+=Math.round(100*mods.bonusScore);
   scoreEl.innerText=score;
   updateWaveHUD();
+  // Life steal
+  if(mods.lifeSteal>0){playerHP=Math.min(playerHP+mods.lifeSteal,100);hpBar.style.width=playerHP+'%';}
+  // Scavenger ammo recovery
+  if(mods._scavenger){ammo=Math.min(ammo+3,Math.floor(wD.mag*mods.magMult));ammoEl.innerText=ammo;}
   // Splash damage
   if(mods.splashRad>0){
     const lastKilled=enemies.filter(e=>true);// splash handled in bullet update
@@ -1179,7 +1183,7 @@ function startStage(sid){
   mF=mB=mL=mR=false;vel.set(0,0,0);yVel=0;onGnd=true;gunKickZ=0;gunKickRX=0;
   score=0;scoreEl.innerText='0';hpBar.style.width='100%';rldTxt.innerText='';dmgTxt.innerText='';ehpTxt.innerText='';
   wave=1;waveKills=0;waveTarget=st.waveBase;waveActive=true;choosingStage=false;showingLobby=false;
-  mods.dmgMult=1;mods.speedMult=1;mods.armorMult=1;mods.bonusScore=1;mods.splashRad=0;mods.fireRateMult=1;
+  mods.dmgMult=1;mods.speedMult=1;mods.armorMult=1;mods.bonusScore=1;mods.splashRad=0;mods.fireRateMult=1;mods.lifeSteal=0;mods.critChance=0;mods.magMult=1;mods.jumpMult=1;mods.regenRate=0;mods.thorns=0;mods._scavenger=false;
   if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}
   stageEl.classList.remove('active');
   lobbyEl.classList.remove('active');
@@ -1232,6 +1236,7 @@ function showStageSelect(){
 function pickUpgrade(u){
   mods.dmgMult=1.0;mods.speedMult=1.0;mods.armorMult=1.0;
   mods.bonusScore=1.0;mods.splashRad=0.0;mods.fireRateMult=1.0;
+  mods.lifeSteal=0;mods.critChance=0;mods.magMult=1;mods.jumpMult=1;mods.regenRate=0;mods.thorns=0;mods._scavenger=false;
   u.apply();
   stageEl.classList.remove('active');
   choosingStage=false;
@@ -1315,6 +1320,12 @@ const mods={
   bonusScore:1.0, // score multiplier
   splashRad:0.0,  // splash radius (0 = none)
   fireRateMult:1.0,// fire rate multiplier (lower cd = faster)
+  lifeSteal:0.0,  // HP recovered per kill
+  critChance:0.0, // chance for 2x crit hit
+  magMult:1.0,    // magazine size multiplier
+  jumpMult:1.0,   // jump height multiplier
+  regenRate:0.0,  // HP regen per second
+  thorns:0.0,     // reflect damage to nearby enemies on hit
 };
 
 // Stage upgrade pool
@@ -1339,6 +1350,34 @@ const UPGRADES=[
    apply:()=>{ mods.fireRateMult=0.5; }},
   {id:'horde',    icon:'💀', name:'군집 모드',      desc:'적 2배 출현, 점수 x3 — 고위험', tag:'RISK',tc:'tag-risk',
    apply:()=>{ mods.bonusScore=3.0; waveTarget=Math.floor(waveTarget*1.8); }},
+  {id:'vampire',  icon:'🧛', name:'흡혈탄',        desc:'처치 시 HP +8 회복', tag:'HEAL', tc:'tag-heal',
+   apply:()=>{ mods.lifeSteal=8; }},
+  {id:'crit',     icon:'💥', name:'크리티컬 히트',  desc:'30% 확률로 2배 피해', tag:'ATK', tc:'tag-atk',
+   apply:()=>{ mods.critChance=0.3; }},
+  {id:'bigmag',   icon:'📦', name:'확장 탄창',      desc:'탄창 용량 x2', tag:'UTIL', tc:'tag-util',
+   apply:()=>{ mods.magMult=2; ammo=Math.floor(wD.mag*2); ammoEl.innerText=ammo; maxAmEl.innerText=Math.floor(wD.mag*2); }},
+  {id:'highjump', icon:'🦘', name:'강화 다리',      desc:'점프력 +80%', tag:'UTIL', tc:'tag-util',
+   apply:()=>{ mods.jumpMult=1.8; }},
+  {id:'regen',    icon:'💚', name:'나노 재생',      desc:'초당 HP +2 자동 회복', tag:'HEAL', tc:'tag-heal',
+   apply:()=>{ mods.regenRate=2; }},
+  {id:'thorns',   icon:'🦔', name:'가시 갑옷',      desc:'피격 시 주변 적에게 반사 피해', tag:'DEF', tc:'tag-def',
+   apply:()=>{ mods.thorns=15; }},
+  {id:'fullheal', icon:'❤️', name:'완전 회복',      desc:'HP를 100으로 완전 회복', tag:'HEAL', tc:'tag-heal',
+   apply:()=>{ playerHP=100; hpBar.style.width='100%'; }},
+  {id:'glass',    icon:'🗡️', name:'유리 대포',      desc:'피해 x3, 받는 피해 x2 — 극한 공격', tag:'RISK', tc:'tag-risk',
+   apply:()=>{ mods.dmgMult=3.0; mods.armorMult=2.0; }},
+  {id:'tank',     icon:'🪖', name:'중장갑 모드',    desc:'받는 피해 -80%, 이동속도 -30%', tag:'DEF', tc:'tag-def',
+   apply:()=>{ mods.armorMult=0.2; mods.speedMult=0.7; }},
+  {id:'berserker',icon:'😤', name:'버서커',         desc:'HP 50 이하일 때 피해 x2.5', tag:'RISK', tc:'tag-risk',
+   apply:()=>{ mods.dmgMult=(playerHP<=50)?2.5:1.0; }},
+  {id:'sniperbuff',icon:'🔭',name:'정밀 사격',      desc:'헤드샷 피해 x2 추가 보너스', tag:'ATK', tc:'tag-atk',
+   apply:()=>{ mods.dmgMult=1.5; }},
+  {id:'lucky',    icon:'🍀', name:'행운의 탄환',    desc:'처치당 점수 x2.5, 20% 크리티컬', tag:'UTIL', tc:'tag-util',
+   apply:()=>{ mods.bonusScore=2.5; mods.critChance=0.2; }},
+  {id:'overcharge',icon:'⚡',name:'과충전',         desc:'연사 x3, 탄창 절반 — 극한 화력', tag:'RISK', tc:'tag-risk',
+   apply:()=>{ mods.fireRateMult=0.33; const half=Math.max(1,Math.floor(wD.mag/2)); ammo=Math.min(ammo,half); maxAmEl.innerText=half; }},
+  {id:'scavenger',icon:'🔍', name:'탄약 수집가',    desc:'처치 시 탄약 +3 회복', tag:'UTIL', tc:'tag-util',
+   apply:()=>{ mods.lifeSteal=0; /* reuse onKill for ammo */ mods._scavenger=true; }},
 ];
 
 // Player
@@ -1368,7 +1407,7 @@ document.addEventListener('mouseup',e=>{
 document.addEventListener('keydown',e=>{
   if(e.code==='KeyW')mF=true;if(e.code==='KeyS')mB=true;if(e.code==='KeyA')mL=true;if(e.code==='KeyD')mR=true;
   if(e.code==='KeyR')startReload();
-  if(e.code==='Space'&&onGnd&&ctrl.isLocked&&!gameOver){yVel=JUMP;onGnd=false;}
+  if(e.code==='Space'&&onGnd&&ctrl.isLocked&&!gameOver){yVel=JUMP*mods.jumpMult;onGnd=false;}
   const mp={Digit1:'pistol',Digit2:'smg',Digit3:'ar',Digit4:'shotgun',Digit5:'sniper',Digit6:'revolver',Digit7:'lmg',Digit8:'dmr',Digit9:'laser',Digit0:'plasma',KeyQ:'minigun',KeyE:'crossbow'};
   if(mp[e.code]&&getCurStage().weapons.includes(mp[e.code]))switchWep(mp[e.code]);
 });
@@ -1511,7 +1550,7 @@ if(isMobile){
   // Jump
   btnJump.addEventListener('touchstart',e=>{
     e.preventDefault();btnJump.classList.add('active');
-    if(mobileActive&&!gameOver&&onGnd){yVel=JUMP;onGnd=false;}
+    if(mobileActive&&!gameOver&&onGnd){yVel=JUMP*mods.jumpMult;onGnd=false;}
   });
   btnJump.addEventListener('touchend',e=>{e.preventDefault();btnJump.classList.remove('active');});
 
@@ -1559,7 +1598,7 @@ function switchWep(k){
   wKey=k;wD=WD[k];ammo=wD.mag;reloading=false;rldT=0;cdT=0;bstLeft=0;bstT=0;rldTxt.innerText='';rebuildGun(k);updateUI();updateWBar();
 }
 function startReload(){if(gameOver||reloading||ammo===wD.mag)return;reloading=true;rldT=wD.rld;rldTxt.innerText='재장전 중...';}
-function finishReload(){ammo=wD.mag;reloading=false;rldT=0;rldTxt.innerText='';ammoEl.innerText=ammo;}
+function finishReload(){ammo=Math.floor(wD.mag*mods.magMult);reloading=false;rldT=0;rldTxt.innerText='';ammoEl.innerText=ammo;maxAmEl.innerText=ammo;}
 
 function fireSingle(){
   const spr=aiming?wD.spr*0.35:wD.spr;
@@ -1615,7 +1654,8 @@ function fireLaser(){
     const laserHitY=1.5+(Math.random()<0.25?1.8:0); // 25% chance to hit head region
     const laserHitPos={x:h.e.position.x,y:laserHitY,z:h.e.position.z};
     const lhz=getHitZone(laserHitPos,h.e.position);
-    const eld=wD.dmg*mods.dmgMult*lhz.mult;
+    const _lCrit=mods.critChance>0&&Math.random()<mods.critChance?2:1;
+    const eld=wD.dmg*mods.dmgMult*lhz.mult*_lCrit;
     ud.hp-=eld;ud.flashT=0.15;ehpFlash=1.5;
     showHitZone(lhz,eld);
     dmgTxt.innerText=(lhz.name==='HEAD'?'🎯 ':'')+'LASER -'+eld.toFixed(1);
@@ -1692,6 +1732,8 @@ function updatePlayer(dt){
   const pf=getPF(yawObj.position.x,yawObj.position.y-EYH,yawObj.position.z);
   const flY=Math.max(0,pf);yVel-=GRAV*dt;yawObj.position.y+=yVel*dt;
   const minY=flY+EYH;if(yawObj.position.y<=minY){yawObj.position.y=minY;yVel=0;onGnd=true;}else onGnd=false;
+  // HP regen
+  if(mods.regenRate>0&&playerHP<100){playerHP=Math.min(playerHP+mods.regenRate*dt,100);hpBar.style.width=playerHP+'%';}
 }
 function updateGunRecoil(dt){
   gunKickZ*=Math.pow(0.04,dt);gunKickRX*=Math.pow(0.04,dt);
@@ -1742,6 +1784,8 @@ function updateEnemies(dt){
     if(dist<2.3&&Math.abs(yawObj.position.y-EYH)<3.5){
       playerHP-=13*dt*mods.armorMult;if(playerHP<0)playerHP=0;hpBar.style.width=playerHP+'%';
       hitFl.style.background='rgba(255,0,0,0.2)';setTimeout(()=>hitFl.style.background='rgba(255,0,0,0)',120);
+      // Thorns: reflect damage to attacker
+      if(mods.thorns>0){const ud2=e.userData;if(ud2)ud2.hp-=mods.thorns*dt;}
       if(playerHP<=0){endGame();return;}
     }
   }
@@ -1757,7 +1801,8 @@ function updateBullets(dt){
       if(Math.abs(b.position.x-e.position.x)<1.1&&Math.abs(b.position.z-e.position.z)<1.1&&b.position.y>=0.0&&b.position.y<4.2){
         // Narrow-phase: hitzone detection
         const hz=getHitZone(b.position,e.position);
-        const effectiveDmg=wD.dmg*mods.dmgMult*hz.mult;
+        const _bCrit=mods.critChance>0&&Math.random()<mods.critChance?2:1;
+        const effectiveDmg=wD.dmg*mods.dmgMult*hz.mult*_bCrit;
         ud.hp-=effectiveDmg;ud.flashT=0.15;ehpFlash=1.5;
         showHitZone(hz,effectiveDmg);
         // Headshot special flash
