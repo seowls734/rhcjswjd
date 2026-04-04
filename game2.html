@@ -93,6 +93,20 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 .lbadge-lock{font-size:13px}
 #reset-save{margin-top:28px;padding:8px 22px;background:rgba(80,0,0,0.4);border:1px solid rgba(255,60,60,0.3);color:#aa5555;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;transition:all 0.15s}
 #reset-save:hover{background:rgba(120,0,0,0.6);border-color:rgba(255,80,80,0.6);color:#ff6666}
+/* Skin selector */
+#skin-btn{position:absolute;top:18px;left:50%;transform:translateX(50px);z-index:14;pointer-events:auto;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);color:#aaa;font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:4px 12px;cursor:pointer;display:none}
+#skin-panel{display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(0,0,0,0.95);border:1px solid rgba(0,255,100,0.3);padding:20px 24px;font-family:'Courier New',monospace;min-width:280px;max-height:80vh;overflow-y:auto}
+#skin-panel.active{display:block}
+#skin-panel .stitle{color:#00ff88;font-size:14px;letter-spacing:2px;margin-bottom:14px;text-align:center}
+.skin-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.skin-item{width:56px;height:56px;border-radius:8px;cursor:pointer;border:2px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all 0.15s;position:relative}
+.skin-item:hover{border-color:rgba(255,255,255,0.4);transform:scale(1.08)}
+.skin-item.selected{border-color:#00ff88;box-shadow:0 0 12px rgba(0,255,100,0.3)}
+.skin-item .sname{font-size:7px;color:#aaa;margin-top:2px;text-align:center;letter-spacing:0.5px}
+.skin-item .sdot{width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,0.2)}
+.skin-item .slocked{position:absolute;top:2px;right:2px;font-size:8px}
+#skin-panel .sclose{display:block;margin:14px auto 0;background:rgba(0,255,100,0.15);border:1px solid rgba(0,255,100,0.4);color:#00ff88;font-family:'Courier New',monospace;font-size:11px;padding:6px 20px;cursor:pointer;letter-spacing:1px}
+#skin-btn{display:block}
 /* Landscape prompt overlay */
 #rotate-msg{display:none;position:fixed;inset:0;z-index:9999;background:#000;color:#fff;flex-direction:column;align-items:center;justify-content:center;font-family:'Courier New',monospace;text-align:center}
 #rotate-msg .icon{font-size:60px;margin-bottom:18px;animation:rotSpin 1.5s ease-in-out infinite}
@@ -111,6 +125,7 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 #sens-panel input[type=range]{width:100%;margin-bottom:6px;accent-color:#00ff88}
 #sens-panel .sval{color:#fff;font-size:13px;text-align:center;margin-bottom:14px}
 #sens-panel .sclose{display:block;margin:10px auto 0;background:rgba(0,255,100,0.15);border:1px solid rgba(0,255,100,0.4);color:#00ff88;font-family:'Courier New',monospace;font-size:11px;padding:6px 20px;cursor:pointer;letter-spacing:1px}
+#sens-btn{display:block}
 @media(pointer:coarse){#sens-btn{display:block}}
 /* Mobile touch controls */
 #mobile-controls{display:none;position:absolute;inset:0;z-index:12;pointer-events:none}
@@ -198,10 +213,16 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
   <div style="position:absolute;top:calc(50% + 178px);left:50%;transform:translateX(-50%);font-family:'Courier New',monospace;font-size:11px;color:rgba(0,200,80,0.5);letter-spacing:2px;">8x</div>
 </div>
 <div id="sens-btn">SENS</div>
+<div id="skin-btn">SKIN</div>
+<div id="skin-panel">
+  <div class="stitle">GUN SKIN</div>
+  <div class="skin-grid" id="skin-grid"></div>
+  <button class="sclose" id="skin-close">OK</button>
+</div>
 <div id="sens-panel">
   <div class="stitle">SENSITIVITY</div>
   <label>시점 감도</label>
-  <input type="range" id="sens-slider" min="1" max="20" value="8" step="1">
+  <input type="range" id="sens-slider" min="1" max="50" value="8" step="1">
   <div class="sval" id="sens-val">8</div>
   <button class="sclose" id="sens-close">OK</button>
 </div>
@@ -586,7 +607,71 @@ function buildGun(t){
 
 // Weapon state
 let wKey='pistol',wD=WD.pistol,ammo=wD.mag,reloading=false,rldT=0,cdT=0,aiming=false,bstLeft=0,bstT=0;
-function rebuildGun(k){if(gunModel){gunGrp.remove(gunModel);gunModel=null;}gunModel=buildGun(WD[k].mdl);gunGrp.add(gunModel);gunKickZ=0;gunKickRX=0;}
+// ─── SKIN SYSTEM ───
+const SKINS=[
+  {id:'default',  name:'기본',      pri:0x252525, sec:0x0d0d0d, acc:0x606060, emissive:0x000000, unlock:0},
+  {id:'arctic',   name:'아크틱',    pri:0xddeeff, sec:0xaabbcc, acc:0x88aacc, emissive:0x000000, unlock:0},
+  {id:'crimson',  name:'크림슨',    pri:0x8b0000, sec:0x330000, acc:0xff2222, emissive:0x110000, unlock:500},
+  {id:'gold',     name:'골드',      pri:0xc8a832, sec:0x8b7520, acc:0xffd700, emissive:0x221100, unlock:1000},
+  {id:'neon',     name:'네온',      pri:0x001a1a, sec:0x002222, acc:0x00ff88, emissive:0x003322, unlock:2000},
+  {id:'phantom',  name:'팬텀',      pri:0x1a0033, sec:0x0d001a, acc:0xaa44ff, emissive:0x110022, unlock:3000},
+  {id:'dragon',   name:'드래곤',    pri:0x4a1500, sec:0x2a0800, acc:0xff6600, emissive:0x220800, unlock:5000},
+  {id:'galaxy',   name:'갤럭시',    pri:0x0a0020, sec:0x050010, acc:0x6644ff, emissive:0x0a0033, unlock:7000},
+  {id:'sakura',   name:'사쿠라',    pri:0xffb7c5, sec:0xcc8899, acc:0xff6688, emissive:0x110505, unlock:4000},
+  {id:'military', name:'밀리터리',  pri:0x3b4a2a, sec:0x252e1a, acc:0x556b2f, emissive:0x000000, unlock:1500},
+  {id:'cyber',    name:'사이버',    pri:0x0a0a1a, sec:0x050510, acc:0x00ffff, emissive:0x002233, unlock:6000},
+  {id:'inferno',  name:'인페르노',  pri:0x1a0000, sec:0x0a0000, acc:0xff4400, emissive:0x330800, unlock:8000},
+  {id:'diamond',  name:'다이아',    pri:0xccddff, sec:0xaabbee, acc:0xeeffff, emissive:0x112244, unlock:10000},
+];
+
+let currentSkin='default';
+const savedSkin=localStorage.getItem('ts_skin');
+if(savedSkin)currentSkin=savedSkin;
+
+function applySkin(model){
+  if(!model||currentSkin==='default')return;
+  const sk=SKINS.find(s=>s.id===currentSkin);
+  if(!sk)return;
+  model.traverse(child=>{
+    if(child.isMesh&&child.material){
+      const m=child.material;
+      const lum=m.color.r*0.3+m.color.g*0.59+m.color.b*0.11;
+      if(lum<0.15) m.color.setHex(sk.sec);
+      else if(lum<0.4) m.color.setHex(sk.pri);
+      else m.color.setHex(sk.acc);
+      if(sk.emissive) m.emissive.setHex(sk.emissive);
+    }
+  });
+}
+
+function rebuildGun(k){if(gunModel){gunGrp.remove(gunModel);gunModel=null;}gunModel=buildGun(WD[k].mdl);applySkin(gunModel);gunGrp.add(gunModel);gunKickZ=0;gunKickRX=0;}
+
+// Skin UI
+const skinGrid=document.getElementById('skin-grid');
+const skinBtn=document.getElementById('skin-btn');
+const skinPanel=document.getElementById('skin-panel');
+const skinClose=document.getElementById('skin-close');
+
+function buildSkinUI(){
+  skinGrid.innerHTML='';
+  SKINS.forEach(sk=>{
+    const ts=totalScore||0;
+    const unlocked=ts>=sk.unlock||sk.unlock===0;
+    const el=document.createElement('div');
+    el.className='skin-item'+(currentSkin===sk.id?' selected':'');
+    if(!unlocked)el.style.opacity='0.35';
+    el.innerHTML=`<div class="sdot" style="background:linear-gradient(135deg,#${sk.pri.toString(16).padStart(6,'0')},#${sk.acc.toString(16).padStart(6,'0')})"></div><div class="sname">${sk.name}</div>${!unlocked?'<div class="slocked">🔒'+sk.unlock+'</div>':''}`;
+    if(unlocked){
+      el.addEventListener('click',()=>{
+        currentSkin=sk.id;localStorage.setItem('ts_skin',sk.id);
+        rebuildGun(wKey);buildSkinUI();
+      });
+    }
+    skinGrid.appendChild(el);
+  });
+}
+skinBtn.addEventListener('click',()=>{buildSkinUI();skinPanel.classList.toggle('active');});
+skinClose.addEventListener('click',()=>skinPanel.classList.remove('active'));
 
 // Map
 const LIM=100,PR=0.85,EYH=1.7,OBST=[],PLATS=[];
