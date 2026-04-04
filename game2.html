@@ -261,12 +261,34 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x080c11);
 scene.fog = new THREE.Fog(0x080c11, 30, 240);
-const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.01, 1500);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.01, 2000);
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 renderer.shadowMap.enabled=true;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.0;
 document.body.appendChild(renderer.domElement);
+
+// Sky dome
+function createSky(topColor,midColor,botColor){
+  const skyGeo=new THREE.SphereGeometry(800,32,15);
+  const skyColors=[];
+  const pos=skyGeo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    const y=pos.getY(i)/800; // -1 to 1
+    const tc=new THREE.Color(topColor),mc=new THREE.Color(midColor),bc=new THREE.Color(botColor);
+    let c;
+    if(y>0.1) c=mc.clone().lerp(tc,Math.min(1,(y-0.1)/0.9));
+    else c=bc.clone().lerp(mc,Math.max(0,(y+1)/1.1));
+    skyColors.push(c.r,c.g,c.b);
+  }
+  skyGeo.setAttribute('color',new THREE.Float32BufferAttribute(skyColors,3));
+  const skyMat=new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,fog:false});
+  return new THREE.Mesh(skyGeo,skyMat);
+}
+let skyMesh=createSky(0x0a1520,0x152535,0x0a0e14);
+scene.add(skyMesh);
 
 // Lights
 const amb=new THREE.AmbientLight(0x606878,2.2); scene.add(amb);
@@ -679,13 +701,17 @@ skinClose.addEventListener('click',()=>skinPanel.classList.remove('active'));
 
 // Map
 const LIM=200,PR=0.85,EYH=1.7,OBST=[],PLATS=[];
-const gndM=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({color:0x161a20,roughness:1}));
+const gndM=new THREE.Mesh(new THREE.PlaneGeometry(500,500,50,50),new THREE.MeshStandardMaterial({color:0x161a20,roughness:0.95,metalness:0.05}));
 gndM.rotation.x=-Math.PI/2;gndM.receiveShadow=true;scene.add(gndM);
+// Subtle ground vertex displacement for texture feel
+const gpos=gndM.geometry.attributes.position;
+for(let i=0;i<gpos.count;i++){const x=gpos.getX(i),y=gpos.getY(i);gpos.setZ(i,(Math.sin(x*0.3)*Math.cos(y*0.3))*0.08);}
+gpos.needsUpdate=true;gndM.geometry.computeVertexNormals();
 const gridH=new THREE.GridHelper(500,200,0x00aa44,0x0e1a10);gridH.position.y=0.02;scene.add(gridH);
 
 let mapMeshes=[];
 function clearMap(){
-  mapMeshes.forEach(m=>{scene.remove(m);m.geometry.dispose();});
+  mapMeshes.forEach(m=>{scene.remove(m);if(m.geometry)m.geometry.dispose();if(m.material)m.material.dispose();});
   mapMeshes=[];OBST.length=0;PLATS.length=0;
 }
 function addBox(x,y,z,w,h,d,col,coll){
@@ -695,6 +721,29 @@ function addBox(x,y,z,w,h,d,col,coll){
   if(coll!==false)OBST.push({x:x,z:z,hw:w/2,hd:d/2});
 }
 function addPlat(x,y,z,w,h,d,col){addBox(x,y,z,w,h,d,col,false);PLATS.push({x:x,z:z,hw:w/2,hd:d/2,top:y+h/2});}
+
+// Detail props (non-collidable decorations)
+function addProp(x,y,z,w,h,d,col,emCol){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:col,roughness:0.85,metalness:0.1,emissive:emCol||0,emissiveIntensity:emCol?0.5:0}));
+  m.position.set(x,y,z);m.castShadow=true;scene.add(m);mapMeshes.push(m);
+}
+function addLamp(x,z,col){
+  // Pole
+  addProp(x,3,z,0.3,6,0.3,0x333333);
+  // Light head
+  addProp(x,6.2,z,0.8,0.3,0.8,col||0xffcc66,col||0xffcc66);
+  const pl=new THREE.PointLight(col||0xffcc66,5,30,2);pl.position.set(x,6,z);scene.add(pl);
+  mapMeshes.push(pl);
+}
+function addBarrel(x,z,col){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,1.2,8),new THREE.MeshStandardMaterial({color:col||0x556655,roughness:0.8}));
+  m.position.set(x,0.6,z);m.castShadow=true;scene.add(m);mapMeshes.push(m);
+}
+function addCrate(x,z,s){
+  s=s||1.2;
+  addProp(x,s/2,z,s,s,s,0x6b4c2a);
+  addProp(x,s/2,z,s*1.02,s*0.08,s*1.02,0x4a3418);
+}
 
 function buildMap(sid){
   clearMap();
@@ -709,6 +758,25 @@ function buildMap(sid){
   amb.color.set(s.ambCol);
   // Grid color update
   if(Array.isArray(gridH.material)){gridH.material[0].color.set(s.ambCol);gridH.material[1].color.set(s.fogColor);}
+  // Update sky per stage
+  scene.remove(skyMesh);
+  const skyThemes={
+    1:[0x2a4a6a,0x4a7a5a,0x1a3020],  // green dawn
+    2:[0x1a2535,0x2a3545,0x101820],   // urban night
+    3:[0x2a2010,0x3a3020,0x1a1508],   // industrial smog
+    4:[0x1a2838,0x2a4050,0x0a1420],   // foggy harbor
+    5:[0x020804,0x061008,0x010402],    // dark jungle
+    6:[0x1a2a10,0x2a4018,0x0a1408],   // toxic green
+    7:[0x1a2535,0x2a3850,0x101820],   // military dusk
+    8:[0x2a1010,0x3a1818,0x1a0808],   // red ruins
+    9:[0x101028,0x1a1a40,0x080814],   // dark fortress
+    10:[0x2a3a4a,0x4a6070,0x1a2530],  // arctic grey
+    11:[0x080810,0x0a0a14,0x040408],  // underground dark
+    12:[0x200008,0x300010,0x100004],   // hellfire
+  };
+  const st=skyThemes[sid]||[0x0a1520,0x152535,0x0a0e14];
+  skyMesh=createSky(st[0],st[1],st[2]);
+  scene.add(skyMesh);
 
   const C={
     concrete:0x4a5058,darkConcrete:0x353840,rust:0x7a4a28,metal:0x485058,wood:0x6b4c2a,
@@ -1041,6 +1109,46 @@ function buildMap(sid){
     addBox(-60,2,-90,2,4,40,Dr);addBox(60,2,-90,2,4,40,Dr);addBox(-60,2,90,2,4,40,Dr);addBox(60,2,90,2,4,40,Dr);
     // Spawn cover
     addBox(-25,1.5,65,8,3,4,Dr);addBox(25,1.5,65,8,3,4,Dr);
+  }
+
+  // ── STAGE DETAIL PROPS ──
+  if(sid===1){// Training: lamps, crates, barrels
+    for(let i=-3;i<=3;i++){addLamp(i*30,-50,0xccffaa);addLamp(i*30,50,0xccffaa);}
+    for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,r=40+Math.random()*80;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x556b2f);}
+    for(let i=0;i<8;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*60;addCrate(Math.cos(a)*r,Math.sin(a)*r);}
+  } else if(sid===2){// Urban: streetlights, dumpsters, AC units on roofs
+    for(let i=-5;i<=5;i++){addLamp(i*20,-15,0xffcc66);addLamp(i*20,15,0xffcc66);}
+    for(let i=-3;i<=3;i++){addLamp(-15,i*20,0xffcc66);addLamp(15,i*20,0xffcc66);}
+    for(let i=0;i<15;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*100;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x445544);}
+  } else if(sid===3){// Industrial: warning lights, tanks
+    for(let i=-4;i<=4;i++){addLamp(i*25,0,0xff8800);addLamp(0,i*25,0xff8800);}
+    for(let i=0;i<20;i++){const a=Math.random()*Math.PI*2,r=20+Math.random()*100;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x884400);}
+  } else if(sid===4){// Harbor: dock lights
+    for(let i=-6;i<=6;i++){addLamp(i*18,-60,0xffaa44);addLamp(i*18,60,0xffaa44);}
+    for(let i=0;i<10;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*80;addCrate(Math.cos(a)*r,Math.sin(a)*r,1.5);}
+  } else if(sid===5){// Jungle: firefly lights
+    for(let i=0;i<8;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*80;addLamp(Math.cos(a)*r,Math.sin(a)*r,0x88ff44);}
+  } else if(sid===6){// Nuclear: warning lights
+    for(let i=-3;i<=3;i++){addLamp(i*30,-40,0x44ff00);addLamp(i*30,40,0x44ff00);}
+    for(let i=0;i<16;i++){const a=Math.random()*Math.PI*2,r=20+Math.random()*80;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x2a5a20);}
+  } else if(sid===7){// Military: spotlights
+    for(let i=-4;i<=4;i++){addLamp(i*25,-30,0xeeddaa);addLamp(i*25,30,0xeeddaa);}
+    for(let i=0;i<10;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*90;addCrate(Math.cos(a)*r,Math.sin(a)*r);}
+    for(let i=0;i<10;i++){const a=Math.random()*Math.PI*2,r=20+Math.random()*80;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x3a4a28);}
+  } else if(sid===8){// Ruins: fire spots
+    for(let i=0;i<10;i++){const a=Math.random()*Math.PI*2,r=20+Math.random()*100;addLamp(Math.cos(a)*r,Math.sin(a)*r,0xff4400);}
+  } else if(sid===9){// Fortress: torches
+    for(let i=-6;i<=6;i++){addLamp(i*20,-140,0xff8844);addLamp(i*20,140,0xff8844);addLamp(-140,i*20,0xff8844);addLamp(140,i*20,0xff8844);}
+  } else if(sid===10){// Arctic: blue lights
+    for(let i=-3;i<=3;i++){addLamp(i*30,-40,0x88ccff);addLamp(i*30,40,0x88ccff);}
+  } else if(sid===11){// Bunker: ceiling lights
+    for(let x=-120;x<=120;x+=30){for(let z=-120;z<=120;z+=30){
+      addProp(x,5.5,z,1.2,0.15,0.4,0xddddcc,0xddddcc);
+      const pl=new THREE.PointLight(0xddddaa,3,20,2);pl.position.set(x,5.3,z);scene.add(pl);mapMeshes.push(pl);
+    }}
+  } else if(sid===12){// Final: lava glow
+    for(let i=0;i<12;i++){const a=i/12*Math.PI*2,r=50;addLamp(Math.cos(a)*r,Math.sin(a)*r,0xff2200);}
+    for(let i=0;i<8;i++){const a=i/8*Math.PI*2,r=100;addLamp(Math.cos(a)*r,Math.sin(a)*r,0xff4400);}
   }
 }
 
@@ -1799,7 +1907,7 @@ function fireSingle(){
     scene.add(b);bullets.push(b);
   }
   ammo--;ammoEl.innerText=ammo;
-  if(ammo<=0)rldTxt.innerText='탄약 없음! R키로 재장전';
+  if(ammo<=0)startReload();
   gunKickZ+=wD.rcG;gunKickRX+=wD.rcRX;
   fireFl.style.background='rgba(255,255,255,0.08)';
   setTimeout(()=>fireFl.style.background='rgba(255,255,255,0)',55);
@@ -1872,13 +1980,13 @@ function fireLaser(){
   setTimeout(()=>fireFl.style.background='rgba(255,255,255,0)',80);
 
   ammo--;ammoEl.innerText=ammo;
-  if(ammo<=0)rldTxt.innerText='탄약 없음! R키로 재장전';
+  if(ammo<=0)startReload();
   gunKickZ+=wD.rcG;gunKickRX+=wD.rcRX;
 }
 
 function shoot(){
   if(gameOver||reloading||cdT>0)return;
-  if(ammo<=0){rldTxt.innerText='탄약 없음! R키로 재장전';return;}
+  if(ammo<=0){startReload();return;}
   if(wD.isLaser){fireLaser();}
   else if(wD.bst){fireSingle();bstLeft=wD.bst-1;bstT=wD.bdt;}
   else fireSingle();
@@ -1947,7 +2055,7 @@ function updateTimers(dt){
   if(cdT>0)cdT-=dt;
   // Auto-fire: hold left mouse button
   if(mouseDown&&wD.auto&&!reloading&&cdT<=0&&ammo>0&&!gameOver)shoot();
-  if(bstLeft>0){bstT-=dt;if(bstT<=0&&ammo>0&&!reloading){fireSingle();bstLeft--;bstT=wD.bdt;}else if(ammo<=0)bstLeft=0;}
+  if(bstLeft>0){bstT-=dt;if(bstT<=0&&ammo>0&&!reloading){fireSingle();bstLeft--;bstT=wD.bdt;}else if(ammo<=0){bstLeft=0;startReload();}}
   if(wKey==='minigun'&&gunModel)gunModel.rotation.z+=dt*(cdT>0?25:5);
 }
 let ehpFlash=0;
