@@ -4244,11 +4244,15 @@ function fireLaser(){
   for(let j=0;j<enemies.length;j++){
     const e=enemies[j];const dx=e.position.x-origin.x,dz=e.position.z-origin.z;
     const escl=e.scale.x||1;
+    const ud=e.userData;
+    const isBoss=ud&&(ud.isBoss||ud.isMidBoss);
+    const lRad=(isBoss?1.5:0.9)*escl;
+    const lYMax=(isBoss?5.4:4.3)*escl;
     const denom=dir.x*dir.x+dir.z*dir.z;if(denom<0.0001)continue;
     const t2=(dx*dir.x+dz*dir.z)/denom;if(t2<0.5||t2>maxDist)continue;
     const cx=origin.x+dir.x*t2,cz=origin.z+dir.z*t2;
-    if(Math.sqrt((cx-e.position.x)**2+(cz-e.position.z)**2)>0.9*escl)continue;
-    const cy=origin.y+dir.y*t2;if(cy<0.1||cy>4.3*escl)continue;
+    if(Math.sqrt((cx-e.position.x)**2+(cz-e.position.z)**2)>lRad)continue;
+    const cy=origin.y+dir.y*t2;if(cy<0.1||cy>lYMax)continue;
     hits.push({j,e,t2,escl});
   }
   hits.sort((a,b)=>a.t2-b.t2);
@@ -4500,7 +4504,11 @@ function updateBullets(dt){
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j],ud=e.userData;
       const escl=e.scale.x||1;
-      if(Math.abs(b.position.x-e.position.x)<1.1*escl&&Math.abs(b.position.z-e.position.z)<1.1*escl&&b.position.y>=0.0&&b.position.y<4.2*escl){
+      // 보스/미니보스는 어깨/크라운/가시까지 포함하는 더 큰 히트박스
+      const isBoss=ud&&(ud.isBoss||ud.isMidBoss);
+      const hbXZ=(isBoss?1.7:1.1)*escl;
+      const hbYMax=(isBoss?5.4:4.2)*escl;
+      if(Math.abs(b.position.x-e.position.x)<hbXZ&&Math.abs(b.position.z-e.position.z)<hbXZ&&b.position.y>=0.0&&b.position.y<hbYMax){
         const hz=getHitZone(b.position,e.position,escl);
         const _bCrit=mods.critChance>0&&Math.random()<mods.critChance?2:1;
         const _bBrsk=mods._berserker&&playerHP<=50?2.5:1;
