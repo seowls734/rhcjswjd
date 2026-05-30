@@ -696,16 +696,7 @@ const CLASSES=[
       e:{name:'방어막',  icon:'🛡️', cd:15, desc:'5초간 받는 피해 90% 감소',
          fn:()=>{
            const old=mods.armorMult;mods.armorMult*=0.1;
-           spawnGroundSigil(yawObj.position.clone(),0x4488ff,2.2,5);
-           spawnSkillFX(0x4488ff,12);
-           // 시간차 보호막 링 2개
-           setTimeout(()=>{
-             const ring=new THREE.Mesh(_geoCache.ring015,new THREE.MeshBasicMaterial({color:0x66aaff,transparent:true,opacity:0.85,depthWrite:false}));
-             ring.scale.setScalar(0.5);ring._baseScale=0.5;ring.rotation.x=Math.PI/2;
-             ring.position.copy(yawObj.position).setY(1.2);
-             ring.userData={vel:new THREE.Vector3(),life:0.6,maxLife:0.6,type:'shockwave',color:0x66aaff};
-             scene.add(ring);skillFX.push(ring);
-           },200);
+           spawnShieldDome(yawObj.position.clone(),0x4488ff);
            showSkillNotify('🛡️ 방어막!');
            setTimeout(()=>{mods.armorMult=old;},5000);
          }},
@@ -784,11 +775,8 @@ const CLASSES=[
          fn:()=>{
            playerHP=100;hpBar.style.width='100%';
            mods.regenRate+=5;
-           spawnHealAura(yawObj.position.clone(),0xff4488);
-           spawnGroundSigil(yawObj.position.clone(),0xff88aa,2.5,2.5);
-           // 시간차 상승 펄스
-           setTimeout(()=>spawnHealAura(yawObj.position.clone(),0xff88aa),300);
-           setTimeout(()=>spawnHealAura(yawObj.position.clone(),0xff66aa),600);
+           spawnFullHealFX(yawObj.position.clone());
+           setTimeout(()=>spawnFullHealFX(yawObj.position.clone()),400);
            showSkillNotify('❤️ 완전회복!');
            setTimeout(()=>{mods.regenRate-=5;},10000);
          }},
@@ -836,10 +824,7 @@ const CLASSES=[
            const fromPos=yawObj.position.clone();
            const np=yawObj.position.clone().addScaledVector(dir,8);np.y=EYH;
            if(!isBlocked(np.x,np.z,PR)){yawObj.position.copy(np);}
-           // 출발지 잔상 + 도착지 펄스
-           spawnAfterimagePulse(fromPos,0xaa00ff);
-           spawnAfterimagePulse(yawObj.position.clone(),0xcc66ff);
-           spawnDashStreaks(yawObj.position.clone(),0xcc44ff);
+           spawnTeleportFX(fromPos,yawObj.position.clone(),0xcc44ff);
            showSkillNotify('⚡ 순간이동!');
          }},
       e:{name:'연막탄', icon:'💨', cd:14, desc:'5초간 적 감지 차단',
@@ -957,18 +942,8 @@ const CLASSES=[
       e:{name:'실드 충전', icon:'🔋', cd:18, desc:'5초간 피해 무효 실드',
          fn:()=>{
            const old=mods.armorMult;mods.armorMult=0;
-           spawnGroundSigil(yawObj.position.clone(),0x00ffff,2.5,5);
-           spawnSkillFX(0x00ffff,12);
-           // 둘러싸는 박스/링
-           setTimeout(()=>{
-             for(let k=0;k<3;k++){
-               const ring=new THREE.Mesh(_geoCache.ring015,new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:0.85,depthWrite:false}));
-               ring.scale.setScalar(0.4);ring._baseScale=0.4;ring.rotation.x=Math.PI/2;
-               ring.position.set(yawObj.position.x,yawObj.position.y+0.3+k*1,yawObj.position.z);
-               ring.userData={vel:new THREE.Vector3(),life:0.5,maxLife:0.5,type:'shockwave',color:0x00ffff};
-               scene.add(ring);skillFX.push(ring);
-             }
-           },150);
+           spawnShieldDome(yawObj.position.clone(),0x00ffff);
+           spawnDigitalGlitch(yawObj.position.clone(),0x00ffff);
            showSkillNotify('🔋 실드 충전!');
            setTimeout(()=>{mods.armorMult=old;},5000);
          }},
@@ -1025,7 +1000,7 @@ const CLASSES=[
              }
              if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
            }
-           spawnBeamFX(origin.clone().setY(yawObj.position.y+1.2),dir,50,0x44ff44);
+           spawnPoisonArrow(origin.clone().setY(yawObj.position.y+1.2),dir,50);
            showSkillNotify('☠️ 독화살!');
          }},
     }
@@ -1058,18 +1033,7 @@ const CLASSES=[
       e:{name:'요새화', icon:'🏰', cd:14, desc:'5초간 받는 피해 95% 감소 + HP 재생',
          fn:()=>{
            const old=mods.armorMult;mods.armorMult*=0.05;mods.regenRate+=10;
-           spawnGroundSigil(yawObj.position.clone(),0x66aaff,2.8,5);
-           spawnSkillFX(0x66aaff,20);
-           // 보호막 도약 링 4개 (시간차)
-           for(let k=0;k<4;k++){
-             setTimeout(()=>{
-               const ring=new THREE.Mesh(_geoCache.ring015,new THREE.MeshBasicMaterial({color:0x88ccff,transparent:true,opacity:0.85,depthWrite:false}));
-               ring.scale.setScalar(0.4);ring._baseScale=0.4;ring.rotation.x=Math.PI/2;
-               ring.position.set(yawObj.position.x,yawObj.position.y+0.2+k*0.6,yawObj.position.z);
-               ring.userData={vel:new THREE.Vector3(),life:0.6,maxLife:0.6,type:'shockwave',color:0x88ccff};
-               scene.add(ring);skillFX.push(ring);
-             },k*100);
-           }
+           spawnFortifyFX(yawObj.position.clone(),0x66aaff);
            showSkillNotify('🏰 요새화!');
            setTimeout(()=>{mods.armorMult=old;mods.regenRate-=10;},5000);
          }},
@@ -1113,7 +1077,7 @@ const CLASSES=[
              spawnSlashImpactFX(e.position.clone().setY(1.5));
              if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
            }
-           spawnBeamFX(origin.clone().setY(yawObj.position.y+1.2),dir,40,0xeef5ff);
+           spawnBoneSpear(origin.clone().setY(yawObj.position.y+1.2),dir,40);
            showSkillNotify('🦴 뼈 창!');
          }},
       e:{name:'죽음의 오라', icon:'🌫️', cd:15, desc:'주변 7m 적에게 8초간 초당 12 피해',
@@ -1242,8 +1206,7 @@ const CLASSES=[
            setTimeout(()=>{
              for(const e of enemies){if(e.userData._origSpd){e.userData.spdMult=e.userData._origSpd;}}
            },3000);
-           spawnNova(cp,0x00ffff,15);
-           spawnDigitalGlitch(cp,0x00ffff);
+           spawnSystemCrashFX(cp,0x00ffff);
            showSkillNotify('💥 시스템 크래시!');
          }},
     }
@@ -1383,8 +1346,7 @@ const CLASSES=[
       e:{name:'회피', icon:'💨', cd:10, desc:'1.5초 무적 + 2.5초간 속도 2.2배',
          fn:()=>{
            const old=mods.armorMult;mods.armorMult=0;mods.speedMult*=2.2;
-           spawnAfterimagePulse(yawObj.position.clone(),0xaaccff);
-           spawnDashStreaks(yawObj.position.clone(),0x88bbff);
+           spawnDodgeFX(yawObj.position.clone(),0xddf0ff);
            showSkillNotify('💨 회피!');
            setTimeout(()=>{mods.armorMult=old;},1500);
            setTimeout(()=>{mods.speedMult/=2.2;},2500);
@@ -1508,7 +1470,7 @@ const CLASSES=[
          fn:()=>{
            mods._timeStop=true;
            spawnTimePulse(yawObj.position.clone(),0xddddff);
-           spawnNova(yawObj.position.clone(),0xddddff,15);
+           spawnTimeStopFX(yawObj.position.clone(),0xaaddff);
            showSkillNotify('⏸️ 시간정지!');
            setTimeout(()=>{
              mods._timeStop=false;
@@ -5790,6 +5752,227 @@ function spawnRageAura(pos,color){
   ring.userData={vel:new THREE.Vector3(),life:0.5,maxLife:0.5,type:'shockwave',color:0xff5500};
   scene.add(ring);skillFX.push(ring);
 }
+
+// 🥷 순간이동 (닌자) — 출발지로 빨려들고 도착지에서 터지듯 출현
+function spawnTeleportFX(fromPos,toPos,color){
+  for(let i=0;i<10;i++){
+    const ang=Math.random()*Math.PI*2,r=0.4+Math.random()*0.6;
+    const sx=fromPos.x+Math.cos(ang)*r,sy=fromPos.y+0.3+Math.random()*1.6,sz=fromPos.z+Math.sin(ang)*r;
+    const sp=_makeParticle('ember',color,0.1+Math.random()*0.05);
+    sp.position.set(sx,sy,sz);
+    sp.userData={type:'implode',sx,sy,sz,cx:fromPos.x,cy:fromPos.y+1.0,cz:fromPos.z,life:0.3,maxLife:0.3,startOpacity:0.9};
+    scene.add(sp);skillFX.push(sp);
+  }
+  for(let i=0;i<5;i++){
+    const sm=_makeParticle('smoke',0,0.3);
+    sm.position.set(fromPos.x+(Math.random()-0.5),fromPos.y+0.5+Math.random()*1.5,fromPos.z+(Math.random()-0.5));
+    sm.material.color.setHex(0x9933cc);
+    sm.userData={vel:new THREE.Vector3((Math.random()-0.5),0.8,(Math.random()-0.5)),life:0.6,maxLife:0.6,type:'smoke',startSize:1};
+    scene.add(sm);skillFX.push(sm);
+  }
+  for(let i=0;i<14;i++){
+    const ang=i/14*Math.PI*2,el=(Math.random()-0.3)*Math.PI,spd=5+Math.random()*5;
+    const sp=_makeParticle('spark',color,0.06);
+    sp.position.set(toPos.x,toPos.y+1.0,toPos.z);
+    sp.userData={vel:new THREE.Vector3(Math.cos(ang)*Math.cos(el)*spd,Math.sin(el)*spd+2,Math.sin(ang)*Math.cos(el)*spd),life:0.4,maxLife:0.4,type:'spark'};
+    sp.lookAt(sp.position.clone().add(sp.userData.vel));
+    scene.add(sp);skillFX.push(sp);
+  }
+  const g1=_makeParticle('glow',color,0.9);g1.position.set(toPos.x,toPos.y+1.0,toPos.z);
+  g1.userData={vel:new THREE.Vector3(),life:0.35,maxLife:0.35,type:'glow'};
+  scene.add(g1);skillFX.push(g1);
+  const ring=new THREE.Mesh(_geoCache.ringFlat,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.8,depthWrite:false,side:THREE.DoubleSide}));
+  ring.rotation.x=-Math.PI/2;ring.position.set(toPos.x,toPos.y+0.05,toPos.z);ring.scale.setScalar(0.4);ring._baseScale=0.5;
+  ring.userData={vel:new THREE.Vector3(),life:0.5,maxLife:0.5,type:'shockwave',color};
+  scene.add(ring);skillFX.push(ring);
+}
+
+// ⚔️ 회피 (검호) — 빠른 수평 잔상 슬래시 라인
+function spawnDodgeFX(pos,color){
+  const cx=pos.x,cy=pos.y,cz=pos.z;
+  for(let i=0;i<8;i++){
+    const ang=Math.random()*Math.PI*2;
+    const m=new THREE.Mesh(_geoCache.streak,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.85,depthWrite:false}));
+    m.position.set(cx+Math.cos(ang)*0.3,cy+0.4+Math.random()*1.6,cz+Math.sin(ang)*0.3);
+    m.scale.set(2+Math.random()*1.5,1,1);m._baseScale=2;
+    m.rotation.y=ang+Math.PI/2;
+    m.userData={vel:new THREE.Vector3(Math.cos(ang)*10,0,Math.sin(ang)*10),life:0.22+Math.random()*0.1,maxLife:0.32,type:'streak',startOpacity:0.85};
+    scene.add(m);skillFX.push(m);
+  }
+  const blur=new THREE.Mesh(_geoCache.sphereXL,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.4,depthWrite:false}));
+  blur.position.set(cx,cy+1.0,cz);blur.scale.setScalar(0.6);blur._baseScale=0.6;
+  blur.userData={vel:new THREE.Vector3(),life:0.25,maxLife:0.25,type:'fadeGrow',startOpacity:0.4,growFactor:2};
+  scene.add(blur);skillFX.push(blur);
+  const ring=new THREE.Mesh(_geoCache.ringFlat,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.7,depthWrite:false,side:THREE.DoubleSide}));
+  ring.rotation.x=-Math.PI/2;ring.position.set(cx,cy+0.05,cz);ring.scale.setScalar(0.4);ring._baseScale=0.5;
+  ring.userData={vel:new THREE.Vector3(),life:0.4,maxLife:0.4,type:'shockwave',color};
+  scene.add(ring);skillFX.push(ring);
+}
+
+// 🛡️ 에너지 돔 (전사 방어막 / 사이보그 실드) — 반투명 보호막 구체
+function spawnShieldDome(pos,color){
+  const cx=pos.x,cy=pos.y,cz=pos.z;
+  const dome=new THREE.Mesh(_geoCache.sphereXXL,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.4,depthWrite:false,side:THREE.DoubleSide}));
+  dome.position.set(cx,cy+1.0,cz);dome.scale.setScalar(1.2);dome._baseScale=2.4;
+  dome.userData={vel:new THREE.Vector3(),life:0.6,maxLife:0.6,type:'domePop',startOpacity:0.4};
+  scene.add(dome);skillFX.push(dome);
+  const ring=new THREE.Mesh(_geoCache.ringThin,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.9,depthWrite:false}));
+  ring.scale.setScalar(2.2);ring._baseScale=2.2;ring.rotation.x=Math.PI/2;ring.position.set(cx,cy+1.0,cz);
+  ring.userData={vel:new THREE.Vector3(),life:0.7,maxLife:0.7,type:'fade',startOpacity:0.9};
+  scene.add(ring);skillFX.push(ring);
+  const gring=new THREE.Mesh(_geoCache.ringFlat,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.7,depthWrite:false,side:THREE.DoubleSide}));
+  gring.rotation.x=-Math.PI/2;gring.position.set(cx,cy+0.05,cz);gring.scale.setScalar(0.6);gring._baseScale=0.6;
+  gring.userData={vel:new THREE.Vector3(),life:0.6,maxLife:0.6,type:'shockwave',color};
+  scene.add(gring);skillFX.push(gring);
+  for(let i=0;i<10;i++){
+    const ang=Math.random()*Math.PI*2;
+    const sp=_makeParticle('spark',color,0.05);
+    sp.position.set(cx+Math.cos(ang)*2.2,cy+0.2,cz+Math.sin(ang)*2.2);
+    sp.userData={vel:new THREE.Vector3(0,3+Math.random()*2,0),life:0.5,maxLife:0.5,type:'spark'};
+    scene.add(sp);skillFX.push(sp);
+  }
+}
+
+// 🏰 요새화 (방패병) — 주변에 솟아오르는 방벽 기둥
+function spawnFortifyFX(pos,color){
+  const cx=pos.x,cy=pos.y,cz=pos.z;
+  spawnGroundSigil(pos,color||0x66aaff,2.8,1.5);
+  for(let i=0;i<6;i++){
+    const ang=i/6*Math.PI*2;
+    const px=cx+Math.cos(ang)*2.2,pz=cz+Math.sin(ang)*2.2;
+    const pillar=new THREE.Mesh(_geoCache.debris,new THREE.MeshStandardMaterial({color:0x556677,roughness:0.9,emissive:color||0x3366aa,emissiveIntensity:0.4,transparent:true}));
+    pillar.position.set(px,cy-1.0,pz);pillar.scale.set(0.5,6,0.6);pillar._baseScale=1;
+    pillar.userData={vel:new THREE.Vector3(),life:0.9,maxLife:0.9,type:'riseFade',startY:cy-1.5,riseH:1.8,startOpacity:1};
+    scene.add(pillar);skillFX.push(pillar);
+  }
+  const g=_makeParticle('glow',color||0x66aaff,1.0);
+  g.position.set(cx,cy+1.2,cz);
+  g.userData={vel:new THREE.Vector3(),life:0.5,maxLife:0.5,type:'glow'};
+  scene.add(g);skillFX.push(g);
+}
+
+// ☠️ 독화살 (사냥꾼) — 가는 녹색 화살 + 경로에 퍼지는 독가스
+function spawnPoisonArrow(origin,dir,length){
+  const cx=origin.x,cy=origin.y,cz=origin.z;
+  const mid=new THREE.Vector3(cx+dir.x*length*0.5,cy,cz+dir.z*length*0.5);
+  const end=new THREE.Vector3(cx+dir.x*length,cy,cz+dir.z*length);
+  const beam=new THREE.Mesh(_geoCache.cylBeam,new THREE.MeshBasicMaterial({color:0x66ff33,transparent:true,opacity:0.7,depthWrite:false,side:THREE.DoubleSide}));
+  beam.position.copy(mid);beam.lookAt(end);beam.rotateX(Math.PI/2);
+  beam.scale.set(0.1,length,0.1);beam._baseScale=0.1;
+  beam.userData={vel:new THREE.Vector3(),life:0.3,maxLife:0.3,type:'fade',startOpacity:0.7};
+  scene.add(beam);skillFX.push(beam);
+  for(let i=0;i<8;i++){
+    const t=i/8;
+    const px=cx+dir.x*length*t,pz=cz+dir.z*length*t;
+    const sm=_makeParticle('smoke',0,0.3+Math.random()*0.2);
+    sm.position.set(px+(Math.random()-0.5)*0.8,cy+(Math.random()-0.5)*0.6,pz+(Math.random()-0.5)*0.8);
+    sm.material.color.setHex(0x55cc33);
+    sm.userData={vel:new THREE.Vector3((Math.random()-0.5),0.6,(Math.random()-0.5)),life:0.7+Math.random()*0.5,maxLife:1.2,type:'smoke',startSize:1};
+    scene.add(sm);skillFX.push(sm);
+  }
+  for(let i=0;i<10;i++){
+    const t=Math.random();
+    const sp=_makeParticle('ember',0x88ff44,0.08+Math.random()*0.05);
+    sp.position.set(cx+dir.x*length*t,cy+(Math.random()-0.5)*0.5,cz+dir.z*length*t);
+    sp.userData={vel:new THREE.Vector3((Math.random()-0.5)*2,0.5+Math.random(),(Math.random()-0.5)*2),life:0.5,maxLife:0.5,type:'ember'};
+    scene.add(sp);skillFX.push(sp);
+  }
+}
+
+// 🦴 뼈 창 (네크로) — 뼈색 창 + 흩어지는 뼛조각
+function spawnBoneSpear(origin,dir,length){
+  const cx=origin.x,cy=origin.y,cz=origin.z;
+  const mid=new THREE.Vector3(cx+dir.x*length*0.5,cy,cz+dir.z*length*0.5);
+  const end=new THREE.Vector3(cx+dir.x*length,cy,cz+dir.z*length);
+  const beam=new THREE.Mesh(_geoCache.cylBeam,new THREE.MeshBasicMaterial({color:0xeae0c8,transparent:true,opacity:0.9,depthWrite:false,side:THREE.DoubleSide}));
+  beam.position.copy(mid);beam.lookAt(end);beam.rotateX(Math.PI/2);
+  beam.scale.set(0.13,length,0.13);beam._baseScale=0.13;
+  beam.userData={vel:new THREE.Vector3(),life:0.3,maxLife:0.3,type:'fade',startOpacity:0.9};
+  scene.add(beam);skillFX.push(beam);
+  for(let i=0;i<12;i++){
+    const t=Math.random();
+    const px=cx+dir.x*length*t,pz=cz+dir.z*length*t;
+    const sh=new THREE.Mesh(_geoCache.debris,new THREE.MeshBasicMaterial({color:0xeae0c8,transparent:true,opacity:1}));
+    sh.position.set(px+(Math.random()-0.5)*0.6,cy+(Math.random()-0.5)*0.6,pz+(Math.random()-0.5)*0.6);
+    sh.scale.set(0.12+Math.random()*0.1,0.05,0.05);sh._baseScale=1;
+    sh.userData={vel:new THREE.Vector3((Math.random()-0.5)*5,1+Math.random()*3,(Math.random()-0.5)*5),life:0.4+Math.random()*0.3,maxLife:0.7,type:'debris',rotV:new THREE.Vector3(6,4,8)};
+    scene.add(sh);skillFX.push(sh);
+  }
+  const sg=_makeParticle('glow',0xeae0c8,0.5);sg.position.set(cx,cy,cz);
+  sg.userData={vel:new THREE.Vector3(),life:0.25,maxLife:0.25,type:'glow'};
+  scene.add(sg);skillFX.push(sg);
+}
+
+// ❤️ 완전회복 (의무병) — 황금빛 회복 기둥 + 풍성한 상승 입자
+function spawnFullHealFX(pos){
+  const cx=pos.x,cy=pos.y,cz=pos.z;
+  const col=new THREE.Mesh(_geoCache.cylBeam,new THREE.MeshBasicMaterial({color:0xffee88,transparent:true,opacity:0.55,depthWrite:false,side:THREE.DoubleSide}));
+  col.position.set(cx,cy+3,cz);col.scale.set(1.2,6,1.2);col._baseScale=1.2;
+  col.userData={vel:new THREE.Vector3(),life:0.7,maxLife:0.7,type:'column',startOpacity:0.55,startScaleY:6};
+  scene.add(col);skillFX.push(col);
+  for(let i=0;i<22;i++){
+    const ang=Math.random()*Math.PI*2,r=Math.random()*1.5;
+    const sp=_makeParticle('ember',i%2?0x66ff99:0xffee88,0.1+Math.random()*0.06);
+    sp.position.set(cx+Math.cos(ang)*r,cy+0.2,cz+Math.sin(ang)*r);
+    sp.userData={vel:new THREE.Vector3(),life:0.9+Math.random()*0.5,maxLife:1.4,type:'heal',riseSpd:2+Math.random()*1.5,startOpacity:0.95};
+    scene.add(sp);skillFX.push(sp);
+  }
+  for(let r=0;r<2;r++){
+    const ring=new THREE.Mesh(_geoCache.ringFlat,new THREE.MeshBasicMaterial({color:r?0xffee88:0x66ff99,transparent:true,opacity:0.8,depthWrite:false,side:THREE.DoubleSide}));
+    ring.rotation.x=-Math.PI/2;ring.position.set(cx,cy+0.05+r*0.02,cz);ring.scale.setScalar(0.5);ring._baseScale=0.5+r*0.3;
+    ring.userData={vel:new THREE.Vector3(),life:0.7,maxLife:0.7,type:'shockwave',color:r?0xffee88:0x66ff99};
+    scene.add(ring);skillFX.push(ring);
+  }
+  const g=_makeParticle('glow',0xaaffcc,1.2);g.position.set(cx,cy+1.3,cz);
+  g.userData={vel:new THREE.Vector3(),life:0.5,maxLife:0.5,type:'glow'};
+  scene.add(g);skillFX.push(g);
+}
+
+// 💥 시스템 크래시 (해커) — 떨어지는 코드비 + 글리치
+function spawnSystemCrashFX(pos,color){
+  const cx=pos.x,cy=pos.y,cz=pos.z;
+  for(let i=0;i<18;i++){
+    const ang=Math.random()*Math.PI*2,r=Math.random()*8;
+    const px=cx+Math.cos(ang)*r,pz=cz+Math.sin(ang)*r;
+    const m=new THREE.Mesh(_geoCache.streak,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.9,depthWrite:false}));
+    m.position.set(px,cy+5+Math.random()*3,pz);
+    m.scale.set(0.4,1,1);m._baseScale=0.4;
+    m.rotation.z=Math.PI/2;
+    m.userData={vel:new THREE.Vector3(0,-12-Math.random()*6,0),life:0.5+Math.random()*0.2,maxLife:0.7,type:'streak',startOpacity:0.9};
+    scene.add(m);skillFX.push(m);
+  }
+  spawnDigitalGlitch(pos,color);
+  for(let r=0;r<2;r++){
+    setTimeout(()=>{
+      const ring=new THREE.Mesh(_geoCache.ringThin,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.85,depthWrite:false}));
+      ring.rotation.x=Math.PI/2;ring.position.set(cx,cy+0.15,cz);ring.scale.setScalar(0.3);ring._baseScale=0.3;
+      ring.userData={vel:new THREE.Vector3(),life:0.5,maxLife:0.5,type:'shockwave',color};
+      scene.add(ring);skillFX.push(ring);
+    },r*120);
+  }
+  const g=_makeParticle('glow',color,1.2);g.position.set(cx,cy+1.3,cz);
+  g.userData={vel:new THREE.Vector3(),life:0.4,maxLife:0.4,type:'glow'};
+  scene.add(g);skillFX.push(g);
+}
+
+// ⏸️ 시간정지 (시간술사) — 공중에 멈춰 떠 있는 입자 + 느린 충격파
+function spawnTimeStopFX(pos,color){
+  const cx=pos.x,cy=pos.y,cz=pos.z;
+  const ring=new THREE.Mesh(_geoCache.ring015,new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.7,depthWrite:false}));
+  ring.rotation.x=Math.PI/2;ring.position.set(cx,cy+0.8,cz);ring.scale.setScalar(0.2);ring._baseScale=0.4;
+  ring.userData={vel:new THREE.Vector3(),life:0.9,maxLife:0.9,type:'shockwave',color};
+  scene.add(ring);skillFX.push(ring);
+  for(let i=0;i<20;i++){
+    const ang=Math.random()*Math.PI*2,r=Math.random()*8;
+    const sp=_makeParticle('spark',color,0.06);
+    sp.position.set(cx+Math.cos(ang)*r,cy+0.5+Math.random()*3,cz+Math.sin(ang)*r);
+    sp.userData={life:0.9,maxLife:0.9,type:'fade',startOpacity:0.9};
+    scene.add(sp);skillFX.push(sp);
+  }
+  const g=_makeParticle('glow',color,1.4);g.position.set(cx,cy+1.3,cz);
+  g.userData={vel:new THREE.Vector3(),life:0.5,maxLife:0.5,type:'glow'};
+  scene.add(g);skillFX.push(g);
+}
 // ───────────────────────────────────────────────
 
 // 폭발 이펙트 (수류탄/지뢰)
@@ -5916,6 +6099,16 @@ function _updateParticleArray(arr, dt){
       // 바깥에서 안으로 수축하는 링
       p.scale.setScalar(bs*t);
       if(p.material)p.material.opacity=(ud.startOpacity||1)*Math.min(1,(1-t)*1.5+0.2);
+    } else if(ud.type==='domePop'){
+      // 빠르게 부풀어 올랐다 끝에 페이드
+      const grow=Math.min(1,(1-t)*4);
+      p.scale.setScalar(bs*(0.5+0.5*grow));
+      if(p.material)p.material.opacity=(ud.startOpacity||0.4)*(t<0.3?t/0.3:1);
+    } else if(ud.type==='riseFade'){
+      // 아래에서 위로 솟아오르며 끝에 페이드 (스케일 유지)
+      const k=1-t;
+      p.position.y=(ud.startY||0)+(ud.riseH||1)*Math.min(1,k*2);
+      if(p.material)p.material.opacity=(ud.startOpacity||1)*(t<0.3?t/0.3:1);
     }
   }
 }
