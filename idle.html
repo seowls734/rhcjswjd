@@ -63,7 +63,6 @@
   #hpTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;text-shadow:0 1px 3px #000}
   #killCount{font-size:11px;color:var(--dim);margin-top:8px;height:14px}
-  #atkHint{font-size:11px;color:var(--gold);margin-top:10px;opacity:.85}
 
   /* 떠오르는 데미지 숫자 */
   .float{position:absolute;font-weight:800;pointer-events:none;animation:floatUp .9s ease-out forwards;
@@ -117,6 +116,31 @@
   #modalBtns{display:flex;gap:10px}
   #modalBtns .btn{flex:1;padding:12px}
 
+  /* ── 스페셜 이벤트 배너 ── */
+  #eventBanner{position:absolute;top:6px;left:50%;
+    transform:translateX(-50%) translateY(-24px);
+    background:rgba(18,22,38,.96);border:1px solid var(--line);border-radius:12px;
+    padding:8px 16px;text-align:center;opacity:0;pointer-events:none;transition:.3s;z-index:9;
+    box-shadow:0 6px 22px rgba(0,0,0,.55);min-width:200px;max-width:90%}
+  #eventBanner.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #eventBanner .bt{font-size:15px;font-weight:800}
+  #eventBanner .bs{font-size:11px;color:var(--dim);margin-top:2px}
+  /* ── 버프 표시줄 ── */
+  #buffBar{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:6px;min-height:0}
+  #buffBar .buff{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;
+    border:1px solid var(--line);background:var(--panel2);animation:pulse 1.6s infinite}
+  #buffBar .buff.dmg{color:var(--click);border-color:#5b4bb0}
+  #buffBar .buff.gold{color:var(--gold);border-color:#7a6a2e}
+  /* ── 보물 고블린 ── */
+  #goblin{position:absolute;display:none;font-size:48px;cursor:pointer;z-index:8;
+    filter:drop-shadow(0 4px 10px rgba(0,0,0,.6));transition:left .15s,top .15s;line-height:1}
+  #goblin:active{transform:scale(.82)}
+  /* ── 필살기 버튼 ── */
+  #ultBtn{border-color:#a3463c;color:#ff9a8a}
+  #ultBtn.rdy{background:linear-gradient(90deg,#ff5a3c,#ff9a4b);color:#fff;border:none;
+    box-shadow:0 0 14px rgba(255,90,60,.5);animation:pulse 1.6s infinite}
+  #ultBtn:disabled{opacity:.55;cursor:default}
+
   @media(max-width:680px){
     #main{flex-direction:column;overflow-y:auto}
     #mob{font-size:90px}
@@ -145,12 +169,14 @@
         <button id="lockBtn">🔓 자동진행</button>
       </div>
       <div id="stage">
+        <div id="eventBanner"></div>
+        <div id="goblin">🤑</div>
         <div id="bossTimer"></div>
         <div id="mob">👾</div>
         <div id="mobName">슬라임</div>
         <div id="hpWrap"><div id="hpBar"></div><div id="hpTxt"></div></div>
         <div id="killCount"></div>
-        <div id="atkHint">⌨️ <b>스페이스바</b>를 눌러 공격! (모바일은 화면 터치)</div>
+        <div id="buffBar"></div>
       </div>
     </div>
 
@@ -167,6 +193,7 @@
 
   <div id="footer">
     <div id="saveStat">불러오는 중…</div>
+    <button class="btn" id="ultBtn">⚡ 필살기</button>
     <button class="btn" id="buyMaxBtn">구매: x1</button>
     <button class="btn" id="prestigeBtn">💀 환생</button>
   </div>
@@ -241,13 +268,14 @@ function fmtTime(s){
 
 // ── 파생 수치 ──
 function clickPower(){
-  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult();
+  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult()*dmgBuff();
 }
 function totalDps(){
   let d=0;
   for(const h of HEROES) d+=(S.heroes[h.id]||0)*h.dps;
   d*=Math.pow(1.25,S.upg.dmg);   // 동료 훈련
   d*=gemAllMult();
+  d*=dmgBuff();                  // 스페셜 이벤트 버프
   return d;
 }
 function goldMult(){ return Math.pow(1.20,S.upg.gold)*Math.pow(1.25,S.gem.gGold||0); }
@@ -261,7 +289,7 @@ function mobMaxHp(stage,boss){
 function goldReward(stage,boss){
   let g=6*Math.pow(1.17,stage-1);
   if(boss)g*=12;
-  return Math.ceil(g*goldMult());
+  return Math.ceil(g*goldMult()*goldBuff());
 }
 function isBossStage(st){return st%10===0;}
 function killsNeeded(st){return isBossStage(st)?1:4;} // 일반 스테이지는 4킬마다 전진
@@ -273,15 +301,29 @@ function gemsFromPrestige(){
 }
 
 // ── 몬스터 스폰 ──
-let mob={hp:0,max:0,boss:false,timer:0};
-function spawnMob(){
-  const st=S.stage, boss=isBossStage(st);
-  mob.boss=boss; mob.max=mobMaxHp(st,boss); mob.hp=mob.max;
+// phase: 'normal'=일반 몬스터, 'boss'=보스, 'fled'=보스 도주 후 부하
+let mob={hp:0,max:0,boss:false,timer:0,phase:'normal'};
+let bossReturn=0;                 // 보스 도주 후 재등장까지 남은 시간(초). 0이면 비활성
+const BOSS_FLEE_RETURN=14;        // 도주 후 재등장 대기(초)
+function spawnMob(force){
+  // force: 'boss' | 'minion' | undefined(스테이지 기본값)
+  const st=S.stage, bossStage=isBossStage(st);
+  let boss;
+  if(force==='boss')boss=true;
+  else if(force==='minion')boss=false;
+  else boss=bossStage;
+  if(force!=='minion')bossReturn=0;
+  mob.boss=boss;
+  mob.phase=boss?'boss':(bossStage?'fled':'normal');
+  mob.max=mobMaxHp(st,boss); mob.hp=mob.max;
   mob.timer=boss?30:0;
   const idx=(st-1);
   if(boss){
     $('mob').textContent=BOSSES[(st/10-1)%BOSSES.length];
     $('mobName').textContent='👑 '+BOSS_NAMES[(st/10-1)%BOSS_NAMES.length];
+  }else if(mob.phase==='fled'){
+    $('mob').textContent=MOBS[(idx+st)%MOBS.length];
+    $('mobName').textContent='⚔️ '+MOB_NAMES[(idx+st)%MOB_NAMES.length]+' (보스의 부하)';
   }else{
     $('mob').textContent=MOBS[idx%MOBS.length];
     $('mobName').textContent=MOB_NAMES[idx%MOB_NAMES.length];
@@ -292,20 +334,34 @@ function renderHp(){
   const pct=Math.max(0,mob.hp/mob.max*100);
   $('hpBar').style.width=pct+'%';
   $('hpTxt').textContent=fmt(Math.max(0,mob.hp))+' / '+fmt(mob.max);
-  $('bossTimer').textContent=mob.boss?('⏳ '+Math.max(0,mob.timer).toFixed(1)+'초'):'';
+  if(mob.phase==='boss')$('bossTimer').textContent='⏳ 도주까지 '+Math.max(0,mob.timer).toFixed(1)+'초';
+  else if(bossReturn>0)$('bossTimer').textContent='👑 보스 재등장까지 '+Math.max(0,bossReturn).toFixed(1)+'초';
+  else $('bossTimer').textContent='';
   const need=killsNeeded(S.stage);
-  $('killCount').textContent=mob.boss?'보스를 처치하라!':`이 스테이지 처치 ${S.killsThisStage}/${need}`;
+  if(mob.phase==='boss')$('killCount').textContent='보스를 처치하라!';
+  else if(mob.phase==='fled')$('killCount').textContent='💨 보스 도주! 부하를 처치하면 더 빨리 돌아온다';
+  else $('killCount').textContent=`이 스테이지 처치 ${S.killsThisStage}/${need}`;
 }
 
 // ── 데미지 적용 / 처치 ──
-function dealDamage(amt,fromClick){
+function dealDamage(amt,fromClick,crit){
   if(mob.hp<=0)return;
   mob.hp-=amt;
-  if(fromClick)floatNum(amt,true);
+  if(fromClick)floatNum(amt,!!crit,crit?'#ff5a78':'#ffd86b');
   if(mob.hp<=0)onKill();
   else renderHp();
 }
 function onKill(){
+  // 보스 도주 중 부하 처치: 스테이지 전진 없이 골드만, 보스 재등장 시간 단축
+  if(mob.phase==='fled'){
+    S.gold+=goldReward(S.stage,false);
+    S.totalKills++;
+    bossReturn=Math.max(0,bossReturn-2);
+    floatNum('보스 재등장 -2초',false,'#7ee0ff');
+    spawnMob('minion');
+    updateTop();
+    return;
+  }
   const boss=mob.boss;
   S.gold+=goldReward(S.stage,boss);
   S.totalKills++; S.killsThisStage++;
@@ -338,35 +394,161 @@ function floatNum(v,crit,color){
   setTimeout(()=>el.remove(),900);
 }
 
-// ── 공격: 스페이스바 (모바일은 화면 터치) ──
-function doAttack(){
-  if(mob.hp<=0)return;
-  dealDamage(clickPower(),true);
+// ── 클릭 / 스페이스바 공격 ──
+const CRIT_CHANCE=0.15, CRIT_MULT=5;   // 15% 확률로 5배 치명타
+function clickAttack(){
+  let dmg=clickPower(), crit=false;
+  if(Math.random()<CRIT_CHANCE){ dmg*=CRIT_MULT; crit=true; }
+  dealDamage(dmg,true,crit);
   const m=$('mob');m.classList.add('hit');setTimeout(()=>m.classList.remove('hit'),60);
 }
-let spaceHeld=false;
-document.addEventListener('keydown',e=>{
-  if(e.code==='Space'){ e.preventDefault(); if(!e.repeat)doAttack(); spaceHeld=true; }
+$('stage').addEventListener('pointerdown',clickAttack);
+// 스페이스바로도 공격(스크롤 방지). 버튼/입력 포커스 중에는 무시
+window.addEventListener('keydown',e=>{
+  if(e.code!=='Space'&&e.key!==' ')return;
+  const t=e.target;
+  if(t&&(t.tagName==='BUTTON'||t.tagName==='INPUT'||t.tagName==='TEXTAREA'))return;
+  e.preventDefault();
+  clickAttack();
 });
-document.addEventListener('keyup',e=>{ if(e.code==='Space')spaceHeld=false; });
-window.addEventListener('blur',()=>{spaceHeld=false;});
-$('stage').addEventListener('pointerdown',doAttack); // 모바일/터치 지원
 
 // ── 메인 루프 ──
 let lastTick=Date.now();
 function tick(){
   const now=Date.now(); let dt=(now-lastTick)/1000; lastTick=now;
   if(dt>1)dt=1;
-  if(mob.boss&&mob.hp>0){
+  // 보스: 제한시간 내 못 잡으면 도주 → 부하 등장
+  if(mob.phase==='boss'&&mob.hp>0){
     mob.timer-=dt;
-    if(mob.timer<=0){ floatNum('보스 도주!',false,'#ff5a78'); S.killsThisStage=0; spawnMob(); }
+    if(mob.timer<=0){
+      bossReturn=BOSS_FLEE_RETURN; S.killsThisStage=0;
+      showBanner('💨 보스가 도주했다!','부하를 처치하며 기다리면 보스가 다시 나타난다','#ff5a78');
+      spawnMob('minion');
+    }
   }
-  if(spaceHeld)doAttack();          // 스페이스바를 누르고 있으면 초당 10회 공격
+  // 보스 도주 후 재등장 카운트다운
+  if(bossReturn>0){
+    bossReturn-=dt;
+    if(bossReturn<=0){
+      bossReturn=0;
+      showBanner('👑 보스 재등장!','다시 도전하라!','#ffce54');
+      spawnMob('boss');
+    }
+  }
   const d=totalDps();
   if(d>0&&mob.hp>0)dealDamage(d*dt,false);
+  updateGoblin(now);
+  maybeSpawnEvent(now);
+  renderBuffBar(now);
+  updateUltBtn(now);
   renderHp();
 }
 setInterval(tick,100);
+
+// ════════════════════════════════════════════
+//  버프 · 스페셜 이벤트 · 보물 고블린 · 필살기
+// ════════════════════════════════════════════
+let buffDmgMult=1, buffDmgUntil=0;     // 피해 배수 버프
+let buffGoldMult=1, buffGoldUntil=0;   // 골드 배수 버프
+function dmgBuff(){ return Date.now()<buffDmgUntil?buffDmgMult:1; }
+function goldBuff(){ return Date.now()<buffGoldUntil?buffGoldMult:1; }
+function applyDmgBuff(mult,sec){
+  const now=Date.now(), cur=now<buffDmgUntil?buffDmgMult:1;
+  buffDmgMult=Math.max(cur,mult); buffDmgUntil=Math.max(buffDmgUntil,now+sec*1000);
+}
+function applyGoldBuff(mult,sec){
+  const now=Date.now(), cur=now<buffGoldUntil?buffGoldMult:1;
+  buffGoldMult=Math.max(cur,mult); buffGoldUntil=Math.max(buffGoldUntil,now+sec*1000);
+}
+function renderBuffBar(now){
+  let h='';
+  if(now<buffDmgUntil)h+=`<span class="buff dmg">⚡ 피해 x${buffDmgMult} · ${Math.ceil((buffDmgUntil-now)/1000)}초</span>`;
+  if(now<buffGoldUntil)h+=`<span class="buff gold">💰 골드 x${buffGoldMult} · ${Math.ceil((buffGoldUntil-now)/1000)}초</span>`;
+  $('buffBar').innerHTML=h;
+}
+
+// ── 화면 배너 ──
+let bannerT=0;
+function showBanner(title,sub,color){
+  const b=$('eventBanner');
+  b.innerHTML=`<div class="bt" style="color:${color||'#ffce54'}">${title}</div><div class="bs">${sub||''}</div>`;
+  b.classList.add('show');
+  clearTimeout(bannerT); bannerT=setTimeout(()=>b.classList.remove('show'),3500);
+}
+
+// ── 랜덤 스페셜 이벤트 ──
+let nextEventAt=0;
+function rnd(a,b){ return a+Math.random()*(b-a); }
+function maybeSpawnEvent(now){
+  if(nextEventAt===0){ nextEventAt=now+rnd(35,70)*1000; return; }
+  if(now<nextEventAt)return;
+  nextEventAt=now+rnd(45,95)*1000;
+  triggerRandomEvent();
+}
+function triggerRandomEvent(){
+  const r=Math.random();
+  if(r<0.30){
+    applyDmgBuff(3,15);
+    showBanner('⚡ 광란의 시간!','15초간 모든 피해 x3','#9b8cff');
+  }else if(r<0.58){
+    applyGoldBuff(2,20);
+    showBanner('💰 황금 러시!','20초간 골드 획득 x2','#ffce54');
+  }else if(r<0.80){
+    spawnGoblin();
+  }else if(r<0.92){
+    const g=Math.ceil(goldReward(S.stage,false)*30);
+    S.gold+=g; updateTop();
+    showBanner('🪙 숨겨진 보물!','골드 +'+fmt(g),'#ffd86b');
+    floatNum('+'+fmt(g),false,'#ffd86b');
+  }else{
+    S.gems+=1; updateTop();
+    showBanner('💎 행운의 정수!','정수 +1 획득','#7ee0ff');
+  }
+}
+
+// ── 보물 고블린(클릭 전용 보너스) ──
+let goblin=null;
+function spawnGoblin(){
+  goblin={until:Date.now()+6500, reward:Math.ceil(goldReward(S.stage,false)*5), alive:true};
+  $('goblin').style.display='block';
+  moveGoblin();
+  showBanner('🤑 보물 고블린 출현!','6초 안에 마구 클릭해 골드를 털어라!','#5ad17a');
+}
+function moveGoblin(){
+  const g=$('goblin'), r=$('stage').getBoundingClientRect();
+  g.style.left=(10+Math.random()*Math.max(20,r.width-90))+'px';
+  g.style.top=(30+Math.random()*Math.max(20,r.height-110))+'px';
+}
+function updateGoblin(now){
+  if(goblin&&goblin.alive&&now>goblin.until){ goblin.alive=false; $('goblin').style.display='none'; }
+}
+$('goblin').addEventListener('pointerdown',e=>{
+  e.stopPropagation();
+  if(!goblin||!goblin.alive)return;
+  S.gold+=goblin.reward; updateTop();
+  floatNum('+'+fmt(goblin.reward),true,'#5ad17a');
+  moveGoblin();
+});
+
+// ── 필살기(능동 스킬) ──
+let ultReadyAt=0; const ULT_CD=30;
+$('ultBtn').onclick=()=>{
+  const now=Date.now();
+  if(now<ultReadyAt)return;
+  ultReadyAt=now+ULT_CD*1000;
+  const burst=Math.max(clickPower()*25, totalDps()*8, 10);
+  applyDmgBuff(2.5,5);
+  dealDamage(burst,false);
+  floatNum('💥 '+fmt(burst),true,'#ff7b6b');
+  showBanner('⚡ 필살기 발동!','폭발 피해 + 5초간 피해 x2.5','#ff7b6b');
+  updateUltBtn(now);
+};
+function updateUltBtn(now){
+  now=now||Date.now();
+  const b=$('ultBtn');
+  if(now<ultReadyAt){ b.disabled=true; b.classList.remove('rdy'); b.textContent='⚡ '+Math.ceil((ultReadyAt-now)/1000)+'초'; }
+  else { b.disabled=false; b.classList.add('rdy'); b.textContent='⚡ 필살기'; }
+}
 
 // ── 구매 수량 모드 ──
 let buyMode=1;
@@ -492,6 +674,7 @@ function doPrestige(g){
   S=defaultState();
   S.gems=keepGems; S.gem=gemUp;
   S.stage=S.maxStage=S.frontier=1+startBonus;
+  bossReturn=0; if(goblin){goblin.alive=false;$('goblin').style.display='none';}
   spawnMob();updateTop();updateStageLabel();renderShop();save();
   floatNum('환생 완료!',false,'#b46bff');
 }
@@ -542,7 +725,7 @@ function offlineReward(){
 // ── 초기화 ──
 load();
 spawnMob();
-updateTop(); updateStageLabel(); renderShop();
+updateTop(); updateStageLabel(); renderShop(); updateUltBtn();
 offlineReward();
 $('saveStat').textContent='💾 자동 저장 중 · 최고 스테이지 '+S.maxStage;
 setInterval(updateTop,250);
