@@ -223,6 +223,16 @@ const HEROES=[
   {id:'goddess',nm:'여신',      ico:'🌸', dps:1.6e13, cost:1e20},
   {id:'creator',nm:'창조주',    ico:'✨', dps:9.6e13, cost:1.4e21},
   {id:'cosmos', nm:'코스모스',  ico:'🌌', dps:5.7e14, cost:2e22},
+  {id:'planet', nm:'행성 수호자',ico:'🪐', dps:3.4e15, cost:2.8e23},
+  {id:'comet',  nm:'혜성 기사',  ico:'🌠', dps:2.05e16,cost:3.9e24},
+  {id:'meteor', nm:'유성 군주',  ico:'☄️', dps:1.2e17, cost:5.5e25},
+  {id:'nebula', nm:'성운 마녀',  ico:'💫', dps:7.4e17, cost:7.7e26},
+  {id:'void',   nm:'공허 포식자',ico:'🕳️', dps:4.4e18, cost:1.1e28},
+  {id:'sun',    nm:'태양신',     ico:'🌞', dps:2.7e19, cost:1.5e29},
+  {id:'eclipse',nm:'월식 군주',  ico:'🌑', dps:1.6e20, cost:2.1e30},
+  {id:'eon',    nm:'영겁의 존재',ico:'♾️', dps:9.6e20, cost:2.9e31},
+  {id:'ufo',    nm:'이계 방문자',ico:'🛸', dps:5.7e21, cost:4.1e32},
+  {id:'genesis',nm:'창세신',     ico:'🔱', dps:3.4e22, cost:5.7e33},
 ];
 // ── 강화(골드) ──
 const UPGRADES=[
@@ -291,6 +301,16 @@ const HERO_PERKS={
   goddess: {nm:'풍요의 축복',type:'gold',     per:0.30, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
   creator: {nm:'창조의 권능',type:'allDmg',   per:0.25, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
   cosmos:  {nm:'우주의 힘',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  planet:  {nm:'행성의 가호',type:'allDmg',   per:0.20, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  comet:   {nm:'혜성 강타',  type:'crit',     per:0.05, every:20, fmt:v=>'클릭 치명타 확률 +'+Math.round(v*100)+'%'},
+  meteor:  {nm:'유성우',     type:'dps',      per:0.40, every:30, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  nebula:  {nm:'성운 폭발',  type:'critDmg',  per:2,    every:25, fmt:v=>'치명타 피해 +'+Math.round(v*100)+'%'},
+  void:    {nm:'공허 흡수',  type:'bossDmg',  per:0.70, every:20, fmt:v=>'보스에게 주는 피해 +'+Math.round(v*100)+'%'},
+  sun:     {nm:'태양 작렬',  type:'allDmg',   per:0.25, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  eclipse: {nm:'월식의 인도',type:'gemFind',  per:0.05, every:10, fmt:v=>'보스 처치 시 정수 확률 +'+Math.round(v*100)+'%'},
+  eon:     {nm:'무한 연산',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  ufo:     {nm:'미지의 보물',type:'gold',     per:0.30, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  genesis: {nm:'창세의 권능',type:'allDmg',   per:0.30, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
 };
 function perkSteps(have,every){ return have>0?1+Math.floor((have-1)/every):0; }
 
@@ -309,7 +329,8 @@ const ACHIEVEMENTS=[
   {id:'k100k',nm:'전장의 지배자',desc:'몬스터 100,000 처치',gem:35, chk:s=>s.totalKills>=100000},
   {id:'h5',  nm:'동료 모집',     desc:'서로 다른 동료 5종 보유',  gem:4,  chk:s=>heroTypes(s)>=5},
   {id:'h10', nm:'드림팀',        desc:'서로 다른 동료 10종 보유', gem:18, chk:s=>heroTypes(s)>=10},
-  {id:'h20', nm:'올스타 군단',   desc:'모든 동료 20종 보유',      gem:60, chk:s=>heroTypes(s)>=20},
+  {id:'h20', nm:'올스타 군단',   desc:'서로 다른 동료 20종 보유', gem:60, chk:s=>heroTypes(s)>=20},
+  {id:'h30', nm:'우주적 군세',   desc:'모든 동료 30종 보유',      gem:150,chk:s=>heroTypes(s)>=30},
   {id:'p1',  nm:'환생자',        desc:'환생 1회 달성',  gem:2,  chk:s=>(s.prestiges||0)>=1},
   {id:'p5',  nm:'윤회의 길',     desc:'환생 5회 달성',  gem:12, chk:s=>(s.prestiges||0)>=5},
   {id:'p15', nm:'영원의 순례자', desc:'환생 15회 달성', gem:40, chk:s=>(s.prestiges||0)>=15},
