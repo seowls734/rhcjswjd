@@ -70,6 +70,20 @@
   @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(.8)}
     20%{transform:translateY(-10px) scale(1.15)}100%{opacity:0;transform:translateY(-70px) scale(1)}}
 
+  /* ── 액티브 스킬 바 ── */
+  #skillBar{display:flex;gap:6px;margin-top:10px}
+  .skillBtn{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:6px 4px;cursor:pointer;color:var(--dim);text-align:center;transition:.1s}
+  .skillBtn .si{font-size:22px;line-height:1}
+  .skillBtn .sn{font-size:10px;font-weight:700;margin-top:2px}
+  .skillBtn .sc{font-size:9px;color:var(--dim);margin-top:1px}
+  .skillBtn.ready{color:var(--txt);border-color:#3a4a6e}
+  .skillBtn.ready .sc{color:var(--good)}
+  .skillBtn.ready:hover{border-color:var(--gold)}
+  .skillBtn.active{border-color:var(--gold);background:rgba(255,206,84,.12);color:var(--gold)}
+  .skillBtn.active .sc{color:var(--gold)}
+  .skillBtn:active{transform:scale(.95)}
+
   /* ── 상점 ── */
   #shopTabs{display:flex;border-bottom:1px solid var(--line)}
   .tab{flex:1;padding:11px;text-align:center;font-size:13px;font-weight:700;color:var(--dim);
@@ -150,6 +164,7 @@
         <div id="hpWrap"><div id="hpBar"></div><div id="hpTxt"></div></div>
         <div id="killCount"></div>
       </div>
+      <div id="skillBar"></div>
     </div>
 
     <!-- 상점 -->
@@ -157,8 +172,9 @@
       <div id="shopTabs">
         <div class="tab active" data-tab="hero">🛡️ 동료</div>
         <div class="tab" data-tab="up">⬆️ 강화</div>
-        <div class="tab" data-tab="gem">💎 정수상점</div>
-        <div class="tab" data-tab="ach">🏅 도전과제</div>
+        <div class="tab" data-tab="gem">💎 정수</div>
+        <div class="tab" data-tab="relic">📜 유물</div>
+        <div class="tab" data-tab="ach">🏅 도전</div>
       </div>
       <div id="shopList"></div>
     </div>
@@ -210,15 +226,41 @@ const HEROES=[
 ];
 // ── 강화(골드) ──
 const UPGRADES=[
-  {id:'click', nm:'검 강화',   ico:'👆', sub:'클릭 피해 +60%',      baseCost:25,  mult:1.6},
-  {id:'dmg',   nm:'동료 훈련', ico:'⚔️', sub:'모든 동료 DPS +25%',  baseCost:400, mult:1.9},
-  {id:'gold',  nm:'황금 손길', ico:'💰', sub:'골드 획득 +20%',      baseCost:300, mult:1.8},
+  {id:'click',  nm:'검 강화',   ico:'👆', sub:'클릭 피해 +60%',       baseCost:25,    mult:1.6},
+  {id:'dmg',    nm:'동료 훈련', ico:'⚔️', sub:'모든 동료 DPS +25%',   baseCost:400,   mult:1.9},
+  {id:'gold',   nm:'황금 손길', ico:'💰', sub:'골드 획득 +20%',       baseCost:300,   mult:1.8},
+  {id:'crit',   nm:'정밀 타격', ico:'🎯', sub:'클릭 치명타 확률 +2%', baseCost:5000,  mult:2.1},
+  {id:'critDmg',nm:'강타 수련', ico:'💢', sub:'치명타 피해 +30%',     baseCost:9000,  mult:2.0},
+  {id:'auto',   nm:'자동 검술', ico:'🤖', sub:'자동 공격 +1회/초',    baseCost:60000, mult:2.4},
+  {id:'offline',nm:'야영 기술', ico:'🏕️', sub:'오프라인 효율 +10%',   baseCost:30000, mult:1.9},
 ];
 // ── 정수(환생) 상점: 영구 강화 ──
 const GEMSHOP=[
-  {id:'gAll',  nm:'영웅의 유산', ico:'🌟', sub:'모든 피해 +25% / 레벨',         baseCost:1, mult:1.35, key:'gALL'},
-  {id:'gGold', nm:'탐욕의 인장', ico:'🪙', sub:'골드 획득 +30% / 레벨',         baseCost:1, mult:1.4,  key:'gGold'},
-  {id:'gStart',nm:'개척자',      ico:'🚩', sub:'환생 후 시작 스테이지 +3 / 레벨', baseCost:2, mult:1.6,  key:'gStart'},
+  {id:'gAll',   nm:'영웅의 유산', ico:'🌟', sub:'모든 피해 +25% / 레벨',          baseCost:1, mult:1.35, key:'gALL'},
+  {id:'gGold',  nm:'탐욕의 인장', ico:'🪙', sub:'골드 획득 +30% / 레벨',          baseCost:1, mult:1.4,  key:'gGold'},
+  {id:'gStart', nm:'개척자',      ico:'🚩', sub:'환생 후 시작 스테이지 +3 / 레벨', baseCost:2, mult:1.6,  key:'gStart'},
+  {id:'gCrit',  nm:'운명의 눈',   ico:'👁️', sub:'클릭 치명타 확률 +3% / 레벨',     baseCost:3, mult:1.6,  key:'gCrit'},
+  {id:'gAuto',  nm:'영혼 분신',   ico:'👥', sub:'자동 공격 +1회/초 / 레벨',        baseCost:4, mult:1.8,  key:'gAuto'},
+  {id:'gOffline',nm:'시간의 모래',ico:'⌛', sub:'오프라인 효율 +15% / 레벨',       baseCost:3, mult:1.6,  key:'gOffline'},
+  {id:'gSkill', nm:'각성',        ico:'🌀', sub:'스킬 쿨다운 -10% / 레벨',         baseCost:5, mult:1.7,  key:'gSkill'},
+];
+// ── 유물: 보스가 일정 확률로 드롭, 같은 유물을 모으면 레벨업(영구) ──
+const RELIC_DROP_CHANCE=0.5;
+const RELICS=[
+  {id:'sword',    ico:'🗡️', nm:'영웅의 검',       type:'click',   per:0.10, fmt:v=>'클릭 피해 +'+Math.round(v*100)+'%'},
+  {id:'amulet',   ico:'📿', nm:'현자의 목걸이',   type:'dps',     per:0.10, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  {id:'crown',    ico:'👑', nm:'군주의 왕관',     type:'allDmg',  per:0.06, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  {id:'ring',     ico:'💍', nm:'탐욕의 반지',     type:'gold',    per:0.08, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  {id:'orb',      ico:'🔮', nm:'운명의 구슬',     type:'crit',    per:0.01, fmt:v=>'치명타 확률 +'+Math.round(v*100)+'%'},
+  {id:'shield',   ico:'🛡️', nm:'수호의 방패',     type:'bossTime',per:1,    fmt:v=>'보스 제한시간 +'+v+'초'},
+  {id:'gemstone', ico:'💠', nm:'정수의 원석',     type:'gem',     per:0.05, fmt:v=>'정수 드롭 확률 +'+Math.round(v*100)+'%'},
+  {id:'hourglass',ico:'⏳', nm:'시간의 모래시계', type:'offline', per:0.10, fmt:v=>'오프라인 효율 +'+Math.round(v*100)+'%'},
+];
+// ── 액티브 스킬: 쿨다운 후 재사용 ──
+const SKILLS=[
+  {id:'berserk',ico:'⚡', nm:'광폭화',    dur:10, cd:60, desc:'10초간 모든 피해 ×3'},
+  {id:'gold',   ico:'💰', nm:'황금시간',  dur:15, cd:90, desc:'15초간 골드 ×3'},
+  {id:'smite',  ico:'💥', nm:'필살의 일격',dur:0,  cd:45, desc:'적에게 즉시 큰 피해'},
 ];
 
 const MOBS=['👾','🦂','🕷️','🐍','🦇','🐗','👹','👺','🧟','🦅','🪰','🐙','🦴','👻','🐀','🦎','🐊','🦈','🦀','🐡','🦗','🐸','🦟','🦝','🦔','🦉','🐺','🦊','🐻','🦏','🦛','🐅','🐆','🦌','🪱','🐌','🦠','🧞','🪨','🪲'];
@@ -271,7 +313,17 @@ const ACHIEVEMENTS=[
   {id:'p1',  nm:'환생자',        desc:'환생 1회 달성',  gem:2,  chk:s=>(s.prestiges||0)>=1},
   {id:'p5',  nm:'윤회의 길',     desc:'환생 5회 달성',  gem:12, chk:s=>(s.prestiges||0)>=5},
   {id:'p15', nm:'영원의 순례자', desc:'환생 15회 달성', gem:40, chk:s=>(s.prestiges||0)>=15},
+  {id:'p30', nm:'무한의 윤회자', desc:'환생 30회 달성', gem:90, chk:s=>(s.prestiges||0)>=30},
+  {id:'s500',nm:'무한의 끝',     desc:'스테이지 500 도달', gem:200,chk:s=>s.bestStage>=500},
+  {id:'g1m', nm:'백만장자',      desc:'골드 1M 보유',   gem:5,  chk:s=>s.gold>=1e6},
+  {id:'g1b', nm:'억만장자',      desc:'골드 1B 보유',   gem:15, chk:s=>s.gold>=1e9},
+  {id:'g1t', nm:'대부호',        desc:'골드 1T 보유',   gem:45, chk:s=>s.gold>=1e12},
+  {id:'gm50',nm:'정수 수집가',   desc:'정수 50개 보유', gem:8,  chk:s=>s.gems>=50},
+  {id:'r1',  nm:'첫 유물',       desc:'유물 1종 수집',  gem:3,  chk:s=>relicCount(s)>=1},
+  {id:'r4',  nm:'유물 탐험가',   desc:'유물 4종 수집',  gem:12, chk:s=>relicCount(s)>=4},
+  {id:'r8',  nm:'유물 마스터',   desc:'유물 8종 모두 수집', gem:50, chk:s=>relicCount(s)>=8},
 ];
+function relicCount(s){ let n=0; if(s.relics)for(const k in s.relics)if(s.relics[k]>0)n++; return n; }
 function achState(a){ if(S.achClaimed&&S.achClaimed[a.id])return 'done'; return a.chk(S)?'claim':'lock'; }
 function claimableCount(){ let n=0; for(const a of ACHIEVEMENTS) if(achState(a)==='claim')n++; return n; }
 function claimAch(a){
@@ -282,14 +334,17 @@ function claimAch(a){
 function updateAchBadge(){
   const t=document.querySelector('.tab[data-tab="ach"]'); if(!t)return;
   const n=claimableCount();
-  t.innerHTML='🏅 도전과제'+(n>0?' <span style="color:#7ee0ff">('+n+')</span>':'');
+  t.innerHTML='🏅 도전'+(n>0?' <span style="color:#7ee0ff">('+n+')</span>':'');
 }
 
 let S; // 게임 상태
 function defaultState(){
   return {
     gold:0, gems:0, stage:1, maxStage:1, frontier:1,
-    heroes:{}, upg:{click:0,dmg:0,gold:0}, gem:{gALL:0,gGold:0,gStart:0},
+    heroes:{},
+    upg:{click:0,dmg:0,gold:0,crit:0,critDmg:0,auto:0,offline:0},
+    gem:{gALL:0,gGold:0,gStart:0,gCrit:0,gAuto:0,gOffline:0,gSkill:0},
+    relics:{},
     autoProgress:true, killsThisStage:0, lastSeen:Date.now(),
     totalKills:0, prestiges:0, bestStage:1,
     achClaimed:{}, bossCleared:{},
@@ -308,9 +363,32 @@ function fmtTime(s){
   if(h>0)return `${h}시간 ${m}분`; if(m>0)return `${m}분 ${x}초`; return `${x}초`;
 }
 
+// ── 유물 효과 합산 ──
+function relicFx(){
+  const r={click:1,dps:1,gold:1,crit:0,bossTime:0,gem:0,offline:0};
+  for(const rc of RELICS){
+    const lv=(S.relics&&S.relics[rc.id])||0; if(lv<=0)continue;
+    const v=rc.per*lv;
+    switch(rc.type){
+      case 'click':   r.click*=1+v; break;
+      case 'dps':     r.dps*=1+v;   break;
+      case 'gold':    r.gold*=1+v;  break;
+      case 'allDmg':  r.click*=1+v; r.dps*=1+v; break;
+      case 'crit':    r.crit+=v;    break;
+      case 'bossTime':r.bossTime+=v;break;
+      case 'gem':     r.gem+=v;     break;
+      case 'offline': r.offline+=v; break;
+    }
+  }
+  return r;
+}
+// 액티브 스킬 버프 배율
+function skillDmgMult(){ return (skillState.berserk&&skillState.berserk.buff>0)?3:1; }
+function skillGoldMult(){ return (skillState.gold&&skillState.gold.buff>0)?3:1; }
+
 // ── 파생 수치 ──
 function clickPower(){
-  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult()*heroFx().click;
+  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult()*heroFx().click*relicFx().click*skillDmgMult();
 }
 function totalDps(){
   let d=0;
@@ -318,9 +396,22 @@ function totalDps(){
   d*=Math.pow(1.25,S.upg.dmg);   // 동료 훈련
   d*=gemAllMult();
   d*=heroFx().dps;               // 동료 특수 능력
+  d*=relicFx().dps;              // 유물
+  d*=skillDmgMult();             // 광폭화
   return d;
 }
-function goldMult(){ return Math.pow(1.20,S.upg.gold)*Math.pow(1.30,S.gem.gGold||0); }
+function goldMult(){ return Math.pow(1.20,S.upg.gold)*Math.pow(1.30,S.gem.gGold||0)*relicFx().gold*skillGoldMult(); }
+// 자동 공격 횟수/초 (자동 검술 + 영혼 분신)
+function autoRate(){ return (S.upg.auto||0)+(S.gem.gAuto||0); }
+// 치명타 확률/배율 (강화·정수·유물·동료 합산)
+function critChance(){ return Math.min(0.95, CRIT_CHANCE+heroFx().crit+relicFx().crit+0.02*(S.upg.crit||0)+0.03*(S.gem.gCrit||0)); }
+function critMult(){ return CRIT_MULT+heroFx().critDmg+0.30*(S.upg.critDmg||0); }
+// 보스 제한시간 보너스 (동료+유물)
+function bossTimeBonus(){ return heroFx().bossTime+relicFx().bossTime; }
+// 오프라인 효율 (기본 0.6 + 강화/정수/유물)
+function offlineEff(){ return Math.min(2.0, 0.6+0.10*(S.upg.offline||0)+0.15*(S.gem.gOffline||0)+relicFx().offline); }
+// 정수 드롭 추가 확률 (동료+유물)
+function gemFindChance(){ return Math.min(0.95, heroFx().gem+relicFx().gem); }
 function gemAllMult(){ return 1+0.25*(S.gem.gALL||0); }
 
 // 동료 특수 능력 합산 → 각종 보정치
@@ -402,7 +493,7 @@ function spawnMob(force){
   mob.boss=boss;
   mob.phase=boss?'boss':(bossStage?'fled':'normal');
   mob.max=mobMaxHp(st,boss); mob.hp=mob.max;
-  mob.timer=boss?(30+heroFx().bossTime):0;   // 기사: 보스 제한시간 연장
+  mob.timer=boss?(30+bossTimeBonus()):0;     // 기사+수호의 방패: 보스 제한시간 연장
   const idx=(st-1);
   if(boss){
     $('mob').textContent=BOSSES[(st/10-1)%BOSSES.length];
@@ -460,10 +551,16 @@ function onKill(){
       // 보스 처치 보너스 골드(특히 더!)
       const bonus=goldReward(S.stage,true)*5;
       S.gold+=bonus; floatNum('💰 보스 보너스 +'+fmt(bonus),false,'#ffce54');
+      // 유물 드롭(첫 처치 한정)
+      if(Math.random()<RELIC_DROP_CHANCE){
+        const rc=RELICS[Math.floor(Math.random()*RELICS.length)];
+        if(!S.relics)S.relics={}; S.relics[rc.id]=(S.relics[rc.id]||0)+1;
+        floatNum(rc.ico+' '+rc.nm+' Lv.'+S.relics[rc.id]+'!',true,'#ffd86b');
+      }
     }
-    // 대천사: 추가 정수 확률
-    const gf=heroFx().gem;
-    if(gf>0&&Math.random()<gf){ S.gems+=1; floatNum('💎 +1 천상가호',true,'#7ee0ff'); }
+    // 대천사+정수의 원석: 추가 정수 확률
+    const gf=gemFindChance();
+    if(gf>0&&Math.random()<gf){ S.gems+=1; floatNum('💎 +1',true,'#7ee0ff'); }
   }
   S.gold+=goldReward(S.stage,boss);
   S.totalKills++; S.killsThisStage++;
@@ -500,9 +597,8 @@ function floatNum(v,crit,color){
 // ── 클릭 / 스페이스바 공격 ──
 const CRIT_CHANCE=0.15, CRIT_MULT=5;   // 15% 확률로 5배 치명타
 function clickAttack(){
-  const fx=heroFx();                   // 마법사: 치명타 확률 / 대마법사: 치명타 피해
   let dmg=clickPower(), crit=false;
-  if(Math.random()<CRIT_CHANCE+fx.crit){ dmg*=CRIT_MULT+fx.critDmg; crit=true; }
+  if(Math.random()<critChance()){ dmg*=critMult(); crit=true; }
   dealDamage(dmg,true,crit);
   const m=$('mob');m.classList.add('hit');setTimeout(()=>m.classList.remove('hit'),60);
 }
@@ -516,17 +612,61 @@ window.addEventListener('keydown',e=>{
   clickAttack();
 });
 
+// ── 액티브 스킬 ──
+let skillState={berserk:{cd:0,buff:0}, gold:{cd:0,buff:0}, smite:{cd:0,buff:0}};
+function skillCdMult(){ return Math.max(0.4, 1-0.10*(S.gem.gSkill||0)); }   // 각성: 쿨다운 감소
+function useSkill(id){
+  const sk=SKILLS.find(s=>s.id===id), st=skillState[id];
+  if(!sk||!st||st.cd>0)return;
+  st.cd=sk.cd*skillCdMult();
+  if(sk.dur>0){ st.buff=sk.dur; floatNum('✨ '+sk.nm+' 발동!',true,'#ffce54'); }
+  if(id==='smite'){                       // 필살: 즉시 큰 피해
+    const dmg=Math.max(clickPower()*60, totalDps()*12, mob.max*0.15);
+    dealDamage(dmg,true,true);
+  }
+  updateSkills();
+}
+function renderSkills(){
+  const bar=$('skillBar'); if(!bar)return; bar.innerHTML='';
+  SKILLS.forEach(sk=>{
+    const b=document.createElement('button');
+    b.className='skillBtn';
+    b.title=sk.desc;
+    b.innerHTML=`<div class="si">${sk.ico}</div><div class="sn">${sk.nm}</div><div class="sc"></div>`;
+    b.onclick=()=>useSkill(sk.id);
+    bar.appendChild(b);
+  });
+  updateSkills();
+}
+function updateSkills(){
+  const bar=$('skillBar'); if(!bar||!bar.children.length)return;
+  SKILLS.forEach((sk,i)=>{
+    const st=skillState[sk.id], el=bar.children[i]; if(!st||!el)return;
+    const active=sk.dur>0&&st.buff>0, ready=st.cd<=0;
+    el.className='skillBtn'+(active?' active':(ready?' ready':''));
+    el.querySelector('.sc').textContent= active?('발동 '+Math.ceil(st.buff)+'초')
+      : (!ready?('쿨 '+Math.ceil(st.cd)+'초'):'✓ 준비');
+  });
+}
+
 // ── 메인 루프 ──
 let lastTick=Date.now();
 let dpsAccum=0, dpsTimer=0;          // 동료 자동공격 누적(0.5초마다 떠오르는 숫자로 표시)
 function tick(){
   const now=Date.now(); let dt=(now-lastTick)/1000; lastTick=now;
   if(dt>1)dt=1;
+  // 액티브 스킬 쿨다운/버프 진행
+  for(const id in skillState){ const st=skillState[id];
+    if(st.cd>0)st.cd=Math.max(0,st.cd-dt);
+    if(st.buff>0)st.buff=Math.max(0,st.buff-dt);
+  }
+  updateSkills();
   if(mob.boss&&mob.hp>0){
     mob.timer-=dt;
     if(mob.timer<=0){ floatNum('보스 도주!',false,'#ff5a78'); S.killsThisStage=0; spawnMob(); }
   }
-  const d=totalDps();
+  // 동료 DPS + 자동 검술(클릭 피해 × 자동공격 횟수)
+  const d=totalDps()+autoRate()*clickPower();
   if(d>0&&mob.hp>0){
     dealDamage(d*dt,false);
     // 동료가 공격하고 있다는 걸 보여주기 위한 시각 피드백
@@ -566,7 +706,7 @@ let activeTab='hero';
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   activeTab=t.dataset.tab;
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
-  $('buyMaxBtn').style.display=(activeTab==='gem'||activeTab==='ach')?'none':'';
+  $('buyMaxBtn').style.display=(activeTab==='gem'||activeTab==='ach'||activeTab==='relic')?'none':'';
   renderShop();
 });
 function renderShop(){
@@ -625,6 +765,25 @@ function renderShop(){
       `&nbsp;&nbsp;→ 다음 환생 조건: 스테이지 <b>${prestigeReqStage()}</b> 도달<br>`+
       `· 👑 보스 첫 처치 드롭 (스테이지에 비례)<br>`+
       `· 🏅 도전과제 보상`;
+    list.appendChild(info);
+  }else if(activeTab==='relic'){ // 유물 도감
+    RELICS.forEach(rc=>{
+      const lv=(S.relics&&S.relics[rc.id])||0, found=lv>0;
+      list.appendChild(card({
+        ico: found?rc.ico:'❓', nm: found?rc.nm:'??? 미발견',
+        sub: found?(rc.fmt(rc.per)+' / 레벨'):'보스를 처치해 발견하세요',
+        lvl: found?(`레벨 ${lv} · 현재 ${rc.fmt(rc.per*lv)}`):'미발견',
+        cost: found?('Lv.'+lv):'❓', costCls: found?'gem ok':'',
+        locked:!found, onclick:()=>{}
+      }));
+    });
+    const found=relicCount(S);
+    const info=document.createElement('div');
+    info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.7';
+    info.innerHTML=`📜 <b>유물</b> (${found}/${RELICS.length} 수집)<br>`+
+      `· 👑 보스 첫 처치 시 ${Math.round(RELIC_DROP_CHANCE*100)}% 확률로 드롭<br>`+
+      `· 같은 유물을 모으면 레벨이 올라 효과가 강해집니다<br>`+
+      `· 효과는 항상 적용되며 환생해도 사라지지 않아요`;
     list.appendChild(info);
   }else{ // ach — 도전과제
     ACHIEVEMENTS.forEach(a=>{
@@ -722,8 +881,9 @@ function load(){
   let raw=null; try{raw=localStorage.getItem(SAVE_KEY);}catch(e){}
   if(raw){
     try{ const d=JSON.parse(raw); S=Object.assign(defaultState(),d);
-      S.upg=Object.assign({click:0,dmg:0,gold:0},d.upg||{});
-      S.gem=Object.assign({gALL:0,gGold:0,gStart:0},d.gem||{});
+      S.upg=Object.assign({click:0,dmg:0,gold:0,crit:0,critDmg:0,auto:0,offline:0},d.upg||{});
+      S.gem=Object.assign({gALL:0,gGold:0,gStart:0,gCrit:0,gAuto:0,gOffline:0,gSkill:0},d.gem||{});
+      S.relics=d.relics||{};
       S.heroes=d.heroes||{};
       S.achClaimed=d.achClaimed||{};
       S.bossCleared=d.bossCleared||{};
@@ -741,7 +901,7 @@ function offlineReward(){
   if(dt<60)return; // 1분 미만은 무시
   const d=totalDps(); if(d<=0)return;
   const gph=goldReward(S.stage,false)/mobMaxHp(S.stage,false);
-  const earn=Math.floor(d*dt*gph*0.6); // 60% 효율
+  const earn=Math.floor(d*dt*gph*offlineEff()); // 효율(기본 60% + 강화/정수/유물)
   if(earn<=0)return;
   S.gold+=earn;
   openModal('🌙 다시 오셨군요!',
@@ -752,6 +912,7 @@ function offlineReward(){
 // ── 초기화 ──
 load();
 spawnMob();
+renderSkills();
 updateTop(); updateStageLabel(); renderShop();
 offlineReward();
 $('saveStat').textContent='💾 자동 저장 중 · 최고 스테이지 '+S.maxStage;
