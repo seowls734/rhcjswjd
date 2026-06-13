@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>⚔️ 방치의 던전 — IDLE DUNGEON</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  :root{
+    --bg:#0c0e16; --panel:#161a28; --panel2:#1d2236; --line:#2c3350;
+    --gold:#ffce54; --gem:#7ee0ff; --dps:#ff7b6b; --click:#9b8cff;
+    --txt:#e8ecf5; --dim:#8b93ad; --good:#5ad17a; --bad:#ff5a78;
+  }
+  html,body{height:100%}
+  body{
+    background:radial-gradient(circle at 50% -10%,#1a2140,#0c0e16 60%);
+    color:var(--txt);font-family:'Segoe UI','Malgun Gothic',sans-serif;
+    overflow:hidden;user-select:none;
+  }
+  #app{display:flex;flex-direction:column;height:100vh;max-width:1100px;margin:0 auto}
+
+  /* ── 상단 자원 바 ── */
+  #topbar{display:flex;gap:8px;padding:10px;flex-wrap:wrap;justify-content:center;
+    background:linear-gradient(#11141f,#0c0e16);border-bottom:1px solid var(--line)}
+  .res{flex:1;min-width:120px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;align-items:center}
+  .res .v{font-size:18px;font-weight:700;line-height:1.1}
+  .res .k{font-size:10px;letter-spacing:1px;color:var(--dim);margin-top:2px}
+  .res.gold .v{color:var(--gold)} .res.gem .v{color:var(--gem)}
+  .res.dps .v{color:var(--dps)} .res.click .v{color:var(--click)}
+
+  /* ── 본문 ── */
+  #main{flex:1;display:flex;gap:10px;padding:10px;min-height:0}
+  #combat{flex:1.1;display:flex;flex-direction:column;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;padding:14px;position:relative;overflow:hidden}
+  #shop{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    display:flex;flex-direction:column;min-width:0}
+
+  /* 스테이지 헤더 */
+  #stageHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  #stageNav{display:flex;align-items:center;gap:6px}
+  .navbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    border-radius:8px;width:30px;height:28px;font-size:15px;cursor:pointer}
+  .navbtn:active{transform:scale(.92)}
+  #stageLabel{font-size:15px;font-weight:700}
+  #lockBtn{font-size:11px;padding:5px 10px;border-radius:8px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--dim);cursor:pointer}
+  #lockBtn.on{color:#0c0e16;background:var(--gold);border-color:var(--gold);font-weight:700}
+
+  /* 몬스터 무대 */
+  #stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;cursor:pointer;min-height:200px}
+  #mob{font-size:120px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.6));
+    transition:transform .05s;line-height:1}
+  #mob.hit{transform:scale(.9) rotate(-4deg)}
+  #mobName{margin-top:6px;font-size:13px;color:var(--dim);letter-spacing:1px}
+  #bossTimer{font-size:14px;font-weight:700;color:var(--bad);height:18px;margin-top:2px}
+  /* HP 바 */
+  #hpWrap{width:90%;max-width:380px;height:24px;background:#0a0c14;border:1px solid var(--line);
+    border-radius:20px;overflow:hidden;margin-top:14px;position:relative}
+  #hpBar{height:100%;width:100%;background:linear-gradient(90deg,#ff6a5a,#ff3b6b);
+    transition:width .08s linear}
+  #hpTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;text-shadow:0 1px 3px #000}
+  #killCount{font-size:11px;color:var(--dim);margin-top:8px;height:14px}
+
+  /* 떠오르는 데미지 숫자 */
+  .float{position:absolute;font-weight:800;pointer-events:none;animation:floatUp .9s ease-out forwards;
+    text-shadow:0 2px 4px #000;font-size:20px;z-index:5}
+  @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(.8)}
+    20%{transform:translateY(-10px) scale(1.15)}100%{opacity:0;transform:translateY(-70px) scale(1)}}
+
+  /* ── 이벤트 배너 ── */
+  #eventBar{display:none;margin:0 10px 4px;padding:8px 12px;border-radius:10px;
+    align-items:center;gap:10px;font-size:13px;font-weight:700;
+    border:1px solid var(--gold);
+    background:linear-gradient(90deg,rgba(255,206,84,.18),rgba(255,206,84,.04));
+    animation:evPop .3s ease-out}
+  #eventBar.show{display:flex}
+  #eventBar.choice{border-color:var(--gem);
+    background:linear-gradient(90deg,rgba(126,224,255,.18),rgba(126,224,255,.04))}
+  @keyframes evPop{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+  #eventBar .ev-ico{font-size:26px;line-height:1}
+  #eventBar .ev-txt{flex:1;min-width:0}
+  #eventBar .ev-sub{font-size:11px;color:var(--dim);font-weight:400;margin-top:1px}
+  #eventBar .ev-time{font-size:12px;color:var(--gold);white-space:nowrap}
+  #eventBar.choice .ev-time{color:var(--gem)}
+  #eventBar .ev-join{background:var(--gem);color:#0c0e16;border:none;
+    padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap}
+  #eventBar .ev-join:active{transform:scale(.95)}
+
+  /* ── 콤보 표시 ── */
+  #combo{position:absolute;top:6px;right:10px;text-align:right;z-index:7;
+    opacity:0;transition:opacity .2s;pointer-events:none}
+  #combo.on{opacity:1}
+  #combo .cv{font-size:22px;font-weight:800;color:var(--gold);text-shadow:0 2px 6px #000;line-height:1}
+  #combo .cb{font-size:11px;color:var(--dps);font-weight:700}
+  #combo.hot .cv{color:var(--dps);animation:comboPunch .12s ease-out}
+  @keyframes comboPunch{0%{transform:scale(1.4)}100%{transform:scale(1)}}
+
+  /* ── 행운의 상자 ── */
+  .chest{position:absolute;font-size:40px;cursor:pointer;z-index:8;
+    filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));animation:chestIn .3s ease-out, chestBob 1s ease-in-out .3s infinite}
+  .chest:active{transform:scale(.85)}
+  @keyframes chestIn{0%{opacity:0;transform:scale(0) rotate(-30deg)}100%{opacity:1;transform:scale(1)}}
+  @keyframes chestBob{50%{transform:translateY(-8px) rotate(4deg)}}
+
+  /* ── 액티브 스킬 바 ── */
+  #skillBar{display:flex;gap:6px;margin-top:10px}
+  .skillBtn{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:6px 4px;cursor:pointer;color:var(--dim);text-align:center;transition:.1s}
+  .skillBtn .si{font-size:22px;line-height:1}
+  .skillBtn .sn{font-size:10px;font-weight:700;margin-top:2px}
+  .skillBtn .sc{font-size:9px;color:var(--dim);margin-top:1px}
+  .skillBtn.ready{color:var(--txt);border-color:#3a4a6e}
+  .skillBtn.ready .sc{color:var(--good)}
+  .skillBtn.ready:hover{border-color:var(--gold)}
+  .skillBtn.active{border-color:var(--gold);background:rgba(255,206,84,.12);color:var(--gold)}
+  .skillBtn.active .sc{color:var(--gold)}
+  .skillBtn:active{transform:scale(.95)}
+
+  /* ── 상점 ── */
+  #shopTabs{display:flex;border-bottom:1px solid var(--line)}
+  .tab{flex:1;padding:11px;text-align:center;font-size:13px;font-weight:700;color:var(--dim);
+    cursor:pointer;border-bottom:2px solid transparent}
+  .tab.active{color:var(--txt);border-bottom-color:var(--gold)}
+  #shopList{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+  #shopList::-webkit-scrollbar{width:8px}
+  #shopList::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.1s}
+  .card:active{transform:scale(.99)}
+  .card.afford{border-color:#3a4a6e}
+  .card.afford:hover{border-color:var(--gold)}
+  .card.locked{opacity:.45;cursor:not-allowed}
+  .card .ico{font-size:30px;width:42px;text-align:center;flex:none}
+  .card .info{flex:1;min-width:0}
+  .card .nm{font-size:14px;font-weight:700}
+  .card .sub{font-size:11px;color:var(--dim);margin-top:2px}
+  .card .lvl{font-size:11px;color:var(--gem);margin-top:2px}
+  .card .cost{font-size:13px;font-weight:700;text-align:right;flex:none;white-space:nowrap}
+  .card .cost.ok{color:var(--gold)} .card .cost.no{color:var(--bad)}
+  .card .cost.gem.ok{color:var(--gem)}
+
+  /* ── 하단 ── */
+  #footer{display:flex;gap:8px;padding:10px;border-top:1px solid var(--line);align-items:center}
+  #saveStat{font-size:11px;color:var(--dim);flex:1}
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:9px 14px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer}
+  .btn:active{transform:scale(.96)}
+  #prestigeBtn{border-color:#5b4bb0;color:#c9bcff}
+  #prestigeBtn.ready{background:linear-gradient(90deg,#7a5cff,#b46bff);color:#fff;border:none;
+    box-shadow:0 0 16px rgba(140,90,255,.5);animation:pulse 1.6s infinite}
+  @keyframes pulse{50%{box-shadow:0 0 26px rgba(140,90,255,.85)}}
+
+  /* ── 모달 ── */
+  #modalBg{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;
+    justify-content:center;z-index:50;padding:20px}
+  #modalBg.show{display:flex}
+  #modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:24px;max-width:380px;width:100%;text-align:center}
+  #modal h2{font-size:20px;margin-bottom:10px}
+  #modal p{color:var(--dim);font-size:13px;line-height:1.6;margin-bottom:18px}
+  #modal .big{font-size:22px;font-weight:800;color:var(--gold)}
+  #modalBtns{display:flex;gap:10px}
+  #modalBtns .btn{flex:1;padding:12px}
+
+  @media(max-width:680px){
+    #main{flex-direction:column;overflow-y:auto}
+    #mob{font-size:90px}
+    .res{min-width:46%}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div class="res gold"><div class="v" id="rGold">0</div><div class="k">💰 골드</div></div>
+    <div class="res dps"><div class="v" id="rDps">0</div><div class="k">⚔️ 초당 피해</div></div>
+    <div class="res click"><div class="v" id="rClick">1</div><div class="k">👆 클릭 피해</div></div>
+    <div class="res gem"><div class="v" id="rGem">0</div><div class="k">💎 정수</div></div>
+  </div>
+
+  <div id="eventBar"></div>
+
+  <div id="main">
+    <!-- 전투 -->
+    <div id="combat">
+      <div id="stageHead">
+        <div id="stageNav">
+          <button class="navbtn" id="navPrev">◀</button>
+          <div id="stageLabel">스테이지 1</div>
+          <button class="navbtn" id="navNext">▶</button>
+        </div>
+        <button id="lockBtn">🔓 자동진행</button>
+      </div>
+      <div id="stage">
+        <div id="combo"></div>
+        <div id="bossTimer"></div>
+        <div id="mob">👾</div>
+        <div id="mobName">슬라임</div>
+        <div id="hpWrap"><div id="hpBar"></div><div id="hpTxt"></div></div>
+        <div id="killCount"></div>
+      </div>
+      <div id="skillBar"></div>
+    </div>
+
+    <!-- 상점 -->
+    <div id="shop">
+      <div id="shopTabs">
+        <div class="tab active" data-tab="hero">🛡️ 동료</div>
+        <div class="tab" data-tab="quest">🗺️ 탐험</div>
+        <div class="tab" data-tab="up">⬆️ 강화</div>
+        <div class="tab" data-tab="gem">💎 정수</div>
+        <div class="tab" data-tab="relic">📜 유물</div>
+        <div class="tab" data-tab="ach">🏅 도전</div>
+      </div>
+      <div id="shopList"></div>
+    </div>
+  </div>
+
+  <div id="footer">
+    <div id="saveStat">불러오는 중…</div>
+    <button class="btn" id="buyMaxBtn">구매: x1</button>
+    <button class="btn" id="prestigeBtn">💀 환생</button>
+  </div>
+</div>
+
+<div id="modalBg"><div id="modal">
+  <h2 id="mTitle"></h2><p id="mBody"></p>
+  <div id="modalBtns"></div>
+</div></div>
+
+<script>
+"use strict";
+// ════════════════════════════════════════════
+//  방치의 던전 — 간단한 방치형(Idle) 게임
+// ════════════════════════════════════════════
+const SAVE_KEY='idleDungeonSave_v1';
+const OFFLINE_CAP_H=8;            // 오프라인 보상 최대 8시간
+const $=id=>document.getElementById(id);
+
+// ── 동료(영웅): 자동 DPS 제공 ──
+const HEROES=[
+  {id:'novice', nm:'견습 전사', ico:'🗡️', dps:1,     cost:15},
+  {id:'archer', nm:'궁수',      ico:'🏹', dps:8,     cost:120},
+  {id:'mage',   nm:'마법사',    ico:'🪄', dps:47,    cost:1300},
+  {id:'rogue',  nm:'도적',      ico:'🗝️', dps:260,   cost:14000},
+  {id:'knight', nm:'기사',      ico:'🛡️', dps:1400,  cost:160000},
+  {id:'cleric', nm:'성기사',    ico:'⚜️', dps:7800,  cost:1.8e6},
+  {id:'archmage',nm:'대마법사', ico:'🔮', dps:44000, cost:2.2e7},
+  {id:'dragoon',nm:'용기사',    ico:'🐲', dps:260000,cost:3.5e8},
+  {id:'titan',  nm:'거신 병사', ico:'🗿', dps:1.6e6, cost:5e9},
+  {id:'angel',  nm:'대천사',    ico:'😇', dps:9.5e6, cost:7e10},
+  {id:'spirit', nm:'정령왕',    ico:'🌪️', dps:5.7e7,  cost:1e12},
+  {id:'vampire',nm:'흡혈귀',    ico:'🧛', dps:3.4e8,  cost:1.4e13},
+  {id:'werewolf',nm:'늑대인간', ico:'🐺', dps:2.1e9,  cost:1.9e14},
+  {id:'reaper', nm:'사신',      ico:'⚰️', dps:1.2e10, cost:2.7e15},
+  {id:'phoenix',nm:'불사조',    ico:'🔥', dps:7.4e10, cost:3.8e16},
+  {id:'wyrm',   nm:'폭풍룡',    ico:'🦕', dps:4.4e11, cost:5.3e17},
+  {id:'demon',  nm:'마신',      ico:'😈', dps:2.7e12, cost:7.4e18},
+  {id:'goddess',nm:'여신',      ico:'🌸', dps:1.6e13, cost:1e20},
+  {id:'creator',nm:'창조주',    ico:'✨', dps:9.6e13, cost:1.4e21},
+  {id:'cosmos', nm:'코스모스',  ico:'🌌', dps:5.7e14, cost:2e22},
+  {id:'planet', nm:'행성 수호자',ico:'🪐', dps:3.4e15, cost:2.8e23},
+  {id:'comet',  nm:'혜성 기사',  ico:'🌠', dps:2.05e16,cost:3.9e24},
+  {id:'meteor', nm:'유성 군주',  ico:'☄️', dps:1.2e17, cost:5.5e25},
+  {id:'nebula', nm:'성운 마녀',  ico:'💫', dps:7.4e17, cost:7.7e26},
+  {id:'void',   nm:'공허 포식자',ico:'🕳️', dps:4.4e18, cost:1.1e28},
+  {id:'sun',    nm:'태양신',     ico:'🌞', dps:2.7e19, cost:1.5e29},
+  {id:'eclipse',nm:'월식 군주',  ico:'🌑', dps:1.6e20, cost:2.1e30},
+  {id:'eon',    nm:'영겁의 존재',ico:'♾️', dps:9.6e20, cost:2.9e31},
+  {id:'ufo',    nm:'이계 방문자',ico:'🛸', dps:5.7e21, cost:4.1e32},
+  {id:'genesis',nm:'창세신',     ico:'🔱', dps:3.4e22, cost:5.7e33},
+  {id:'weaver',  nm:'운명의 직조사',ico:'🧵', dps:2.0e23, cost:8e34},
+  {id:'star',    nm:'별의 창조자',  ico:'⭐', dps:1.2e24, cost:1.1e36},
+  {id:'dawn',    nm:'새벽의 군주',  ico:'🌟', dps:7.0e24, cost:1.6e37},
+  {id:'rainbow', nm:'무지개 정령',  ico:'🌈', dps:4.1e25, cost:2.2e38},
+  {id:'thunder', nm:'뇌신',         ico:'⚡', dps:2.4e26, cost:3.1e39},
+  {id:'frost',   nm:'빙결의 군주',  ico:'❄️', dps:1.4e27, cost:4.3e40},
+  {id:'butterfly',nm:'윤회의 나비', ico:'🦋', dps:8.3e27, cost:6e41},
+  {id:'radiance',nm:'광휘의 신',    ico:'🔆', dps:4.9e28, cost:8.4e42},
+  {id:'oracle',  nm:'전지의 현자',  ico:'🪬', dps:2.9e29, cost:1.2e44},
+  {id:'omega',   nm:'종말의 여명',  ico:'🌅', dps:1.7e30, cost:1.6e45},
+];
+// ── 강화(골드) ──
+const UPGRADES=[
+  {id:'click',  nm:'검 강화',   ico:'👆', sub:'클릭 피해 +60%',       baseCost:25,    mult:1.6},
+  {id:'dmg',    nm:'동료 훈련', ico:'⚔️', sub:'모든 동료 DPS +25%',   baseCost:400,   mult:1.9},
+  {id:'gold',   nm:'황금 손길', ico:'💰', sub:'골드 획득 +20%',       baseCost:300,   mult:1.8},
+  {id:'crit',   nm:'정밀 타격', ico:'🎯', sub:'클릭 치명타 확률 +2%', baseCost:5000,  mult:2.1},
+  {id:'critDmg',nm:'강타 수련', ico:'💢', sub:'치명타 피해 +30%',     baseCost:9000,  mult:2.0},
+  {id:'auto',   nm:'자동 검술', ico:'🤖', sub:'자동 공격 +1회/초',    baseCost:60000, mult:2.4},
+  {id:'offline',nm:'야영 기술', ico:'🏕️', sub:'오프라인 효율 +10%',   baseCost:30000, mult:1.9},
+];
+// ── 정수(환생) 상점: 영구 강화 ──
+const GEMSHOP=[
+  {id:'gAll',   nm:'영웅의 유산', ico:'🌟', sub:'모든 피해 +25% / 레벨',          baseCost:1, mult:1.35, key:'gALL'},
+  {id:'gGold',  nm:'탐욕의 인장', ico:'🪙', sub:'골드 획득 +30% / 레벨',          baseCost:1, mult:1.4,  key:'gGold'},
+  {id:'gStart', nm:'개척자',      ico:'🚩', sub:'환생 후 시작 스테이지 +3 / 레벨', baseCost:2, mult:1.6,  key:'gStart'},
+  {id:'gCrit',  nm:'운명의 눈',   ico:'👁️', sub:'클릭 치명타 확률 +3% / 레벨',     baseCost:3, mult:1.6,  key:'gCrit'},
+  {id:'gAuto',  nm:'영혼 분신',   ico:'👥', sub:'자동 공격 +1회/초 / 레벨',        baseCost:4, mult:1.8,  key:'gAuto'},
+  {id:'gOffline',nm:'시간의 모래',ico:'⌛', sub:'오프라인 효율 +15% / 레벨',       baseCost:3, mult:1.6,  key:'gOffline'},
+  {id:'gSkill', nm:'각성',        ico:'🌀', sub:'스킬 쿨다운 -10% / 레벨',         baseCost:5, mult:1.7,  key:'gSkill'},
+];
+// ── 유물: 보스가 일정 확률로 드롭, 같은 유물을 모으면 레벨업(영구) ──
+const RELIC_DROP_CHANCE=0.5;
+const RELICS=[
+  {id:'sword',    ico:'🗡️', nm:'영웅의 검',       type:'click',   per:0.10, fmt:v=>'클릭 피해 +'+Math.round(v*100)+'%'},
+  {id:'amulet',   ico:'📿', nm:'현자의 목걸이',   type:'dps',     per:0.10, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  {id:'crown',    ico:'👑', nm:'군주의 왕관',     type:'allDmg',  per:0.06, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  {id:'ring',     ico:'💍', nm:'탐욕의 반지',     type:'gold',    per:0.08, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  {id:'orb',      ico:'🔮', nm:'운명의 구슬',     type:'crit',    per:0.01, fmt:v=>'치명타 확률 +'+Math.round(v*100)+'%'},
+  {id:'shield',   ico:'🛡️', nm:'수호의 방패',     type:'bossTime',per:1,    fmt:v=>'보스 제한시간 +'+v+'초'},
+  {id:'gemstone', ico:'💠', nm:'정수의 원석',     type:'gem',     per:0.05, fmt:v=>'정수 드롭 확률 +'+Math.round(v*100)+'%'},
+  {id:'hourglass',ico:'⏳', nm:'시간의 모래시계', type:'offline', per:0.10, fmt:v=>'오프라인 효율 +'+Math.round(v*100)+'%'},
+];
+// ── 액티브 스킬: 쿨다운 후 재사용 ──
+const SKILLS=[
+  {id:'berserk',ico:'⚡', nm:'광폭화',    dur:10, cd:60, desc:'10초간 모든 피해 ×3'},
+  {id:'gold',   ico:'💰', nm:'황금시간',  dur:15, cd:90, desc:'15초간 골드 ×3'},
+  {id:'smite',  ico:'💥', nm:'필살의 일격',dur:0,  cd:45, desc:'적에게 즉시 큰 피해'},
+];
+
+// ── 탐험: 동료를 파견하면 실제 시간이 흐른 뒤 보상을 수령(오프라인에도 진행) ──
+//  reqStage: 해금에 필요한 최고 스테이지 / dur: 소요 시간(초)
+//  goldMul: maxStage 기준 1킬 골드 × 배수 / gem: [최소,최대] / gemChance / relicChance
+const EXPEDITIONS=[
+  {id:'scout', ico:'🧭', nm:'근교 정찰',   reqStage:1,  dur:60,   goldMul:35,   gem:[0,0], gemChance:0,    relicChance:0,
+   desc:'가볍게 주변을 둘러보고 골드를 챙겨옵니다.'},
+  {id:'dungeon',ico:'🏰', nm:'던전 토벌',   reqStage:10, dur:300,  goldMul:220,  gem:[1,1], gemChance:0.3,  relicChance:0,
+   desc:'던전을 토벌해 두둑한 골드와 가끔 정수를 얻습니다.'},
+  {id:'abyss', ico:'🕯️', nm:'비경 탐사',   reqStage:30, dur:1200, goldMul:1100, gem:[1,2], gemChance:0.75, relicChance:0.12,
+   desc:'깊은 비경에서 정수와 드물게 유물을 발견합니다.'},
+  {id:'demon', ico:'🔥', nm:'마계 원정',   reqStage:60, dur:3600, goldMul:4200, gem:[2,3], gemChance:1,    relicChance:0.4,
+   desc:'마계로 떠나는 대원정. 막대한 보상과 높은 유물 확률.'},
+  {id:'cosmos',ico:'🌠', nm:'천공 항해',   reqStage:120,dur:7200, goldMul:11000,gem:[3,5], gemChance:1,    relicChance:0.6,
+   desc:'별바다를 가르는 장기 원정. 최고의 보상이 기다립니다.'},
+];
+
+// ── 랜덤 이벤트: 전투 중 일정 시간마다 발생 ──
+//  kind 'buff' = 자동 적용되는 시간제 버프 / 'choice' = 배너의 [참여]로 여는 선택 이벤트
+const EVENTS=[
+  // 자동 버프 이벤트
+  {kind:'buff', id:'frenzy',  ico:'⚡', nm:'광란의 시간', type:'dmg',  value:3,    dur:45, desc:'모든 피해 ×3'},
+  {kind:'buff', id:'goldrush',ico:'💰', nm:'골드 러시',   type:'gold', value:3,    dur:45, desc:'골드 획득 ×3'},
+  {kind:'buff', id:'lucky',   ico:'🍀', nm:'행운의 바람', type:'crit', value:0.35, dur:45, desc:'치명타 확률 +35%'},
+  {kind:'buff', id:'essence', ico:'💎', nm:'정수의 기운', type:'gem',  value:0.35, dur:60, desc:'정수 드롭 확률 +35%', reqStage:10},
+  {kind:'buff', id:'clones',  ico:'👥', nm:'분신 소환',   type:'auto', value:5,    dur:30, desc:'자동 공격 +5회/초'},
+  // 선택 이벤트
+  {kind:'choice', id:'merchant', ico:'🧙', nm:'떠돌이 상인', desc:'골드를 정수로 교환',
+    roll:()=>({gems:2+Math.floor(Math.random()*3), cost:Math.max(Math.ceil(S.gold*0.55), Math.ceil(goldReward(Math.max(1,S.maxStage),false)*300))}),
+    bar:d=>'💎 '+d.gems+' ↔ 💰 '+fmt(d.cost)},
+  {kind:'choice', id:'gambler', ico:'🎰', nm:'수상한 도박꾼', desc:'골드 도박 (60% 2배)',
+    roll:()=>({bet:Math.max(Math.ceil(S.gold*0.3),100)}),
+    bar:d=>'베팅 💰 '+fmt(d.bet)+' · 60% 승리'},
+  {kind:'choice', id:'caravan', ico:'🛒', nm:'보물 운반차', desc:'공짜 골드 보상',
+    roll:()=>({gold:Math.ceil(goldReward(Math.max(1,S.stage),false)*(30+Math.random()*40))}),
+    bar:d=>'💰 +'+fmt(d.gold)+' 무료'},
+  {kind:'choice', id:'altar', ico:'🩸', nm:'피의 제단', desc:'정수 2개 → 90초 ×3 피해', reqStage:20,
+    roll:()=>({cost:2,dur:90}),
+    bar:d=>'💎 '+d.cost+' → 90초 모든 피해 ×3'},
+];
+
+const MOBS=['👾','🦂','🕷️','🐍','🦇','🐗','👹','👺','🧟','🦅','🪰','🐙','🦴','👻','🐀','🦎','🐊','🦈','🦀','🐡','🦗','🐸','🦟','🦝','🦔','🦉','🐺','🦊','🐻','🦏','🦛','🐅','🐆','🦌','🪱','🐌','🦠','🧞','🪨','🪲'];
+const MOB_NAMES=['슬라임','전갈','거미','독사','흡혈박쥐','멧돼지','오우거','고블린','좀비','하피','독충','심해수','해골 병사','원혼','시궁쥐','도마뱀','늪악어','식인상어','집게수','가시복어','메뚜기떼','독두꺼비','흡혈모기','광폭너구리','가시고슴도치','밤올빼미','들개','요호','동굴곰','코뿔수','하마수','검치호','흑표범','마성사슴','거대지렁이','산성달팽이','역병균','마귀','바위골렘','강철투구벌레'];
+const BOSSES=['🐉','👿','💀','🦖','🐲','🦑','☠️','🦣','🐘','🦍','🦏','🧛','🤖','👽','🎃','🦅','🐊','🦈','🧟','🌋'];
+const BOSS_NAMES=['고룡','마왕','리치','폭군룡','심연룡','크라켄','죽음의 군주','매머드 군주','거상왕','고릴라 왕','강철 코뿔왕','흡혈 백작','강철 괴수','외계 침략자','호박 마귀','천공의 군주','늪의 지배자','심해 군주','좀비 군주','화산의 군주'];
+
+// ── 동료 특수 능력 ──
+//  보유 1마리부터 능력 발동, every 마리마다 한 단계 강화.
+const HERO_PERKS={
+  novice:  {nm:'검술 수련', type:'click',    per:0.40, every:25, fmt:v=>'클릭 피해 +'+Math.round(v*100)+'%'},
+  archer:  {nm:'급소 사격', type:'crit',     per:0.04, every:20, fmt:v=>'클릭 치명타 확률 +'+Math.round(v*100)+'%'},
+  mage:    {nm:'비전 폭격', type:'dps',      per:0.15, every:25, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  rogue:   {nm:'보물 사냥', type:'gold',     per:0.20, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  knight:  {nm:'수호 결계', type:'bossTime', per:2,    every:20, fmt:v=>'보스 제한시간 +'+v+'초'},
+  cleric:  {nm:'신성 축복', type:'allDmg',   per:0.10, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  archmage:{nm:'심연 폭발', type:'critDmg',  per:1,    every:25, fmt:v=>'치명타 피해 +'+Math.round(v*100)+'%'},
+  dragoon: {nm:'용 사냥꾼', type:'bossDmg',  per:0.50, every:20, fmt:v=>'보스에게 주는 피해 +'+Math.round(v*100)+'%'},
+  titan:   {nm:'강철 군단', type:'dps',      per:0.25, every:50, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  angel:   {nm:'천상 가호', type:'gemFind',  per:0.05, every:10, fmt:v=>'보스 처치 시 정수 확률 +'+Math.round(v*100)+'%'},
+  spirit:  {nm:'원소 지배',  type:'allDmg',   per:0.15, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  vampire: {nm:'핏빛 약탈',  type:'gold',     per:0.25, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  werewolf:{nm:'야성 각성',  type:'crit',     per:0.05, every:20, fmt:v=>'클릭 치명타 확률 +'+Math.round(v*100)+'%'},
+  reaper:  {nm:'영혼 수확',  type:'bossDmg',  per:0.60, every:20, fmt:v=>'보스에게 주는 피해 +'+Math.round(v*100)+'%'},
+  phoenix: {nm:'불멸의 화염',type:'allDmg',   per:0.20, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  wyrm:    {nm:'폭풍의 숨결',type:'dps',      per:0.35, every:30, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  demon:   {nm:'파멸의 일격',type:'critDmg',  per:1.5,  every:25, fmt:v=>'치명타 피해 +'+Math.round(v*100)+'%'},
+  goddess: {nm:'풍요의 축복',type:'gold',     per:0.30, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  creator: {nm:'창조의 권능',type:'allDmg',   per:0.25, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  cosmos:  {nm:'우주의 힘',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  planet:  {nm:'행성의 가호',type:'allDmg',   per:0.20, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  comet:   {nm:'혜성 강타',  type:'crit',     per:0.05, every:20, fmt:v=>'클릭 치명타 확률 +'+Math.round(v*100)+'%'},
+  meteor:  {nm:'유성우',     type:'dps',      per:0.40, every:30, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  nebula:  {nm:'성운 폭발',  type:'critDmg',  per:2,    every:25, fmt:v=>'치명타 피해 +'+Math.round(v*100)+'%'},
+  void:    {nm:'공허 흡수',  type:'bossDmg',  per:0.70, every:20, fmt:v=>'보스에게 주는 피해 +'+Math.round(v*100)+'%'},
+  sun:     {nm:'태양 작렬',  type:'allDmg',   per:0.25, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  eclipse: {nm:'월식의 인도',type:'gemFind',  per:0.05, every:10, fmt:v=>'보스 처치 시 정수 확률 +'+Math.round(v*100)+'%'},
+  eon:     {nm:'무한 연산',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  ufo:     {nm:'미지의 보물',type:'gold',     per:0.30, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  genesis: {nm:'창세의 권능',type:'allDmg',   per:0.30, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  weaver:  {nm:'운명 조작',  type:'crit',     per:0.05, every:20, fmt:v=>'클릭 치명타 확률 +'+Math.round(v*100)+'%'},
+  star:    {nm:'별빛 세례',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  dawn:    {nm:'여명의 축복',type:'gold',     per:0.30, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  rainbow: {nm:'칠색 광선',  type:'allDmg',   per:0.30, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  thunder: {nm:'천둥의 분노',type:'critDmg',  per:2,    every:25, fmt:v=>'치명타 피해 +'+Math.round(v*100)+'%'},
+  frost:   {nm:'절대 영도',  type:'bossDmg',  per:0.70, every:20, fmt:v=>'보스에게 주는 피해 +'+Math.round(v*100)+'%'},
+  butterfly:{nm:'나비 효과', type:'gemFind',  per:0.05, every:10, fmt:v=>'보스 처치 시 정수 확률 +'+Math.round(v*100)+'%'},
+  radiance:{nm:'광휘 폭발',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  oracle:  {nm:'전지의 통찰',type:'allDmg',   per:0.35, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  omega:   {nm:'종말의 빛',  type:'allDmg',   per:0.40, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+};
+function perkSteps(have,every){ return have>0?1+Math.floor((have-1)/every):0; }
+
+// ── 도전과제: 달성 시 정수 지급(영구) ──
+function heroTypes(s){ let n=0; for(const h of HEROES) if((s.heroes[h.id]||0)>0)n++; return n; }
+const ACHIEVEMENTS=[
+  {id:'s10', nm:'첫 보스 격파',  desc:'스테이지 10 도달',   gem:1,  chk:s=>s.bestStage>=10},
+  {id:'s25', nm:'모험의 시작',   desc:'스테이지 25 도달',   gem:3,  chk:s=>s.bestStage>=25},
+  {id:'s50', nm:'깊은 던전',     desc:'스테이지 50 도달',   gem:8,  chk:s=>s.bestStage>=50},
+  {id:'s100',nm:'심연 탐험가',   desc:'스테이지 100 도달',  gem:20, chk:s=>s.bestStage>=100},
+  {id:'s200',nm:'전설의 영웅',   desc:'스테이지 200 도달',  gem:50, chk:s=>s.bestStage>=200},
+  {id:'s350',nm:'세계의 끝',     desc:'스테이지 350 도달',  gem:120,chk:s=>s.bestStage>=350},
+  {id:'k100', nm:'사냥 입문',    desc:'몬스터 100 처치',    gem:1,  chk:s=>s.totalKills>=100},
+  {id:'k1k',  nm:'학살자',       desc:'몬스터 1,000 처치',  gem:3,  chk:s=>s.totalKills>=1000},
+  {id:'k10k', nm:'던전의 공포',  desc:'몬스터 10,000 처치', gem:10, chk:s=>s.totalKills>=10000},
+  {id:'k100k',nm:'전장의 지배자',desc:'몬스터 100,000 처치',gem:35, chk:s=>s.totalKills>=100000},
+  {id:'h5',  nm:'동료 모집',     desc:'서로 다른 동료 5종 보유',  gem:4,  chk:s=>heroTypes(s)>=5},
+  {id:'h10', nm:'드림팀',        desc:'서로 다른 동료 10종 보유', gem:18, chk:s=>heroTypes(s)>=10},
+  {id:'h20', nm:'올스타 군단',   desc:'서로 다른 동료 20종 보유', gem:60, chk:s=>heroTypes(s)>=20},
+  {id:'h30', nm:'우주적 군세',   desc:'서로 다른 동료 30종 보유', gem:150,chk:s=>heroTypes(s)>=30},
+  {id:'h40', nm:'창세의 군단',   desc:'모든 동료 40종 보유',      gem:400,chk:s=>heroTypes(s)>=40},
+  {id:'p1',  nm:'환생자',        desc:'환생 1회 달성',  gem:2,  chk:s=>(s.prestiges||0)>=1},
+  {id:'p5',  nm:'윤회의 길',     desc:'환생 5회 달성',  gem:12, chk:s=>(s.prestiges||0)>=5},
+  {id:'p15', nm:'영원의 순례자', desc:'환생 15회 달성', gem:40, chk:s=>(s.prestiges||0)>=15},
+  {id:'p30', nm:'무한의 윤회자', desc:'환생 30회 달성', gem:90, chk:s=>(s.prestiges||0)>=30},
+  {id:'s500',nm:'무한의 끝',     desc:'스테이지 500 도달', gem:200,chk:s=>s.bestStage>=500},
+  {id:'g1m', nm:'백만장자',      desc:'골드 1M 보유',   gem:5,  chk:s=>s.gold>=1e6},
+  {id:'g1b', nm:'억만장자',      desc:'골드 1B 보유',   gem:15, chk:s=>s.gold>=1e9},
+  {id:'g1t', nm:'대부호',        desc:'골드 1T 보유',   gem:45, chk:s=>s.gold>=1e12},
+  {id:'gm50',nm:'정수 수집가',   desc:'정수 50개 보유', gem:8,  chk:s=>s.gems>=50},
+  {id:'r1',  nm:'첫 유물',       desc:'유물 1종 수집',  gem:3,  chk:s=>relicCount(s)>=1},
+  {id:'r4',  nm:'유물 탐험가',   desc:'유물 4종 수집',  gem:12, chk:s=>relicCount(s)>=4},
+  {id:'r8',  nm:'유물 마스터',   desc:'유물 8종 모두 수집', gem:50, chk:s=>relicCount(s)>=8},
+];
+function relicCount(s){ let n=0; if(s.relics)for(const k in s.relics)if(s.relics[k]>0)n++; return n; }
+function achState(a){ if(S.achClaimed&&S.achClaimed[a.id])return 'done'; return a.chk(S)?'claim':'lock'; }
+function claimableCount(){ let n=0; for(const a of ACHIEVEMENTS) if(achState(a)==='claim')n++; return n; }
+function claimAch(a){
+  if(achState(a)!=='claim')return;
+  if(!S.achClaimed)S.achClaimed={}; S.achClaimed[a.id]=true; S.gems+=a.gem;
+  floatNum('💎 +'+a.gem,true,'#7ee0ff'); updateTop(); renderShop(); flashSave();
+}
+function updateAchBadge(){
+  const t=document.querySelector('.tab[data-tab="ach"]'); if(!t)return;
+  const n=claimableCount();
+  t.innerHTML='🏅 도전'+(n>0?' <span style="color:#7ee0ff">('+n+')</span>':'');
+}
+
+let S; // 게임 상태
+function defaultState(){
+  return {
+    gold:0, gems:0, stage:1, maxStage:1, frontier:1,
+    heroes:{},
+    upg:{click:0,dmg:0,gold:0,crit:0,critDmg:0,auto:0,offline:0},
+    gem:{gALL:0,gGold:0,gStart:0,gCrit:0,gAuto:0,gOffline:0,gSkill:0},
+    relics:{},
+    autoProgress:true, killsThisStage:0, lastSeen:Date.now(),
+    totalKills:0, prestiges:0, bestStage:1,
+    achClaimed:{}, bossCleared:{}, exped:{}, expedDone:0, lastDaily:0,
+  };
+}
+
+// ── 숫자 포맷 ──
+const SUF=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc','Ud','Dd'];
+function fmt(n){
+  if(n<1000)return (Math.floor(n*10)/10).toString().replace(/\.0$/,'');
+  let t=0; while(n>=1000&&t<SUF.length-1){n/=1000;t++;}
+  return n.toFixed(n<10?2:n<100?1:0)+SUF[t];
+}
+function fmtTime(s){
+  s=Math.floor(s); const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;
+  if(h>0)return `${h}시간 ${m}분`; if(m>0)return `${m}분 ${x}초`; return `${x}초`;
+}
+
+// ── 유물 효과 합산 ──
+function relicFx(){
+  const r={click:1,dps:1,gold:1,crit:0,bossTime:0,gem:0,offline:0};
+  for(const rc of RELICS){
+    const lv=(S.relics&&S.relics[rc.id])||0; if(lv<=0)continue;
+    const v=rc.per*lv;
+    switch(rc.type){
+      case 'click':   r.click*=1+v; break;
+      case 'dps':     r.dps*=1+v;   break;
+      case 'gold':    r.gold*=1+v;  break;
+      case 'allDmg':  r.click*=1+v; r.dps*=1+v; break;
+      case 'crit':    r.crit+=v;    break;
+      case 'bossTime':r.bossTime+=v;break;
+      case 'gem':     r.gem+=v;     break;
+      case 'offline': r.offline+=v; break;
+    }
+  }
+  return r;
+}
+// 액티브 스킬 버프 배율
+function skillDmgMult(){ return (skillState.berserk&&skillState.berserk.buff>0)?3:1; }
+function skillGoldMult(){ return (skillState.gold&&skillState.gold.buff>0)?3:1; }
+// 이벤트 버프(동시에 최대 1개 활성)
+function evBuff(type){ return (curEvent&&!curEvent.pending&&curEvent.def.type===type)?curEvent.def.value:null; }
+function eventDmgMult(){ return evBuff('dmg')||1; }
+function eventGoldMult(){ return evBuff('gold')||1; }
+function eventCritAdd(){ return evBuff('crit')||0; }
+function eventGemAdd(){ return evBuff('gem')||0; }
+function eventAutoAdd(){ return evBuff('auto')||0; }
+
+// ── 파생 수치 ──
+function clickPower(){
+  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult()*heroFx().click*relicFx().click*skillDmgMult()*eventDmgMult();
+}
+function totalDps(){
+  let d=0;
+  for(const h of HEROES) d+=(S.heroes[h.id]||0)*h.dps;
+  d*=Math.pow(1.25,S.upg.dmg);   // 동료 훈련
+  d*=gemAllMult();
+  d*=heroFx().dps;               // 동료 특수 능력
+  d*=relicFx().dps;              // 유물
+  d*=skillDmgMult();             // 광폭화
+  d*=eventDmgMult();             // 이벤트 버프
+  return d;
+}
+function goldMult(){ return Math.pow(1.20,S.upg.gold)*Math.pow(1.30,S.gem.gGold||0)*relicFx().gold*skillGoldMult()*eventGoldMult(); }
+// 자동 공격 횟수/초 (자동 검술 + 영혼 분신 + 이벤트 분신)
+function autoRate(){ return (S.upg.auto||0)+(S.gem.gAuto||0)+eventAutoAdd(); }
+// 치명타 확률/배율 (강화·정수·유물·동료 합산)
+function critChance(){ return Math.min(0.95, CRIT_CHANCE+heroFx().crit+relicFx().crit+0.02*(S.upg.crit||0)+0.03*(S.gem.gCrit||0)+eventCritAdd()); }
+function critMult(){ return CRIT_MULT+heroFx().critDmg+0.30*(S.upg.critDmg||0); }
+// 보스 제한시간 보너스 (동료+유물)
+function bossTimeBonus(){ return heroFx().bossTime+relicFx().bossTime; }
+// 오프라인 효율 (기본 0.6 + 강화/정수/유물)
+function offlineEff(){ return Math.min(2.0, 0.6+0.10*(S.upg.offline||0)+0.15*(S.gem.gOffline||0)+relicFx().offline); }
+// 정수 드롭 추가 확률 (동료+유물)
+function gemFindChance(){ return Math.min(0.95, heroFx().gem+relicFx().gem+eventGemAdd()); }
+function gemAllMult(){ return 1+0.25*(S.gem.gALL||0); }
+
+// 동료 특수 능력 합산 → 각종 보정치
+function heroFx(){
+  const fx={click:1,dps:1,gold:1,crit:0,critDmg:0,bossDmg:1,bossTime:0,gem:0};
+  for(const h of HEROES){
+    const c=S.heroes[h.id]||0; if(c<=0)continue;
+    const p=HERO_PERKS[h.id]; if(!p)continue;
+    const v=p.per*perkSteps(c,p.every);
+    switch(p.type){
+      case 'click':   fx.click*=1+v; break;
+      case 'dps':     fx.dps*=1+v;   break;
+      case 'gold':    fx.gold*=1+v;  break;
+      case 'allDmg':  fx.click*=1+v; fx.dps*=1+v; break;
+      case 'crit':    fx.crit+=v;    break;
+      case 'critDmg': fx.critDmg+=v; break;
+      case 'bossDmg': fx.bossDmg*=1+v; break;
+      case 'bossTime':fx.bossTime+=v;  break;
+      case 'gemFind': fx.gem+=v;     break;
+    }
+  }
+  fx.crit=Math.min(fx.crit,0.6);   // 치명타 확률 상한
+  fx.gem=Math.min(fx.gem,0.75);    // 정수 획득 확률 상한
+  return fx;
+}
+
+// 직전 보스 스테이지(없으면 0)
+function prevBossStage(stage){ return Math.floor(stage/10)*10; }
+function mobMaxHp(stage,boss){
+  let hp=10*Math.pow(1.55,stage-1);
+  if(boss)hp*=10;
+  else if(!isBossStage(stage)){
+    // 보스를 잡은 뒤 나오는 모든 애드는 직전 보스보다 단단하고, 진행할수록 더 강해진다
+    const pb=prevBossStage(stage);
+    if(pb>=10){
+      const floor=10*Math.pow(1.55,pb-1)*10*1.1*Math.pow(1.55,stage-pb-1);
+      hp=Math.max(hp,floor);
+    }
+  }
+  return Math.ceil(hp);
+}
+function goldReward(stage,boss){
+  let g=6*Math.pow(1.24,stage-1);   // 스테이지가 오를수록 골드 급증
+  if(boss)g*=35;                    // 보스는 훨씬 더 많이
+  else if(!isBossStage(stage)){
+    // 보스를 잡은 뒤 나오는 모든 애드는 직전 보스보다 짭짤하고, 진행할수록 더 많이 준다
+    const pb=prevBossStage(stage);
+    if(pb>=10){
+      const floor=6*Math.pow(1.24,pb-1)*35*1.6*Math.pow(1.24,stage-pb-1);
+      g=Math.max(g,floor);
+    }
+  }
+  return Math.ceil(g*goldMult()*heroFx().gold);
+}
+function isBossStage(st){return st%10===0;}
+function killsNeeded(st){return isBossStage(st)?1:4;} // 일반 스테이지는 4킬마다 전진
+
+// ── 환생(프레스티지) 보상 ──
+// 환생할 때마다 다음 환생에 필요한 최소 스테이지가 10씩 올라간다.
+function prestigeReqStage(){ return 12+4*(S.prestiges||0); }
+function gemsFromPrestige(){
+  if(S.maxStage<prestigeReqStage())return 0;
+  return Math.floor(Math.pow(S.maxStage/10,1.7));
+}
+
+// ── 몬스터 스폰 ──
+// phase: 'normal'=일반 몬스터, 'boss'=보스, 'fled'=보스 도주 후 부하
+let mob={hp:0,max:0,boss:false,timer:0,phase:'normal'};
+let bossReturn=0;                 // 보스 도주 후 재등장까지 남은 시간(초). 0이면 비활성
+const BOSS_FLEE_RETURN=14;        // 도주 후 재등장 대기(초)
+function spawnMob(force){
+  // force: 'boss' | 'minion' | undefined(스테이지 기본값)
+  const st=S.stage, bossStage=isBossStage(st);
+  let boss;
+  if(force==='boss')boss=true;
+  else if(force==='minion')boss=false;
+  else boss=bossStage;
+  if(force!=='minion')bossReturn=0;
+  mob.boss=boss;
+  mob.phase=boss?'boss':(bossStage?'fled':'normal');
+  mob.max=mobMaxHp(st,boss); mob.hp=mob.max;
+  mob.timer=boss?(30+bossTimeBonus()):0;     // 기사+수호의 방패: 보스 제한시간 연장
+  const idx=(st-1);
+  if(boss){
+    $('mob').textContent=BOSSES[(st/10-1)%BOSSES.length];
+    $('mobName').textContent='👑 '+BOSS_NAMES[(st/10-1)%BOSS_NAMES.length];
+  }else if(mob.phase==='fled'){
+    $('mob').textContent=MOBS[(idx+st)%MOBS.length];
+    $('mobName').textContent='⚔️ '+MOB_NAMES[(idx+st)%MOB_NAMES.length]+' (보스의 부하)';
+  }else{
+    $('mob').textContent=MOBS[idx%MOBS.length];
+    $('mobName').textContent=MOB_NAMES[idx%MOB_NAMES.length];
+  }
+  renderHp();
+}
+function renderHp(){
+  const pct=Math.max(0,mob.hp/mob.max*100);
+  $('hpBar').style.width=pct+'%';
+  $('hpTxt').textContent=fmt(Math.max(0,mob.hp))+' / '+fmt(mob.max);
+  if(mob.phase==='boss')$('bossTimer').textContent='⏳ 도주까지 '+Math.max(0,mob.timer).toFixed(1)+'초';
+  else if(bossReturn>0)$('bossTimer').textContent='👑 보스 재등장까지 '+Math.max(0,bossReturn).toFixed(1)+'초';
+  else $('bossTimer').textContent='';
+  const need=killsNeeded(S.stage);
+  if(mob.phase==='boss')$('killCount').textContent='보스를 처치하라!';
+  else if(mob.phase==='fled')$('killCount').textContent='💨 보스 도주! 부하를 처치하면 더 빨리 돌아온다';
+  else $('killCount').textContent=`이 스테이지 처치 ${S.killsThisStage}/${need}`;
+}
+
+// ── 데미지 적용 / 처치 ──
+function dealDamage(amt,fromClick,crit){
+  if(mob.hp<=0)return;
+  if(mob.boss)amt*=heroFx().bossDmg;          // 용기사: 보스 추가 피해
+  mob.hp-=amt;
+  if(fromClick)floatNum(amt,!!crit,crit?'#ff5a78':'#ffd86b');
+  if(mob.hp<=0)onKill();
+  else renderHp();
+}
+function onKill(){
+  // 보스 도주 중 부하 처치: 스테이지 전진 없이 골드만, 보스 재등장 시간 단축
+  if(mob.phase==='fled'){
+    S.gold+=goldReward(S.stage,false);
+    S.totalKills++;
+    bossReturn=Math.max(0,bossReturn-2);
+    floatNum('보스 재등장 -2초',false,'#7ee0ff');
+    spawnMob('minion');
+    updateTop();
+    return;
+  }
+  const boss=mob.boss;
+  if(boss){
+    // 보스 첫 처치(이번 회차) 시 정수 드롭
+    if(!S.bossCleared)S.bossCleared={};
+    if(!S.bossCleared[S.stage]){
+      S.bossCleared[S.stage]=true;
+      const bg=Math.max(1,Math.floor(S.stage/10));
+      S.gems+=bg; floatNum('💎 +'+bg,true,'#7ee0ff');
+      // 보스 처치 보너스 골드(특히 더!)
+      const bonus=goldReward(S.stage,true)*5;
+      S.gold+=bonus; floatNum('💰 보스 보너스 +'+fmt(bonus),false,'#ffce54');
+      // 유물 드롭(첫 처치 한정)
+      if(Math.random()<RELIC_DROP_CHANCE){
+        const rc=RELICS[Math.floor(Math.random()*RELICS.length)];
+        if(!S.relics)S.relics={}; S.relics[rc.id]=(S.relics[rc.id]||0)+1;
+        floatNum(rc.ico+' '+rc.nm+' Lv.'+S.relics[rc.id]+'!',true,'#ffd86b');
+      }
+    }
+    // 대천사+정수의 원석: 추가 정수 확률
+    const gf=gemFindChance();
+    if(gf>0&&Math.random()<gf){ S.gems+=1; floatNum('💎 +1',true,'#7ee0ff'); }
+  }
+  S.gold+=goldReward(S.stage,boss);
+  S.totalKills++; S.killsThisStage++;
+  const need=killsNeeded(S.stage);
+  let advanced=false;
+  if(S.killsThisStage>=need){
+    S.killsThisStage=0;
+    if(S.autoProgress){
+      S.stage++; advanced=true;
+      S.maxStage=Math.max(S.maxStage,S.stage);
+      S.frontier=Math.max(S.frontier,S.stage);
+      S.bestStage=Math.max(S.bestStage||1,S.maxStage);
+    }
+  }
+  if(advanced)floatNum('스테이지 '+S.stage+'!',false,'#ffce54');
+  spawnMob();
+  updateTop(); updateStageLabel();
+}
+
+// ── 떠오르는 숫자 ──
+function floatNum(v,crit,color){
+  const el=document.createElement('div');
+  el.className='float';
+  el.textContent=typeof v==='number'?('-'+fmt(v)):v;
+  el.style.color=color||(crit?'#fff':'#ffd86b');
+  const stg=$('stage');const r=stg.getBoundingClientRect();
+  el.style.left=(r.width*0.5+(Math.random()-0.5)*r.width*0.4)+'px';
+  el.style.top=(r.height*0.4+(Math.random()-0.5)*40)+'px';
+  if(crit)el.style.fontSize='26px';
+  stg.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+// ── 클릭 / 스페이스바 공격 ──
+const CRIT_CHANCE=0.15, CRIT_MULT=5;   // 15% 확률로 5배 치명타
+// ── 클릭 콤보: 연속으로 빠르게 클릭하면 콤보가 쌓여 클릭 피해 증가 ──
+const COMBO_WINDOW=2.5, COMBO_PER=0.03, COMBO_CAP=50;  // 최대 +150% 클릭 피해
+let combo=0, comboTimer=0;
+function comboMult(){ return 1+Math.min(combo,COMBO_CAP)*COMBO_PER; }
+function renderCombo(){
+  const el=$('combo'); if(!el)return;
+  if(combo<2){ el.classList.remove('on','hot'); el.innerHTML=''; return; }
+  const bonus=Math.round((comboMult()-1)*100);
+  el.classList.add('on');
+  el.innerHTML=`<div class="cv">🔥 ${combo} COMBO</div><div class="cb">클릭 피해 +${bonus}%</div>`;
+  el.classList.add('hot'); setTimeout(()=>el.classList.remove('hot'),120);
+}
+function clickAttack(){
+  combo++; comboTimer=COMBO_WINDOW; renderCombo();
+  let dmg=clickPower()*comboMult(), crit=false;
+  if(Math.random()<critChance()){ dmg*=critMult(); crit=true; }
+  dealDamage(dmg,true,crit);
+  const m=$('mob');m.classList.add('hit');setTimeout(()=>m.classList.remove('hit'),60);
+}
+$('stage').addEventListener('pointerdown',clickAttack);
+// 스페이스바로도 공격(스크롤 방지). 버튼/입력 포커스 중에는 무시
+window.addEventListener('keydown',e=>{
+  if(e.code!=='Space'&&e.key!==' ')return;
+  const t=e.target;
+  if(t&&(t.tagName==='BUTTON'||t.tagName==='INPUT'||t.tagName==='TEXTAREA'))return;
+  e.preventDefault();
+  clickAttack();
+});
+
+// ── 액티브 스킬 ──
+let skillState={berserk:{cd:0,buff:0}, gold:{cd:0,buff:0}, smite:{cd:0,buff:0}};
+function skillCdMult(){ return Math.max(0.4, 1-0.10*(S.gem.gSkill||0)); }   // 각성: 쿨다운 감소
+function useSkill(id){
+  const sk=SKILLS.find(s=>s.id===id), st=skillState[id];
+  if(!sk||!st||st.cd>0)return;
+  st.cd=sk.cd*skillCdMult();
+  if(sk.dur>0){ st.buff=sk.dur; floatNum('✨ '+sk.nm+' 발동!',true,'#ffce54'); }
+  if(id==='smite'){                       // 필살: 즉시 큰 피해
+    const dmg=Math.max(clickPower()*60, totalDps()*12, mob.max*0.15);
+    dealDamage(dmg,true,true);
+  }
+  updateSkills();
+}
+function renderSkills(){
+  const bar=$('skillBar'); if(!bar)return; bar.innerHTML='';
+  SKILLS.forEach(sk=>{
+    const b=document.createElement('button');
+    b.className='skillBtn';
+    b.title=sk.desc;
+    b.innerHTML=`<div class="si">${sk.ico}</div><div class="sn">${sk.nm}</div><div class="sc"></div>`;
+    b.onclick=()=>useSkill(sk.id);
+    bar.appendChild(b);
+  });
+  updateSkills();
+}
+function updateSkills(){
+  const bar=$('skillBar'); if(!bar||!bar.children.length)return;
+  SKILLS.forEach((sk,i)=>{
+    const st=skillState[sk.id], el=bar.children[i]; if(!st||!el)return;
+    const active=sk.dur>0&&st.buff>0, ready=st.cd<=0;
+    el.className='skillBtn'+(active?' active':(ready?' ready':''));
+    el.querySelector('.sc').textContent= active?('발동 '+Math.ceil(st.buff)+'초')
+      : (!ready?('쿨 '+Math.ceil(st.cd)+'초'):'✓ 준비');
+  });
+}
+
+// ── 행운의 상자: 전투 화면에 가끔 나타남. 제한시간 안에 클릭하면 즉시 보상 ──
+let chestEl=null;
+function spawnChest(){
+  if(chestEl)return;
+  const stg=$('stage'); if(!stg)return;
+  const r=stg.getBoundingClientRect();
+  const el=document.createElement('div');
+  el.className='chest'; el.textContent='🎁';
+  el.style.left=(r.width*(0.2+Math.random()*0.6))+'px';
+  el.style.top=(r.height*(0.2+Math.random()*0.5))+'px';
+  el.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); openChest(); });
+  stg.appendChild(el); chestEl=el;
+  // 7초 안에 클릭하지 않으면 사라짐
+  chestEl._to=setTimeout(()=>{ if(chestEl){chestEl.remove();chestEl=null;} },7000);
+}
+function openChest(){
+  if(!chestEl)return;
+  clearTimeout(chestEl._to); chestEl.remove(); chestEl=null;
+  const roll=Math.random();
+  if(roll<0.12){
+    // 정수 소량
+    const g=1+Math.floor(Math.random()*2);
+    S.gems+=g; floatNum('🎁 💎 +'+g,true,'#7ee0ff');
+  }else if(roll<0.30){
+    // 광폭화 버프 8초
+    skillState.berserk.buff=Math.max(skillState.berserk.buff,8);
+    floatNum('🎁 ⚡ 광폭화 8초!',true,'#ffce54'); updateSkills();
+  }else{
+    // 골드 한 방 (현재 스테이지 기준)
+    const gold=Math.ceil(goldReward(S.stage,false)*(25+Math.random()*25));
+    S.gold+=gold; floatNum('🎁 💰 +'+fmt(gold),true,'#ffce54');
+  }
+  updateTop(); flashSave();
+}
+// 평균 ~50초마다 등장 시도(매 5초 10% 확률)
+setInterval(()=>{ if(!chestEl&&Math.random()<0.10)spawnChest(); },5000);
+
+// ── 랜덤 이벤트 ──
+const CHOICE_WINDOW=25;               // 선택 이벤트 결정 제한시간(초)
+let curEvent=null, nextEventAt=0;     // curEvent: {def,end,pending,data}
+function scheduleNextEvent(now){ nextEventAt=now+(90+Math.random()*120)*1000; } // 90~210초 후
+function startBuffEvent(def){
+  curEvent={def,end:Date.now()+def.dur*1000,pending:false};
+  floatNum('✨ '+def.ico+' '+def.nm+'!',true,'#ffce54');
+  renderEventBar(); updateTop();
+}
+function fireRandomEvent(){
+  const pool=EVENTS.filter(e=>(S.bestStage||1)>=(e.reqStage||1));
+  const def=pool[Math.floor(Math.random()*pool.length)];
+  if(def.kind==='choice'){
+    curEvent={def,end:Date.now()+CHOICE_WINDOW*1000,pending:true,data:def.roll?def.roll():null};
+    floatNum('❗ 이벤트: '+def.nm,true,'#7ee0ff');
+    renderEventBar();
+  }else startBuffEvent(def);
+}
+function resolveEvent(){ curEvent=null; scheduleNextEvent(Date.now()); renderEventBar(); }
+function renderEventBar(){
+  const bar=$('eventBar'); if(!bar)return;
+  if(!curEvent){ bar.className=''; bar.style.display='none'; bar.innerHTML=''; return; }
+  const def=curEvent.def, left=Math.max(0,(curEvent.end-Date.now())/1000);
+  bar.style.display='flex';
+  if(curEvent.pending){
+    bar.className='show choice';
+    bar.innerHTML=`<div class="ev-ico">${def.ico}</div>
+      <div class="ev-txt">${def.nm}<div class="ev-sub">${def.bar?def.bar(curEvent.data):def.desc}</div></div>
+      <div class="ev-time">${Math.ceil(left)}초</div>
+      <button class="ev-join">참여 ▶</button>`;
+    bar.querySelector('.ev-join').onclick=openEventChoice;
+  }else{
+    bar.className='show';
+    bar.innerHTML=`<div class="ev-ico">${def.ico}</div>
+      <div class="ev-txt">${def.nm}<div class="ev-sub">${def.desc}</div></div>
+      <div class="ev-time">⏳ ${Math.ceil(left)}초</div>`;
+  }
+}
+function openEventChoice(){
+  if(!curEvent||!curEvent.pending)return;
+  const def=curEvent.def, d=curEvent.data;
+  if(def.id==='merchant'){
+    const can=S.gold>=d.cost;
+    openModal('🧙 떠돌이 상인',
+      `"정수 <b style="color:var(--gem)">💎 ${d.gems}</b>개를 드리리다.<br>골드 <b>💰 ${fmt(d.cost)}</b>만 주시오."`,
+      [{t:'거절',cls:'',fn:()=>{resolveEvent();closeModal();}},
+       {t:can?'교환!':'골드 부족',cls:can?'ready':'',fn:()=>{ if(S.gold>=d.cost){S.gold-=d.cost;S.gems+=d.gems;floatNum('💎 +'+d.gems,true,'#7ee0ff');} resolveEvent();updateTop();renderShop();closeModal(); }}]);
+  }else if(def.id==='gambler'){
+    openModal('🎰 수상한 도박꾼',
+      `"골드 <b>💰 ${fmt(d.bet)}</b>을 거시오.<br>60% 확률로 <b style="color:var(--good)">2배</b>, 아니면 잃게 되오."`,
+      [{t:'그만두기',cls:'',fn:()=>{resolveEvent();closeModal();}},
+       {t:'베팅!',cls:'ready',fn:()=>{ if(Math.random()<0.6){S.gold+=d.bet;floatNum('🎉 +'+fmt(d.bet),true,'#5ad17a');}else{S.gold=Math.max(0,S.gold-d.bet);floatNum('💸 -'+fmt(d.bet),true,'#ff5a78');} resolveEvent();updateTop();renderShop();closeModal(); }}]);
+  }else if(def.id==='caravan'){
+    openModal('🛒 보물 운반차',
+      `길에서 보물 운반차를 만났다!<br>골드 <span class="big">💰 ${fmt(d.gold)}</span> 를 받겠습니까?`,
+      [{t:'받기',cls:'ready',fn:()=>{ S.gold+=d.gold;floatNum('💰 +'+fmt(d.gold),true,'#ffce54'); resolveEvent();updateTop();renderShop();closeModal(); }}]);
+  }else if(def.id==='altar'){
+    const can=S.gems>=d.cost;
+    openModal('🩸 피의 제단',
+      `정수 <b style="color:var(--gem)">💎 ${d.cost}</b>개를 바치면<br><b style="color:var(--gold)">${d.dur}초간 모든 피해 ×3</b>!`,
+      [{t:'거절',cls:'',fn:()=>{resolveEvent();closeModal();}},
+       {t:can?'바치기!':'정수 부족',cls:can?'ready':'',fn:()=>{ if(S.gems>=d.cost){S.gems-=d.cost; curEvent=null; startBuffEvent({ico:'🩸',nm:'피의 격노',type:'dmg',value:3,dur:d.dur,desc:'모든 피해 ×3'}); } else resolveEvent(); updateTop();renderShop();closeModal(); }}]);
+  }
+}
+function eventTick(){
+  const now=Date.now();
+  if(curEvent){
+    if(now>=curEvent.end){
+      if(curEvent.pending)floatNum('이벤트 종료',false,'#8b93ad');
+      resolveEvent();
+    }else renderEventBar();
+    return;
+  }
+  if(now>=nextEventAt)fireRandomEvent();
+}
+nextEventAt=Date.now()+60000;         // 첫 이벤트는 약 1분 후
+setInterval(eventTick,1000);
+
+// ── 메인 루프 ──
+let lastTick=Date.now();
+let dpsAccum=0, dpsTimer=0;          // 동료 자동공격 누적(0.5초마다 떠오르는 숫자로 표시)
+function tick(){
+  const now=Date.now(); let dt=(now-lastTick)/1000; lastTick=now;
+  if(dt>1)dt=1;
+  // 액티브 스킬 쿨다운/버프 진행
+  for(const id in skillState){ const st=skillState[id];
+    if(st.cd>0)st.cd=Math.max(0,st.cd-dt);
+    if(st.buff>0)st.buff=Math.max(0,st.buff-dt);
+  }
+  updateSkills();
+  // 콤보 시간 경과 시 초기화
+  if(comboTimer>0){ comboTimer-=dt; if(comboTimer<=0){ combo=0; renderCombo(); } }
+  if(mob.boss&&mob.hp>0){
+    mob.timer-=dt;
+    if(mob.timer<=0){ floatNum('보스 도주!',false,'#ff5a78'); S.killsThisStage=0; spawnMob(); }
+  }
+  // 동료 DPS + 자동 검술(클릭 피해 × 자동공격 횟수)
+  const d=totalDps()+autoRate()*clickPower();
+  if(d>0&&mob.hp>0){
+    dealDamage(d*dt,false);
+    // 동료가 공격하고 있다는 걸 보여주기 위한 시각 피드백
+    dpsAccum+=d*dt; dpsTimer+=dt;
+    if(dpsTimer>=0.5){ floatNum(dpsAccum,false,'#8fe36b'); dpsAccum=0; dpsTimer=0; }
+  }
+  renderHp();
+}
+setInterval(tick,100);
+
+// ── 구매 수량 모드 ──
+let buyMode=1;
+const BUY_MODES=[1,10,100,'max'];
+$('buyMaxBtn').onclick=()=>{
+  buyMode=BUY_MODES[(BUY_MODES.indexOf(buyMode)+1)%BUY_MODES.length];
+  $('buyMaxBtn').textContent='구매: '+(buyMode==='max'?'MAX':'x'+buyMode);
+  renderShop();
+};
+function costFor(base,mult,have,qty){
+  let c=0,b=base*Math.pow(mult,have);
+  for(let i=0;i<qty;i++){c+=b;b*=mult;}
+  return c;
+}
+function maxAfford(base,mult,have,gold){
+  let n=0,b=base*Math.pow(mult,have),sum=0;
+  while(sum+b<=gold&&n<100000){sum+=b;b*=mult;n++;}
+  return {n,sum};
+}
+function resolveQty(base,mult,have,currency){
+  if(buyMode!=='max')return {n:buyMode,sum:costFor(base,mult,have,buyMode)};
+  const r=maxAfford(base,mult,have,currency);
+  return r.n<1?{n:1,sum:costFor(base,mult,have,1)}:r;
+}
+
+// ── 탐험 ──
+//  S.exped[id] = 완료 시각(ms). 없으면 대기, Date.now()>=값 이면 수령 가능.
+function expUnlocked(def){ return (S.bestStage||1)>=def.reqStage; }
+function expStatus(def){
+  const end=S.exped&&S.exped[def.id];
+  if(!end)return 'idle';
+  return Date.now()>=end?'done':'running';
+}
+function startExped(def){
+  if(!expUnlocked(def)||expStatus(def)!=='idle')return;
+  if(!S.exped)S.exped={};
+  S.exped[def.id]=Date.now()+def.dur*1000;
+  flashSave(); renderShop();
+}
+function claimExped(def){
+  if(expStatus(def)!=='done')return;
+  const st=Math.max(1,S.maxStage);
+  // 골드: 현재 maxStage 1킬 골드 × 배수 (배수에 약간의 변동)
+  const gold=Math.ceil(goldReward(st,false)*def.goldMul*(0.85+Math.random()*0.3));
+  S.gold+=gold;
+  let msg='💰 '+fmt(gold);
+  // 정수
+  if(def.gemChance>0&&Math.random()<def.gemChance){
+    const lo=def.gem[0],hi=def.gem[1];
+    const g=lo+Math.floor(Math.random()*(hi-lo+1));
+    if(g>0){ S.gems+=g; msg+='  💎 +'+g; }
+  }
+  // 유물
+  if(def.relicChance>0&&Math.random()<def.relicChance){
+    const rc=RELICS[Math.floor(Math.random()*RELICS.length)];
+    if(!S.relics)S.relics={}; S.relics[rc.id]=(S.relics[rc.id]||0)+1;
+    msg+='  '+rc.ico;
+    floatNum(rc.ico+' '+rc.nm+' Lv.'+S.relics[rc.id]+'!',true,'#ffd86b');
+  }
+  delete S.exped[def.id];
+  S.expedDone=(S.expedDone||0)+1;
+  floatNum('🗺️ '+def.nm+' 완료! '+msg,true,'#7ee0ff');
+  updateTop(); flashSave(); renderShop();
+}
+function expRunningCount(){ let n=0; for(const d of EXPEDITIONS) if(expStatus(d)!=='idle')n++; return n; }
+function expDoneCount(){ let n=0; for(const d of EXPEDITIONS) if(expStatus(d)==='done')n++; return n; }
+function updateQuestBadge(){
+  const t=document.querySelector('.tab[data-tab="quest"]'); if(!t)return;
+  const n=expDoneCount();
+  t.innerHTML='🗺️ 탐험'+(n>0?' <span style="color:#7ee0ff">('+n+')</span>':'');
+}
+
+// ── 상점 렌더 ──
+let activeTab='hero';
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  activeTab=t.dataset.tab;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
+  $('buyMaxBtn').style.display=(activeTab==='gem'||activeTab==='ach'||activeTab==='relic'||activeTab==='quest')?'none':'';
+  renderShop();
+});
+function renderShop(){
+  const list=$('shopList'); list.innerHTML='';
+  if(activeTab==='hero'){
+    HEROES.forEach((h,i)=>{
+      const have=S.heroes[h.id]||0;
+      const locked=i>0 && (S.heroes[HEROES[i-1].id]||0)<1 && have===0;
+      const {n,sum}=resolveQty(h.cost,1.15,have,S.gold);
+      const ok=!locked&&S.gold>=sum;
+      const addDps=h.dps*n*Math.pow(1.25,S.upg.dmg)*gemAllMult();
+      const p=HERO_PERKS[h.id];
+      const steps=perkSteps(have,p.every), nextAt=steps*p.every+1;
+      const perkLvl = locked
+        ? '🔒 이전 동료 필요'
+        : (have<=0
+            ? `보유 0 · 구매 시 +${fmt(addDps)} DPS<br>✨ <b>${p.nm}</b>: 첫 구매 발동 → ${p.fmt(p.per)}`
+            : `보유 ${have} · 구매 시 +${fmt(addDps)} DPS<br>✨ <b>${p.nm}</b> Lv.${steps} · ${p.fmt(p.per*steps)} · 다음 ${nextAt}마리`);
+      list.appendChild(card({
+        ico:h.ico, nm:h.nm, sub:`개당 ${fmt(h.dps)} DPS · ✨${p.nm}`,
+        lvl:perkLvl,
+        cost:locked?'🔒':'💰 '+fmt(sum), costCls:ok?'ok':'no', locked,
+        onclick:()=>{ if(locked||S.gold<sum)return;
+          const before=have; S.gold-=sum; S.heroes[h.id]=before+n;
+          const s0=perkSteps(before,p.every), s1=perkSteps(before+n,p.every);
+          if(s1>s0) floatNum('✨ '+h.nm+' '+(s0===0?'능력 발동!':'Lv.'+s1+'!'),true,'#7ee0ff');
+          updateTop();renderShop();flashSave(); }
+      }));
+    });
+  }else if(activeTab==='quest'){
+    EXPEDITIONS.forEach(def=>{
+      const unlocked=expUnlocked(def), status=expStatus(def);
+      const st=Math.max(1,S.maxStage);
+      const goldEst=Math.ceil(goldReward(st,false)*def.goldMul);
+      let rewardLine='💰 ~'+fmt(goldEst);
+      if(def.gemChance>0)rewardLine+=' · 💎'+(def.gemChance>=1?'':' '+Math.round(def.gemChance*100)+'%');
+      if(def.relicChance>0)rewardLine+=' · 📜 '+Math.round(def.relicChance*100)+'%';
+      let lvl, cost, costCls, onclick;
+      if(!unlocked){
+        lvl='🔒 스테이지 '+def.reqStage+' 도달 필요';
+        cost='🔒'; costCls=''; onclick=()=>{};
+      }else if(status==='running'){
+        const left=Math.max(0,(S.exped[def.id]-Date.now())/1000);
+        lvl='⏳ 진행 중 · 남은 시간 '+fmtTime(left);
+        cost='⏳'; costCls=''; onclick=()=>{};
+      }else if(status==='done'){
+        lvl='🎁 완료! 눌러서 보상 수령';
+        cost='🎁 수령'; costCls='gem ok'; onclick=()=>claimExped(def);
+      }else{
+        lvl='소요 '+fmtTime(def.dur)+' · 보상 '+rewardLine;
+        cost='파견 ▶'; costCls='ok'; onclick=()=>startExped(def);
+      }
+      list.appendChild(card({
+        ico:(status==='done'?'🎁':def.ico), nm:def.nm,
+        sub:def.desc, lvl, cost, costCls, locked:!unlocked, onclick
+      }));
+    });
+    const info=document.createElement('div');
+    info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.7';
+    info.innerHTML=`🗺️ <b>탐험</b> (완료한 원정 ${S.expedDone||0}회)<br>`+
+      `· 파견하면 <b>실제 시간</b>이 지난 뒤 보상을 받습니다 (게임을 꺼도 진행돼요)<br>`+
+      `· 보상은 현재 <b>최고 스테이지(${S.maxStage})</b> 기준으로 커집니다<br>`+
+      `· 더 깊은 스테이지에 도달하면 새 원정이 해금됩니다`;
+    list.appendChild(info);
+  }else if(activeTab==='up'){
+    UPGRADES.forEach(u=>{
+      const have=S.upg[u.id]||0;
+      const {n,sum}=resolveQty(u.baseCost,u.mult,have,S.gold);
+      const ok=S.gold>=sum;
+      list.appendChild(card({
+        ico:u.ico, nm:u.nm, sub:u.sub, lvl:`레벨 ${have}`,
+        cost:'💰 '+fmt(sum), costCls:ok?'ok':'no',
+        onclick:()=>{ if(S.gold<sum)return; S.gold-=sum; S.upg[u.id]=have+n; updateTop();renderShop();flashSave(); }
+      }));
+    });
+  }else if(activeTab==='gem'){
+    GEMSHOP.forEach(g=>{
+      const have=S.gem[g.key]||0;
+      const cost=Math.ceil(g.baseCost*Math.pow(g.mult,have));
+      const ok=S.gems>=cost;
+      list.appendChild(card({
+        ico:g.ico, nm:g.nm, sub:g.sub, lvl:`레벨 ${have}`,
+        cost:'💎 '+fmt(cost), costCls:'gem '+(ok?'ok':'no'),
+        onclick:()=>{ if(S.gems<cost)return; S.gems-=cost; S.gem[g.key]=have+1; updateTop();renderShop();flashSave(); }
+      }));
+    });
+    const info=document.createElement('div');
+    info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.7';
+    info.innerHTML=`💎 <b>정수 수급처</b><br>`+
+      `· 환생 시 <b style="color:var(--gem)">${gemsFromPrestige()}</b>개 (최고 스테이지 ${S.maxStage})<br>`+
+      `&nbsp;&nbsp;→ 다음 환생 조건: 스테이지 <b>${prestigeReqStage()}</b> 도달<br>`+
+      `· 👑 보스 첫 처치 드롭 (스테이지에 비례)<br>`+
+      `· 🏅 도전과제 보상`;
+    list.appendChild(info);
+  }else if(activeTab==='relic'){ // 유물 도감
+    RELICS.forEach(rc=>{
+      const lv=(S.relics&&S.relics[rc.id])||0, found=lv>0;
+      list.appendChild(card({
+        ico: found?rc.ico:'❓', nm: found?rc.nm:'??? 미발견',
+        sub: found?(rc.fmt(rc.per)+' / 레벨'):'보스를 처치해 발견하세요',
+        lvl: found?(`레벨 ${lv} · 현재 ${rc.fmt(rc.per*lv)}`):'미발견',
+        cost: found?('Lv.'+lv):'❓', costCls: found?'gem ok':'',
+        locked:!found, onclick:()=>{}
+      }));
+    });
+    const found=relicCount(S);
+    const info=document.createElement('div');
+    info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.7';
+    info.innerHTML=`📜 <b>유물</b> (${found}/${RELICS.length} 수집)<br>`+
+      `· 👑 보스 첫 처치 시 ${Math.round(RELIC_DROP_CHANCE*100)}% 확률로 드롭<br>`+
+      `· 같은 유물을 모으면 레벨이 올라 효과가 강해집니다<br>`+
+      `· 효과는 항상 적용되며 환생해도 사라지지 않아요`;
+    list.appendChild(info);
+  }else{ // ach — 도전과제
+    ACHIEVEMENTS.forEach(a=>{
+      const st=achState(a);
+      list.appendChild(card({
+        ico: st==='done'?'✅':(st==='claim'?'🎁':'🏅'),
+        nm:a.nm, sub:a.desc,
+        lvl: st==='done'?'수령 완료':(st==='claim'?'🎉 달성! 눌러서 보상 받기':'미달성'),
+        cost: st==='done'?'완료':'💎 '+a.gem,
+        costCls: st==='claim'?'gem ok':(st==='done'?'':'gem no'),
+        locked: st==='lock',
+        onclick:()=>claimAch(a)
+      }));
+    });
+    const info=document.createElement('div');
+    info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.6';
+    info.innerHTML=`🏅 도전과제를 달성하면 <b style="color:var(--gem)">💎 정수</b>를 받습니다.<br>보상은 환생해도 사라지지 않아요.`;
+    list.appendChild(info);
+  }
+}
+function card(o){
+  const el=document.createElement('div');
+  el.className='card '+(o.locked?'locked':((o.costCls&&o.costCls.indexOf('ok')>=0)?'afford':''));
+  el.innerHTML=`<div class="ico">${o.ico}</div>
+    <div class="info"><div class="nm">${o.nm}</div><div class="sub">${o.sub}</div><div class="lvl">${o.lvl}</div></div>
+    <div class="cost ${o.costCls||''}">${o.cost}</div>`;
+  el.onclick=o.onclick;
+  return el;
+}
+
+// ── 상단/스테이지 표시 ──
+function updateTop(){
+  $('rGold').textContent=fmt(S.gold);
+  $('rGem').textContent=fmt(S.gems);
+  $('rDps').textContent=fmt(totalDps());
+  $('rClick').textContent=fmt(clickPower());
+  $('prestigeBtn').classList.toggle('ready',gemsFromPrestige()>0);
+  updateAchBadge();
+  updateQuestBadge();
+  // 진행 중인 탐험이 있으면 탐험 탭의 타이머/완료 상태를 실시간 갱신
+  if(activeTab==='quest'&&expRunningCount()>0)renderShop();
+}
+function updateStageLabel(){
+  $('stageLabel').textContent='스테이지 '+S.stage+(isBossStage(S.stage)?' 👑':'');
+  $('lockBtn').classList.toggle('on',!S.autoProgress);
+  $('lockBtn').textContent=S.autoProgress?'🔓 자동진행':'🔒 고정사냥';
+}
+
+// ── 스테이지 네비 / 고정 ──
+$('navPrev').onclick=()=>{ if(S.stage>1){S.stage--;S.autoProgress=false;S.killsThisStage=0;spawnMob();updateStageLabel();} };
+$('navNext').onclick=()=>{
+  if(S.stage<S.frontier){S.stage++;S.killsThisStage=0;spawnMob();
+    if(S.stage>=S.frontier)S.autoProgress=true; updateStageLabel();}
+  else { S.autoProgress=true; updateStageLabel(); }
+};
+$('lockBtn').onclick=()=>{ S.autoProgress=!S.autoProgress;
+  if(S.autoProgress){S.stage=S.frontier;S.killsThisStage=0;spawnMob();} updateStageLabel(); };
+
+// ── 환생 ──
+$('prestigeBtn').onclick=()=>{
+  const g=gemsFromPrestige();
+  if(g<=0){ openModal('아직 일러요','최고 <b>스테이지 '+prestigeReqStage()+'</b>에 도달하면 환생할 수 있어요.<br>지금 최고 스테이지: '+S.maxStage,[{t:'확인',cls:'',fn:closeModal}]); return; }
+  openModal('💀 환생하시겠습니까?',
+    `정수 <span class="big">💎 ${g}</span> 를 얻고,<br>골드·동료·강화가 초기화됩니다.<br>정수 상점의 영구 강화는 유지됩니다.`,
+    [{t:'취소',cls:'',fn:closeModal},{t:'환생!',cls:'ready',fn:()=>{doPrestige(g);closeModal();}}]);
+};
+function doPrestige(g){
+  // 영구 보존: 정수/정수강화(깊은 복사)/환생횟수/도전과제/최고기록/누적처치
+  const keepGem=Object.assign({gALL:0,gGold:0,gStart:0},S.gem||{});
+  const keep={ gems:(S.gems||0)+g, gem:keepGem, prestiges:(S.prestiges||0)+1,
+    achClaimed:S.achClaimed||{}, bestStage:S.bestStage||S.maxStage||1, totalKills:S.totalKills||0,
+    relics:S.relics||{},                       // 유물은 영구 보존(환생해도 유지)
+    exped:S.exped||{}, expedDone:S.expedDone||0, lastDaily:S.lastDaily||0 };
+  const startBonus=3*(keepGem.gStart||0);
+  S=defaultState();
+  Object.assign(S,keep);
+  S.stage=S.maxStage=S.frontier=1+startBonus;
+  spawnMob();updateTop();updateStageLabel();renderShop();save();
+  floatNum('환생 완료!',false,'#b46bff');
+}
+
+// ── 모달 ──
+function openModal(title,body,btns){
+  $('mTitle').innerHTML=title; $('mBody').innerHTML=body;
+  const bb=$('modalBtns'); bb.innerHTML='';
+  btns.forEach(b=>{const x=document.createElement('button');x.className='btn '+(b.cls||'');
+    x.textContent=b.t;x.onclick=b.fn;bb.appendChild(x);});
+  $('modalBg').classList.add('show');
+}
+function closeModal(){$('modalBg').classList.remove('show');}
+
+// ── 저장 / 불러오기 ──
+let saveFlash=0;
+function save(){ S.lastSeen=Date.now(); try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){} }
+function flashSave(){save();$('saveStat').textContent='💾 저장됨';saveFlash=Date.now();}
+setInterval(()=>{save(); if(Date.now()-saveFlash>1500)$('saveStat').textContent='💾 자동 저장 중 · 최고 스테이지 '+S.maxStage;},3000);
+window.addEventListener('beforeunload',save);
+
+function load(){
+  let raw=null; try{raw=localStorage.getItem(SAVE_KEY);}catch(e){}
+  if(raw){
+    try{ const d=JSON.parse(raw); S=Object.assign(defaultState(),d);
+      S.upg=Object.assign({click:0,dmg:0,gold:0,crit:0,critDmg:0,auto:0,offline:0},d.upg||{});
+      S.gem=Object.assign({gALL:0,gGold:0,gStart:0,gCrit:0,gAuto:0,gOffline:0,gSkill:0},d.gem||{});
+      S.relics=d.relics||{};
+      S.heroes=d.heroes||{};
+      S.achClaimed=d.achClaimed||{};
+      S.bossCleared=d.bossCleared||{};
+      S.exped=d.exped||{}; S.expedDone=d.expedDone||0;
+      S.lastDaily=d.lastDaily||0;
+      S.prestiges=d.prestiges||0;
+      S.bestStage=Math.max(d.bestStage||1,d.maxStage||1,d.stage||1);
+    }catch(e){ S=defaultState(); }
+  }else S=defaultState();
+  S.frontier=Math.max(S.frontier||1,S.maxStage||1,S.stage||1);
+  S.bestStage=Math.max(S.bestStage||1,S.maxStage||1);
+}
+
+// ── 오프라인 보상 + 일일 출석 보상 ──
+function dayKey(){ const n=new Date(); return n.getFullYear()+'-'+(n.getMonth()+1)+'-'+n.getDate(); }
+function welcomeBack(){
+  const lines=[];
+  // 1) 오프라인 골드(최대 8시간)
+  const dt=Math.min((Date.now()-(S.lastSeen||Date.now()))/1000, OFFLINE_CAP_H*3600);
+  const d=totalDps();
+  if(dt>=60 && d>0){
+    const gph=goldReward(S.stage,false)/mobMaxHp(S.stage,false);
+    const earn=Math.floor(d*dt*gph*offlineEff()); // 효율(기본 60% + 강화/정수/유물)
+    if(earn>0){ S.gold+=earn;
+      lines.push(`자리를 비운 ${fmtTime(dt)} 동안<br>동료들이 골드 <span class="big">💰 ${fmt(earn)}</span> 를 벌었어요!`); }
+  }
+  // 2) 일일 출석 보상(하루 한 번)
+  const today=dayKey();
+  if(S.lastDaily!==today){
+    S.lastDaily=today;
+    const gems=3+Math.floor((S.bestStage||1)/20);
+    S.gems+=gems;
+    lines.push(`📅 오늘의 <b>출석 보상</b>: 정수 <span class="big">💎 ${gems}</span> 획득!`);
+  }
+  if(lines.length){
+    openModal('🌙 다시 오셨군요!', lines.join('<br><br>'), [{t:'받기',cls:'ready',fn:closeModal}]);
+    updateTop(); save();
+  }
+}
+
+// ── 초기화 ──
+load();
+spawnMob();
+renderSkills();
+updateTop(); updateStageLabel(); renderShop();
+welcomeBack();
+$('saveStat').textContent='💾 자동 저장 중 · 최고 스테이지 '+S.maxStage;
+setInterval(updateTop,250);
+</script>
+</body>
+</html 
