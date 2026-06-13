@@ -49,7 +49,8 @@
 
   /* 몬스터 무대 */
   #stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    position:relative;cursor:pointer;min-height:200px}
+    position:relative;cursor:pointer;min-height:200px;
+    touch-action:manipulation;-webkit-user-select:none;user-select:none}
   #mob{font-size:120px;filter:drop-shadow(0 8px 18px rgba(0,0,0,.6));
     transition:transform .05s;line-height:1}
   #mob.hit{transform:scale(.9) rotate(-4deg)}
@@ -166,7 +167,12 @@
   #modalBtns .btn{flex:1;padding:12px}
 
   @media(max-width:680px){
-    #main{flex-direction:column;overflow-y:auto}
+    /* 모바일: 바깥(#main) 스크롤을 없애 전투 영역 탭이 스크롤로 새지 않게 한다.
+       전투 영역은 고정 높이로 항상 보이고, 스크롤은 상점 목록(#shopList) 내부에서만 발생 */
+    #main{flex-direction:column;overflow:hidden}
+    #combat{flex:none;height:46vh;min-height:260px}
+    #shop{flex:1;min-height:120px}
+    #stage{min-height:0}
     #mob{font-size:90px}
     .res{min-width:46%}
   }
