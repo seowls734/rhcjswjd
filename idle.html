@@ -70,6 +70,13 @@
   @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(.8)}
     20%{transform:translateY(-10px) scale(1.15)}100%{opacity:0;transform:translateY(-70px) scale(1)}}
 
+  /* ── 행운의 상자 ── */
+  .chest{position:absolute;font-size:40px;cursor:pointer;z-index:8;
+    filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));animation:chestIn .3s ease-out, chestBob 1s ease-in-out .3s infinite}
+  .chest:active{transform:scale(.85)}
+  @keyframes chestIn{0%{opacity:0;transform:scale(0) rotate(-30deg)}100%{opacity:1;transform:scale(1)}}
+  @keyframes chestBob{50%{transform:translateY(-8px) rotate(4deg)}}
+
   /* ── 액티브 스킬 바 ── */
   #skillBar{display:flex;gap:6px;margin-top:10px}
   .skillBtn{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;
@@ -171,6 +178,7 @@
     <div id="shop">
       <div id="shopTabs">
         <div class="tab active" data-tab="hero">🛡️ 동료</div>
+        <div class="tab" data-tab="quest">🗺️ 탐험</div>
         <div class="tab" data-tab="up">⬆️ 강화</div>
         <div class="tab" data-tab="gem">💎 정수</div>
         <div class="tab" data-tab="relic">📜 유물</div>
@@ -273,6 +281,22 @@ const SKILLS=[
   {id:'smite',  ico:'💥', nm:'필살의 일격',dur:0,  cd:45, desc:'적에게 즉시 큰 피해'},
 ];
 
+// ── 탐험: 동료를 파견하면 실제 시간이 흐른 뒤 보상을 수령(오프라인에도 진행) ──
+//  reqStage: 해금에 필요한 최고 스테이지 / dur: 소요 시간(초)
+//  goldMul: maxStage 기준 1킬 골드 × 배수 / gem: [최소,최대] / gemChance / relicChance
+const EXPEDITIONS=[
+  {id:'scout', ico:'🧭', nm:'근교 정찰',   reqStage:1,  dur:60,   goldMul:35,   gem:[0,0], gemChance:0,    relicChance:0,
+   desc:'가볍게 주변을 둘러보고 골드를 챙겨옵니다.'},
+  {id:'dungeon',ico:'🏰', nm:'던전 토벌',   reqStage:10, dur:300,  goldMul:220,  gem:[1,1], gemChance:0.3,  relicChance:0,
+   desc:'던전을 토벌해 두둑한 골드와 가끔 정수를 얻습니다.'},
+  {id:'abyss', ico:'🕯️', nm:'비경 탐사',   reqStage:30, dur:1200, goldMul:1100, gem:[1,2], gemChance:0.75, relicChance:0.12,
+   desc:'깊은 비경에서 정수와 드물게 유물을 발견합니다.'},
+  {id:'demon', ico:'🔥', nm:'마계 원정',   reqStage:60, dur:3600, goldMul:4200, gem:[2,3], gemChance:1,    relicChance:0.4,
+   desc:'마계로 떠나는 대원정. 막대한 보상과 높은 유물 확률.'},
+  {id:'cosmos',ico:'🌠', nm:'천공 항해',   reqStage:120,dur:7200, goldMul:11000,gem:[3,5], gemChance:1,    relicChance:0.6,
+   desc:'별바다를 가르는 장기 원정. 최고의 보상이 기다립니다.'},
+];
+
 const MOBS=['👾','🦂','🕷️','🐍','🦇','🐗','👹','👺','🧟','🦅','🪰','🐙','🦴','👻','🐀','🦎','🐊','🦈','🦀','🐡','🦗','🐸','🦟','🦝','🦔','🦉','🐺','🦊','🐻','🦏','🦛','🐅','🐆','🦌','🪱','🐌','🦠','🧞','🪨','🪲'];
 const MOB_NAMES=['슬라임','전갈','거미','독사','흡혈박쥐','멧돼지','오우거','고블린','좀비','하피','독충','심해수','해골 병사','원혼','시궁쥐','도마뱀','늪악어','식인상어','집게수','가시복어','메뚜기떼','독두꺼비','흡혈모기','광폭너구리','가시고슴도치','밤올빼미','들개','요호','동굴곰','코뿔수','하마수','검치호','흑표범','마성사슴','거대지렁이','산성달팽이','역병균','마귀','바위골렘','강철투구벌레'];
 const BOSSES=['🐉','👿','💀','🦖','🐲','🦑','☠️','🦣','🐘','🦍','🦏','🧛','🤖','👽','🎃','🦅','🐊','🦈','🧟','🌋'];
@@ -368,7 +392,7 @@ function defaultState(){
     relics:{},
     autoProgress:true, killsThisStage:0, lastSeen:Date.now(),
     totalKills:0, prestiges:0, bestStage:1,
-    achClaimed:{}, bossCleared:{},
+    achClaimed:{}, bossCleared:{}, exped:{}, expedDone:0,
   };
 }
 
@@ -670,6 +694,43 @@ function updateSkills(){
   });
 }
 
+// ── 행운의 상자: 전투 화면에 가끔 나타남. 제한시간 안에 클릭하면 즉시 보상 ──
+let chestEl=null;
+function spawnChest(){
+  if(chestEl)return;
+  const stg=$('stage'); if(!stg)return;
+  const r=stg.getBoundingClientRect();
+  const el=document.createElement('div');
+  el.className='chest'; el.textContent='🎁';
+  el.style.left=(r.width*(0.2+Math.random()*0.6))+'px';
+  el.style.top=(r.height*(0.2+Math.random()*0.5))+'px';
+  el.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); openChest(); });
+  stg.appendChild(el); chestEl=el;
+  // 7초 안에 클릭하지 않으면 사라짐
+  chestEl._to=setTimeout(()=>{ if(chestEl){chestEl.remove();chestEl=null;} },7000);
+}
+function openChest(){
+  if(!chestEl)return;
+  clearTimeout(chestEl._to); chestEl.remove(); chestEl=null;
+  const roll=Math.random();
+  if(roll<0.12){
+    // 정수 소량
+    const g=1+Math.floor(Math.random()*2);
+    S.gems+=g; floatNum('🎁 💎 +'+g,true,'#7ee0ff');
+  }else if(roll<0.30){
+    // 광폭화 버프 8초
+    skillState.berserk.buff=Math.max(skillState.berserk.buff,8);
+    floatNum('🎁 ⚡ 광폭화 8초!',true,'#ffce54'); updateSkills();
+  }else{
+    // 골드 한 방 (현재 스테이지 기준)
+    const gold=Math.ceil(goldReward(S.stage,false)*(25+Math.random()*25));
+    S.gold+=gold; floatNum('🎁 💰 +'+fmt(gold),true,'#ffce54');
+  }
+  updateTop(); flashSave();
+}
+// 평균 ~50초마다 등장 시도(매 5초 10% 확률)
+setInterval(()=>{ if(!chestEl&&Math.random()<0.10)spawnChest(); },5000);
+
 // ── 메인 루프 ──
 let lastTick=Date.now();
 let dpsAccum=0, dpsTimer=0;          // 동료 자동공격 누적(0.5초마다 떠오르는 숫자로 표시)
@@ -722,12 +783,59 @@ function resolveQty(base,mult,have,currency){
   return r.n<1?{n:1,sum:costFor(base,mult,have,1)}:r;
 }
 
+// ── 탐험 ──
+//  S.exped[id] = 완료 시각(ms). 없으면 대기, Date.now()>=값 이면 수령 가능.
+function expUnlocked(def){ return (S.bestStage||1)>=def.reqStage; }
+function expStatus(def){
+  const end=S.exped&&S.exped[def.id];
+  if(!end)return 'idle';
+  return Date.now()>=end?'done':'running';
+}
+function startExped(def){
+  if(!expUnlocked(def)||expStatus(def)!=='idle')return;
+  if(!S.exped)S.exped={};
+  S.exped[def.id]=Date.now()+def.dur*1000;
+  flashSave(); renderShop();
+}
+function claimExped(def){
+  if(expStatus(def)!=='done')return;
+  const st=Math.max(1,S.maxStage);
+  // 골드: 현재 maxStage 1킬 골드 × 배수 (배수에 약간의 변동)
+  const gold=Math.ceil(goldReward(st,false)*def.goldMul*(0.85+Math.random()*0.3));
+  S.gold+=gold;
+  let msg='💰 '+fmt(gold);
+  // 정수
+  if(def.gemChance>0&&Math.random()<def.gemChance){
+    const lo=def.gem[0],hi=def.gem[1];
+    const g=lo+Math.floor(Math.random()*(hi-lo+1));
+    if(g>0){ S.gems+=g; msg+='  💎 +'+g; }
+  }
+  // 유물
+  if(def.relicChance>0&&Math.random()<def.relicChance){
+    const rc=RELICS[Math.floor(Math.random()*RELICS.length)];
+    if(!S.relics)S.relics={}; S.relics[rc.id]=(S.relics[rc.id]||0)+1;
+    msg+='  '+rc.ico;
+    floatNum(rc.ico+' '+rc.nm+' Lv.'+S.relics[rc.id]+'!',true,'#ffd86b');
+  }
+  delete S.exped[def.id];
+  S.expedDone=(S.expedDone||0)+1;
+  floatNum('🗺️ '+def.nm+' 완료! '+msg,true,'#7ee0ff');
+  updateTop(); flashSave(); renderShop();
+}
+function expRunningCount(){ let n=0; for(const d of EXPEDITIONS) if(expStatus(d)!=='idle')n++; return n; }
+function expDoneCount(){ let n=0; for(const d of EXPEDITIONS) if(expStatus(d)==='done')n++; return n; }
+function updateQuestBadge(){
+  const t=document.querySelector('.tab[data-tab="quest"]'); if(!t)return;
+  const n=expDoneCount();
+  t.innerHTML='🗺️ 탐험'+(n>0?' <span style="color:#7ee0ff">('+n+')</span>':'');
+}
+
 // ── 상점 렌더 ──
 let activeTab='hero';
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   activeTab=t.dataset.tab;
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
-  $('buyMaxBtn').style.display=(activeTab==='gem'||activeTab==='ach'||activeTab==='relic')?'none':'';
+  $('buyMaxBtn').style.display=(activeTab==='gem'||activeTab==='ach'||activeTab==='relic'||activeTab==='quest')?'none':'';
   renderShop();
 });
 function renderShop(){
@@ -757,6 +865,41 @@ function renderShop(){
           updateTop();renderShop();flashSave(); }
       }));
     });
+  }else if(activeTab==='quest'){
+    EXPEDITIONS.forEach(def=>{
+      const unlocked=expUnlocked(def), status=expStatus(def);
+      const st=Math.max(1,S.maxStage);
+      const goldEst=Math.ceil(goldReward(st,false)*def.goldMul);
+      let rewardLine='💰 ~'+fmt(goldEst);
+      if(def.gemChance>0)rewardLine+=' · 💎'+(def.gemChance>=1?'':' '+Math.round(def.gemChance*100)+'%');
+      if(def.relicChance>0)rewardLine+=' · 📜 '+Math.round(def.relicChance*100)+'%';
+      let lvl, cost, costCls, onclick;
+      if(!unlocked){
+        lvl='🔒 스테이지 '+def.reqStage+' 도달 필요';
+        cost='🔒'; costCls=''; onclick=()=>{};
+      }else if(status==='running'){
+        const left=Math.max(0,(S.exped[def.id]-Date.now())/1000);
+        lvl='⏳ 진행 중 · 남은 시간 '+fmtTime(left);
+        cost='⏳'; costCls=''; onclick=()=>{};
+      }else if(status==='done'){
+        lvl='🎁 완료! 눌러서 보상 수령';
+        cost='🎁 수령'; costCls='gem ok'; onclick=()=>claimExped(def);
+      }else{
+        lvl='소요 '+fmtTime(def.dur)+' · 보상 '+rewardLine;
+        cost='파견 ▶'; costCls='ok'; onclick=()=>startExped(def);
+      }
+      list.appendChild(card({
+        ico:(status==='done'?'🎁':def.ico), nm:def.nm,
+        sub:def.desc, lvl, cost, costCls, locked:!unlocked, onclick
+      }));
+    });
+    const info=document.createElement('div');
+    info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.7';
+    info.innerHTML=`🗺️ <b>탐험</b> (완료한 원정 ${S.expedDone||0}회)<br>`+
+      `· 파견하면 <b>실제 시간</b>이 지난 뒤 보상을 받습니다 (게임을 꺼도 진행돼요)<br>`+
+      `· 보상은 현재 <b>최고 스테이지(${S.maxStage})</b> 기준으로 커집니다<br>`+
+      `· 더 깊은 스테이지에 도달하면 새 원정이 해금됩니다`;
+    list.appendChild(info);
   }else if(activeTab==='up'){
     UPGRADES.forEach(u=>{
       const have=S.upg[u.id]||0;
@@ -843,6 +986,9 @@ function updateTop(){
   $('rClick').textContent=fmt(clickPower());
   $('prestigeBtn').classList.toggle('ready',gemsFromPrestige()>0);
   updateAchBadge();
+  updateQuestBadge();
+  // 진행 중인 탐험이 있으면 탐험 탭의 타이머/완료 상태를 실시간 갱신
+  if(activeTab==='quest'&&expRunningCount()>0)renderShop();
 }
 function updateStageLabel(){
   $('stageLabel').textContent='스테이지 '+S.stage+(isBossStage(S.stage)?' 👑':'');
@@ -908,6 +1054,7 @@ function load(){
       S.heroes=d.heroes||{};
       S.achClaimed=d.achClaimed||{};
       S.bossCleared=d.bossCleared||{};
+      S.exped=d.exped||{}; S.expedDone=d.expedDone||0;
       S.prestiges=d.prestiges||0;
       S.bestStage=Math.max(d.bestStage||1,d.maxStage||1,d.stage||1);
     }catch(e){ S=defaultState(); }
