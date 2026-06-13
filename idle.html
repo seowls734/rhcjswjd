@@ -70,6 +70,25 @@
   @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(.8)}
     20%{transform:translateY(-10px) scale(1.15)}100%{opacity:0;transform:translateY(-70px) scale(1)}}
 
+  /* ── 이벤트 배너 ── */
+  #eventBar{display:none;margin:0 10px 4px;padding:8px 12px;border-radius:10px;
+    align-items:center;gap:10px;font-size:13px;font-weight:700;
+    border:1px solid var(--gold);
+    background:linear-gradient(90deg,rgba(255,206,84,.18),rgba(255,206,84,.04));
+    animation:evPop .3s ease-out}
+  #eventBar.show{display:flex}
+  #eventBar.choice{border-color:var(--gem);
+    background:linear-gradient(90deg,rgba(126,224,255,.18),rgba(126,224,255,.04))}
+  @keyframes evPop{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:translateY(0)}}
+  #eventBar .ev-ico{font-size:26px;line-height:1}
+  #eventBar .ev-txt{flex:1;min-width:0}
+  #eventBar .ev-sub{font-size:11px;color:var(--dim);font-weight:400;margin-top:1px}
+  #eventBar .ev-time{font-size:12px;color:var(--gold);white-space:nowrap}
+  #eventBar.choice .ev-time{color:var(--gem)}
+  #eventBar .ev-join{background:var(--gem);color:#0c0e16;border:none;
+    padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;white-space:nowrap}
+  #eventBar .ev-join:active{transform:scale(.95)}
+
   /* ── 행운의 상자 ── */
   .chest{position:absolute;font-size:40px;cursor:pointer;z-index:8;
     filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));animation:chestIn .3s ease-out, chestBob 1s ease-in-out .3s infinite}
@@ -152,6 +171,8 @@
     <div class="res click"><div class="v" id="rClick">1</div><div class="k">👆 클릭 피해</div></div>
     <div class="res gem"><div class="v" id="rGem">0</div><div class="k">💎 정수</div></div>
   </div>
+
+  <div id="eventBar"></div>
 
   <div id="main">
     <!-- 전투 -->
@@ -297,6 +318,30 @@ const EXPEDITIONS=[
    desc:'별바다를 가르는 장기 원정. 최고의 보상이 기다립니다.'},
 ];
 
+// ── 랜덤 이벤트: 전투 중 일정 시간마다 발생 ──
+//  kind 'buff' = 자동 적용되는 시간제 버프 / 'choice' = 배너의 [참여]로 여는 선택 이벤트
+const EVENTS=[
+  // 자동 버프 이벤트
+  {kind:'buff', id:'frenzy',  ico:'⚡', nm:'광란의 시간', type:'dmg',  value:3,    dur:45, desc:'모든 피해 ×3'},
+  {kind:'buff', id:'goldrush',ico:'💰', nm:'골드 러시',   type:'gold', value:3,    dur:45, desc:'골드 획득 ×3'},
+  {kind:'buff', id:'lucky',   ico:'🍀', nm:'행운의 바람', type:'crit', value:0.35, dur:45, desc:'치명타 확률 +35%'},
+  {kind:'buff', id:'essence', ico:'💎', nm:'정수의 기운', type:'gem',  value:0.35, dur:60, desc:'정수 드롭 확률 +35%', reqStage:10},
+  {kind:'buff', id:'clones',  ico:'👥', nm:'분신 소환',   type:'auto', value:5,    dur:30, desc:'자동 공격 +5회/초'},
+  // 선택 이벤트
+  {kind:'choice', id:'merchant', ico:'🧙', nm:'떠돌이 상인', desc:'골드를 정수로 교환',
+    roll:()=>({gems:2+Math.floor(Math.random()*3), cost:Math.max(Math.ceil(S.gold*0.55), Math.ceil(goldReward(Math.max(1,S.maxStage),false)*300))}),
+    bar:d=>'💎 '+d.gems+' ↔ 💰 '+fmt(d.cost)},
+  {kind:'choice', id:'gambler', ico:'🎰', nm:'수상한 도박꾼', desc:'골드 도박 (60% 2배)',
+    roll:()=>({bet:Math.max(Math.ceil(S.gold*0.3),100)}),
+    bar:d=>'베팅 💰 '+fmt(d.bet)+' · 60% 승리'},
+  {kind:'choice', id:'caravan', ico:'🛒', nm:'보물 운반차', desc:'공짜 골드 보상',
+    roll:()=>({gold:Math.ceil(goldReward(Math.max(1,S.stage),false)*(30+Math.random()*40))}),
+    bar:d=>'💰 +'+fmt(d.gold)+' 무료'},
+  {kind:'choice', id:'altar', ico:'🩸', nm:'피의 제단', desc:'정수 2개 → 90초 ×3 피해', reqStage:20,
+    roll:()=>({cost:2,dur:90}),
+    bar:d=>'💎 '+d.cost+' → 90초 모든 피해 ×3'},
+];
+
 const MOBS=['👾','🦂','🕷️','🐍','🦇','🐗','👹','👺','🧟','🦅','🪰','🐙','🦴','👻','🐀','🦎','🐊','🦈','🦀','🐡','🦗','🐸','🦟','🦝','🦔','🦉','🐺','🦊','🐻','🦏','🦛','🐅','🐆','🦌','🪱','🐌','🦠','🧞','🪨','🪲'];
 const MOB_NAMES=['슬라임','전갈','거미','독사','흡혈박쥐','멧돼지','오우거','고블린','좀비','하피','독충','심해수','해골 병사','원혼','시궁쥐','도마뱀','늪악어','식인상어','집게수','가시복어','메뚜기떼','독두꺼비','흡혈모기','광폭너구리','가시고슴도치','밤올빼미','들개','요호','동굴곰','코뿔수','하마수','검치호','흑표범','마성사슴','거대지렁이','산성달팽이','역병균','마귀','바위골렘','강철투구벌레'];
 const BOSSES=['🐉','👿','💀','🦖','🐲','🦑','☠️','🦣','🐘','🦍','🦏','🧛','🤖','👽','🎃','🦅','🐊','🦈','🧟','🌋'];
@@ -430,10 +475,17 @@ function relicFx(){
 // 액티브 스킬 버프 배율
 function skillDmgMult(){ return (skillState.berserk&&skillState.berserk.buff>0)?3:1; }
 function skillGoldMult(){ return (skillState.gold&&skillState.gold.buff>0)?3:1; }
+// 이벤트 버프(동시에 최대 1개 활성)
+function evBuff(type){ return (curEvent&&!curEvent.pending&&curEvent.def.type===type)?curEvent.def.value:null; }
+function eventDmgMult(){ return evBuff('dmg')||1; }
+function eventGoldMult(){ return evBuff('gold')||1; }
+function eventCritAdd(){ return evBuff('crit')||0; }
+function eventGemAdd(){ return evBuff('gem')||0; }
+function eventAutoAdd(){ return evBuff('auto')||0; }
 
 // ── 파생 수치 ──
 function clickPower(){
-  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult()*heroFx().click*relicFx().click*skillDmgMult();
+  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult()*heroFx().click*relicFx().click*skillDmgMult()*eventDmgMult();
 }
 function totalDps(){
   let d=0;
@@ -443,20 +495,21 @@ function totalDps(){
   d*=heroFx().dps;               // 동료 특수 능력
   d*=relicFx().dps;              // 유물
   d*=skillDmgMult();             // 광폭화
+  d*=eventDmgMult();             // 이벤트 버프
   return d;
 }
-function goldMult(){ return Math.pow(1.20,S.upg.gold)*Math.pow(1.30,S.gem.gGold||0)*relicFx().gold*skillGoldMult(); }
-// 자동 공격 횟수/초 (자동 검술 + 영혼 분신)
-function autoRate(){ return (S.upg.auto||0)+(S.gem.gAuto||0); }
+function goldMult(){ return Math.pow(1.20,S.upg.gold)*Math.pow(1.30,S.gem.gGold||0)*relicFx().gold*skillGoldMult()*eventGoldMult(); }
+// 자동 공격 횟수/초 (자동 검술 + 영혼 분신 + 이벤트 분신)
+function autoRate(){ return (S.upg.auto||0)+(S.gem.gAuto||0)+eventAutoAdd(); }
 // 치명타 확률/배율 (강화·정수·유물·동료 합산)
-function critChance(){ return Math.min(0.95, CRIT_CHANCE+heroFx().crit+relicFx().crit+0.02*(S.upg.crit||0)+0.03*(S.gem.gCrit||0)); }
+function critChance(){ return Math.min(0.95, CRIT_CHANCE+heroFx().crit+relicFx().crit+0.02*(S.upg.crit||0)+0.03*(S.gem.gCrit||0)+eventCritAdd()); }
 function critMult(){ return CRIT_MULT+heroFx().critDmg+0.30*(S.upg.critDmg||0); }
 // 보스 제한시간 보너스 (동료+유물)
 function bossTimeBonus(){ return heroFx().bossTime+relicFx().bossTime; }
 // 오프라인 효율 (기본 0.6 + 강화/정수/유물)
 function offlineEff(){ return Math.min(2.0, 0.6+0.10*(S.upg.offline||0)+0.15*(S.gem.gOffline||0)+relicFx().offline); }
 // 정수 드롭 추가 확률 (동료+유물)
-function gemFindChance(){ return Math.min(0.95, heroFx().gem+relicFx().gem); }
+function gemFindChance(){ return Math.min(0.95, heroFx().gem+relicFx().gem+eventGemAdd()); }
 function gemAllMult(){ return 1+0.25*(S.gem.gALL||0); }
 
 // 동료 특수 능력 합산 → 각종 보정치
@@ -730,6 +783,84 @@ function openChest(){
 }
 // 평균 ~50초마다 등장 시도(매 5초 10% 확률)
 setInterval(()=>{ if(!chestEl&&Math.random()<0.10)spawnChest(); },5000);
+
+// ── 랜덤 이벤트 ──
+const CHOICE_WINDOW=25;               // 선택 이벤트 결정 제한시간(초)
+let curEvent=null, nextEventAt=0;     // curEvent: {def,end,pending,data}
+function scheduleNextEvent(now){ nextEventAt=now+(90+Math.random()*120)*1000; } // 90~210초 후
+function startBuffEvent(def){
+  curEvent={def,end:Date.now()+def.dur*1000,pending:false};
+  floatNum('✨ '+def.ico+' '+def.nm+'!',true,'#ffce54');
+  renderEventBar(); updateTop();
+}
+function fireRandomEvent(){
+  const pool=EVENTS.filter(e=>(S.bestStage||1)>=(e.reqStage||1));
+  const def=pool[Math.floor(Math.random()*pool.length)];
+  if(def.kind==='choice'){
+    curEvent={def,end:Date.now()+CHOICE_WINDOW*1000,pending:true,data:def.roll?def.roll():null};
+    floatNum('❗ 이벤트: '+def.nm,true,'#7ee0ff');
+    renderEventBar();
+  }else startBuffEvent(def);
+}
+function resolveEvent(){ curEvent=null; scheduleNextEvent(Date.now()); renderEventBar(); }
+function renderEventBar(){
+  const bar=$('eventBar'); if(!bar)return;
+  if(!curEvent){ bar.className=''; bar.style.display='none'; bar.innerHTML=''; return; }
+  const def=curEvent.def, left=Math.max(0,(curEvent.end-Date.now())/1000);
+  bar.style.display='flex';
+  if(curEvent.pending){
+    bar.className='show choice';
+    bar.innerHTML=`<div class="ev-ico">${def.ico}</div>
+      <div class="ev-txt">${def.nm}<div class="ev-sub">${def.bar?def.bar(curEvent.data):def.desc}</div></div>
+      <div class="ev-time">${Math.ceil(left)}초</div>
+      <button class="ev-join">참여 ▶</button>`;
+    bar.querySelector('.ev-join').onclick=openEventChoice;
+  }else{
+    bar.className='show';
+    bar.innerHTML=`<div class="ev-ico">${def.ico}</div>
+      <div class="ev-txt">${def.nm}<div class="ev-sub">${def.desc}</div></div>
+      <div class="ev-time">⏳ ${Math.ceil(left)}초</div>`;
+  }
+}
+function openEventChoice(){
+  if(!curEvent||!curEvent.pending)return;
+  const def=curEvent.def, d=curEvent.data;
+  if(def.id==='merchant'){
+    const can=S.gold>=d.cost;
+    openModal('🧙 떠돌이 상인',
+      `"정수 <b style="color:var(--gem)">💎 ${d.gems}</b>개를 드리리다.<br>골드 <b>💰 ${fmt(d.cost)}</b>만 주시오."`,
+      [{t:'거절',cls:'',fn:()=>{resolveEvent();closeModal();}},
+       {t:can?'교환!':'골드 부족',cls:can?'ready':'',fn:()=>{ if(S.gold>=d.cost){S.gold-=d.cost;S.gems+=d.gems;floatNum('💎 +'+d.gems,true,'#7ee0ff');} resolveEvent();updateTop();renderShop();closeModal(); }}]);
+  }else if(def.id==='gambler'){
+    openModal('🎰 수상한 도박꾼',
+      `"골드 <b>💰 ${fmt(d.bet)}</b>을 거시오.<br>60% 확률로 <b style="color:var(--good)">2배</b>, 아니면 잃게 되오."`,
+      [{t:'그만두기',cls:'',fn:()=>{resolveEvent();closeModal();}},
+       {t:'베팅!',cls:'ready',fn:()=>{ if(Math.random()<0.6){S.gold+=d.bet;floatNum('🎉 +'+fmt(d.bet),true,'#5ad17a');}else{S.gold=Math.max(0,S.gold-d.bet);floatNum('💸 -'+fmt(d.bet),true,'#ff5a78');} resolveEvent();updateTop();renderShop();closeModal(); }}]);
+  }else if(def.id==='caravan'){
+    openModal('🛒 보물 운반차',
+      `길에서 보물 운반차를 만났다!<br>골드 <span class="big">💰 ${fmt(d.gold)}</span> 를 받겠습니까?`,
+      [{t:'받기',cls:'ready',fn:()=>{ S.gold+=d.gold;floatNum('💰 +'+fmt(d.gold),true,'#ffce54'); resolveEvent();updateTop();renderShop();closeModal(); }}]);
+  }else if(def.id==='altar'){
+    const can=S.gems>=d.cost;
+    openModal('🩸 피의 제단',
+      `정수 <b style="color:var(--gem)">💎 ${d.cost}</b>개를 바치면<br><b style="color:var(--gold)">${d.dur}초간 모든 피해 ×3</b>!`,
+      [{t:'거절',cls:'',fn:()=>{resolveEvent();closeModal();}},
+       {t:can?'바치기!':'정수 부족',cls:can?'ready':'',fn:()=>{ if(S.gems>=d.cost){S.gems-=d.cost; curEvent=null; startBuffEvent({ico:'🩸',nm:'피의 격노',type:'dmg',value:3,dur:d.dur,desc:'모든 피해 ×3'}); } else resolveEvent(); updateTop();renderShop();closeModal(); }}]);
+  }
+}
+function eventTick(){
+  const now=Date.now();
+  if(curEvent){
+    if(now>=curEvent.end){
+      if(curEvent.pending)floatNum('이벤트 종료',false,'#8b93ad');
+      resolveEvent();
+    }else renderEventBar();
+    return;
+  }
+  if(now>=nextEventAt)fireRandomEvent();
+}
+nextEventAt=Date.now()+60000;         // 첫 이벤트는 약 1분 후
+setInterval(eventTick,1000);
 
 // ── 메인 루프 ──
 let lastTick=Date.now();
