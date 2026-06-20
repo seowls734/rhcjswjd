@@ -1571,6 +1571,70 @@ const CLASSES=[
          }},
     }
   },
+  // ── 17. 흡혈귀 ───────────────────────────────────
+  {
+    id:'vampire', name:'흡혈귀', icon:'🧛',
+    desc:'피해를 흡혈해 스스로를 치유한다.',
+    skills:{
+      c:{name:'흡혈 일격', icon:'🩸', cd:6, desc:'전방 8m 적에게 40 피해 — 입힌 피해의 40% HP 흡수',
+         fn:()=>{
+           const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+           const origin=yawObj.position.clone();
+           let dealt=0;
+           for(let j=enemies.length-1;j>=0;j--){
+             const e=enemies[j];
+             const dx=e.position.x-origin.x,dz=e.position.z-origin.z;
+             const denom=dir.x*dir.x+dir.z*dir.z;if(denom<0.001)continue;
+             const t2=(dx*dir.x+dz*dir.z)/denom;
+             if(t2<0||t2>8)continue;
+             const cx=origin.x+dir.x*t2,cz=origin.z+dir.z*t2;
+             if(Math.sqrt((cx-e.position.x)**2+(cz-e.position.z)**2)>2.2)continue;
+             const dmg=40*mods.dmgMult;
+             e.userData.hp-=dmg;e.userData.flashT=0.2;dealt+=dmg;
+             spawnSlashImpactFX(e.position.clone().setY(1.5));
+             if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
+           }
+           if(dealt>0){
+             playerHP=Math.min(playerHP+Math.min(dealt*0.4,45),100);hpBar.style.width=playerHP+'%';
+             spawnHealAura(yawObj.position.clone(),0xff2266);
+           }
+           spawnSlashFX(origin.clone().setY(1.2),dir,8,0xcc0033);
+           showSkillNotify('🩸 흡혈 일격!');
+         }},
+      e:{name:'박쥐 무리', icon:'🦇', cd:16, desc:'5초간 이동속도 2배 + 받는 피해 60% 감소',
+         fn:()=>{
+           const old=mods.armorMult;mods.armorMult*=0.4;mods.speedMult*=2;
+           spawnAfterimagePulse(yawObj.position.clone(),0x550022);
+           for(let i=0;i<12;i++){
+             const ang=Math.random()*Math.PI*2,r=Math.random()*2;
+             const sm=_makeParticle('smoke',0,0.3);
+             sm.position.set(yawObj.position.x+Math.cos(ang)*r,yawObj.position.y+Math.random()*2,yawObj.position.z+Math.sin(ang)*r);
+             sm.material.color.setHex(0x330011);
+             sm.userData={vel:new THREE.Vector3((Math.random()-0.5)*2,0.8+Math.random(),(Math.random()-0.5)*2),life:0.8,maxLife:0.8,type:'smoke',startSize:1};
+             scene.add(sm);skillFX.push(sm);
+           }
+           showSkillNotify('🦇 박쥐 무리!');
+           setTimeout(()=>{mods.armorMult=old;mods.speedMult/=2;},5000);
+         }},
+      q:{name:'피의 향연', icon:'🩸', cd:26, desc:'주변 16m 모든 적에 55 피해 + 적중 1체당 HP +8',
+         fn:()=>{
+           const cp=yawObj.position;let hits=0;
+           for(let j=enemies.length-1;j>=0;j--){
+             const e=enemies[j];
+             const dx=cp.x-e.position.x,dz=cp.z-e.position.z;
+             if(dx*dx+dz*dz<256){
+               e.userData.hp-=55*mods.dmgMult;e.userData.flashT=0.3;hits++;
+               spawnSoulRise(e.position.clone(),0xff0033,4);
+               if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
+             }
+           }
+           playerHP=Math.min(playerHP+hits*8,100);hpBar.style.width=playerHP+'%';
+           spawnSoulHarvestFX(yawObj.position.clone(),16);
+           spawnHealAura(yawObj.position.clone(),0xff2266);
+           showSkillNotify('🦇 피의 향연 — '+hits+'체 흡혈!');
+         }},
+    }
+  },
 ];
 // 스킬 쿨다운 상태
 const skillCD={c:0,e:0,q:0};
