@@ -1635,6 +1635,173 @@ const CLASSES=[
          }},
     }
   },
+  // ── 18. 성기사 ───────────────────────────────────
+  {
+    id:'paladin', name:'성기사', icon:'⚜️',
+    desc:'신성한 힘으로 심판하고 치유한다.',
+    skills:{
+      c:{name:'천벌', icon:'✨', cd:7, desc:'가장 가까운 적에 75 피해 + 주변 4m 35 피해',
+         fn:()=>{
+           let closest=null,cd=30;
+           for(const e of enemies){const d=yawObj.position.distanceTo(e.position);if(d<cd){cd=d;closest=e;}}
+           if(closest){
+             const tp=closest.position.clone();
+             for(let j=enemies.length-1;j>=0;j--){
+               const e=enemies[j];
+               if(e.position.distanceTo(tp)<4){
+                 const dmg=(e===closest?75:35)*mods.dmgMult;
+                 e.userData.hp-=dmg;e.userData.flashT=0.25;
+                 if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
+               }
+             }
+             spawnNova(tp.clone().setY(0.5),0xffee88,4);
+             spawnTargetMarker(tp.clone().setY(2.5),0xffdd44);
+           } else spawnSkillFX(0xffee88,12);
+           showSkillNotify('✨ 천벌!');
+         }},
+      e:{name:'신성 보호막', icon:'🛡️', cd:16, desc:'6초간 받는 피해 85% 감소 + HP 재생',
+         fn:()=>{
+           const old=mods.armorMult;mods.armorMult*=0.15;mods.regenRate+=8;
+           spawnShieldDome(yawObj.position.clone(),0xffdd66);
+           spawnHealAura(yawObj.position.clone(),0xffee88);
+           showSkillNotify('🛡️ 신성 보호막!');
+           setTimeout(()=>{mods.armorMult=old;mods.regenRate-=8;},6000);
+         }},
+      q:{name:'심판', icon:'⚖️', cd:28, desc:'16m 내 모든 적에 65 피해 + 자신 HP 완전 회복',
+         fn:()=>{
+           const cp=yawObj.position.clone();
+           for(let j=enemies.length-1;j>=0;j--){
+             const e=enemies[j];
+             if(cp.distanceTo(e.position)<16){
+               e.userData.hp-=65*mods.dmgMult;e.userData.flashT=0.3;
+               if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
+             }
+           }
+           playerHP=100;hpBar.style.width='100%';
+           spawnFullHealFX(yawObj.position.clone());
+           spawnSonarRings(yawObj.position.clone(),0xffdd44,16);
+           showSkillNotify('⚖️ 심판!');
+         }},
+    }
+  },
+  // ── 19. 뇌전술사 ─────────────────────────────────
+  {
+    id:'storm', name:'뇌전술사', icon:'⚡',
+    desc:'번개를 연쇄시켜 무리를 휩쓴다.',
+    skills:{
+      c:{name:'연쇄 번개', icon:'⚡', cd:7, desc:'적에게 번개가 최대 5체까지 연쇄 (체당 35 피해)',
+         fn:()=>{
+           let from=yawObj.position.clone().setY(1.5);
+           let lastPos=yawObj.position.clone();
+           const hitSet=new Set();let chained=0;
+           for(let k=0;k<5;k++){
+             let closest=null,cd=(k===0?60:14);
+             for(const e of enemies){if(hitSet.has(e))continue;const d=lastPos.distanceTo(e.position);if(d<cd){cd=d;closest=e;}}
+             if(!closest)break;
+             hitSet.add(closest);
+             spawnLightningArc(from,closest.position.clone().setY(1.5),0x66ccff);
+             closest.userData.hp-=35*mods.dmgMult;closest.userData.flashT=0.2;
+             from=closest.position.clone().setY(1.5);
+             lastPos=closest.position.clone();chained++;
+           }
+           for(let j=enemies.length-1;j>=0;j--){if(enemies[j].userData.hp<=0){spawnFX(enemies[j].position.clone());_lastKilledEnemy=enemies[j];scene.remove(enemies[j]);enemies.splice(j,1);onKill();}}
+           spawnSkillFX(0x66ccff,10);
+           showSkillNotify('⚡ 연쇄 번개 — '+chained+'타!');
+         }},
+      e:{name:'정전 과부하', icon:'🔌', cd:14, desc:'5초간 연사속도 2배 + 주변 8m 적 70% 감속',
+         fn:()=>{
+           const cp=yawObj.position.clone();
+           for(const e of enemies){
+             const dx=cp.x-e.position.x,dz=cp.z-e.position.z;
+             if(dx*dx+dz*dz<64){
+               e.userData._origSpd=e.userData._origSpd||e.userData.spdMult;
+               e.userData.spdMult=e.userData._origSpd*0.3;
+               e.userData.flashT=0.3;
+               spawnLightningArc(cp.clone().setY(1.5),e.position.clone().setY(1.5),0x66ccff);
+             }
+           }
+           mods.fireRateMult*=0.5;
+           spawnSkillFX(0x66ccff,14);
+           showSkillNotify('🔌 정전 과부하!');
+           setTimeout(()=>{for(const e of enemies){if(e.userData._origSpd){e.userData.spdMult=e.userData._origSpd;}}mods.fireRateMult/=0.5;},5000);
+         }},
+      q:{name:'폭풍 강림', icon:'⛈️', cd:28, desc:'18m 내 모든 적에 60 피해 (낙뢰)',
+         fn:()=>{
+           const cp=yawObj.position.clone();
+           for(let j=enemies.length-1;j>=0;j--){
+             const e=enemies[j];
+             const dx=cp.x-e.position.x,dz=cp.z-e.position.z;
+             if(dx*dx+dz*dz<324){
+               e.userData.hp-=60*mods.dmgMult;e.userData.flashT=0.3;
+               spawnLightningArc(cp.clone().setY(9),e.position.clone().setY(1.5),0x88ddff);
+               if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
+             }
+           }
+           spawnStormCloud(cp,18);
+           showSkillNotify('⛈️ 폭풍 강림!');
+         }},
+    }
+  },
+  // ── 20. 빙결술사 ─────────────────────────────────
+  {
+    id:'cryo', name:'빙결술사', icon:'❄️',
+    desc:'적을 얼리고 둔화시켜 제압한다.',
+    skills:{
+      c:{name:'서리 파편', icon:'❄️', cd:6, desc:'조준 방향 관통 — 30 피해 + 3초 60% 감속',
+         fn:()=>{
+           const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+           const origin=camera.position.clone();
+           for(let j=enemies.length-1;j>=0;j--){
+             const e=enemies[j];
+             const dx=e.position.x-origin.x,dz=e.position.z-origin.z;
+             const denom=dir.x*dir.x+dir.z*dir.z;if(denom<0.001)continue;
+             const t2=(dx*dir.x+dz*dir.z)/denom;if(t2<0||t2>70)continue;
+             const cx=origin.x+dir.x*t2,cz=origin.z+dir.z*t2;
+             if(Math.sqrt((cx-e.position.x)**2+(cz-e.position.z)**2)>1.8)continue;
+             e.userData.hp-=30*mods.dmgMult;e.userData.flashT=0.2;
+             e.userData._origSpd=e.userData._origSpd||e.userData.spdMult;
+             e.userData.spdMult=e.userData._origSpd*0.4;
+             if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
+           }
+           setTimeout(()=>{for(const e of enemies){if(e.userData._origSpd){e.userData.spdMult=e.userData._origSpd;}}},3000);
+           spawnBeamFX(origin.clone().setY(yawObj.position.y+1.2),dir,50,0x88ddff);
+           showSkillNotify('❄️ 서리 파편!');
+         }},
+      e:{name:'서리 폭발', icon:'🧊', cd:14, desc:'주변 8m 적 20 피해 + 4초간 빙결(거의 정지)',
+         fn:()=>{
+           const cp=yawObj.position.clone();
+           for(const e of enemies){
+             if(cp.distanceTo(e.position)<8){
+               e.userData.hp-=20*mods.dmgMult;e.userData.flashT=0.3;
+               e.userData._origSpd=e.userData._origSpd||e.userData.spdMult;
+               e.userData.spdMult=e.userData._origSpd*0.1;
+             }
+           }
+           for(let j=enemies.length-1;j>=0;j--){if(enemies[j].userData.hp<=0){spawnFX(enemies[j].position.clone());_lastKilledEnemy=enemies[j];scene.remove(enemies[j]);enemies.splice(j,1);onKill();}}
+           spawnNova(cp.clone().setY(0.5),0x88ddff,8);
+           spawnGroundSigil(cp,0x88ddff,8,4);
+           showSkillNotify('🧊 서리 폭발!');
+           setTimeout(()=>{for(const e of enemies){if(e.userData._origSpd){e.userData.spdMult=e.userData._origSpd;}}},4000);
+         }},
+      q:{name:'눈보라', icon:'🌨️', cd:26, desc:'16m 내 모든 적 50 피해 + 5초간 70% 감속',
+         fn:()=>{
+           const cp=yawObj.position.clone();
+           for(let j=enemies.length-1;j>=0;j--){
+             const e=enemies[j];
+             if(cp.distanceTo(e.position)<16){
+               e.userData.hp-=50*mods.dmgMult;e.userData.flashT=0.3;
+               e.userData._origSpd=e.userData._origSpd||e.userData.spdMult;
+               e.userData.spdMult=e.userData._origSpd*0.3;
+               if(e.userData.hp<=0){spawnFX(e.position.clone());_lastKilledEnemy=e;scene.remove(e);enemies.splice(j,1);onKill();}
+             }
+           }
+           spawnStormCloud(cp,16);
+           spawnGroundSigil(cp,0x88ddff,16,5);
+           showSkillNotify('🌨️ 눈보라!');
+           setTimeout(()=>{for(const e of enemies){if(e.userData._origSpd){e.userData.spdMult=e.userData._origSpd;}}},5000);
+         }},
+    }
+  },
 ];
 // 스킬 쿨다운 상태
 const skillCD={c:0,e:0,q:0};
