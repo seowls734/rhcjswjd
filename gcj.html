@@ -547,7 +547,7 @@ function defaultState(){
     research:{active:null,done:{}},            // 연구소: active={id,end}, done={id:true}
     autoProgress:true, killsThisStage:0, lastSeen:Date.now(),
     totalKills:0, prestiges:0, bestStage:1,
-    achClaimed:{}, bossCleared:{}, exped:{}, expedDone:0, lastDaily:0,
+    achClaimed:{}, bossCleared:{}, exped:{}, expedDone:0, lastDaily:0, rouletteSpins:0,
   };
 }
 
@@ -1126,10 +1126,17 @@ function updateQuestBadge(){
 }
 
 // ── 대장간 ──
+const FORGE_GROWTH=1.12;   // 강화할 때마다 가격이 12%씩만 완만하게 증가
 function forgeCraftCost(){ return Math.ceil(pureGold(Math.max(1,S.maxStage))*55+40); }
-function forgeUpCost(sl){
+// 현재 레벨에서의 1회 강화 비용 기준값(등급이 높을수록 살짝 비쌈)
+function forgeUpBase(sl){
   const e=(S.equip&&S.equip[sl.id])||{lv:0,rar:0};
-  return Math.ceil(forgeCraftCost()*Math.pow(1.55,e.lv)*(0.5+0.5*RARITIES[e.rar||0].mult));
+  return forgeCraftCost()*(0.5+0.5*RARITIES[e.rar||0].mult);
+}
+// 현재 구매 수량 모드(1/10/100/max)에 맞춘 강화 레벨 수·총비용
+function forgeUpInfo(sl){
+  const e=(S.equip&&S.equip[sl.id])||{lv:0,rar:0};
+  return resolveQty(forgeUpBase(sl), FORGE_GROWTH, e.lv, S.gold);
 }
 const REFORGE_COST=6;  // 재련 1회 정수 비용
 function rollRarity(){
@@ -1149,8 +1156,8 @@ function craftEquip(sl){
 }
 function upgradeEquip(sl){
   const e=S.equip&&S.equip[sl.id]; if(!e||e.lv<=0)return;
-  const cost=forgeUpCost(sl); if(S.gold<cost)return;
-  S.gold-=cost; e.lv++;
+  const {n,sum}=forgeUpInfo(sl); if(n<1||S.gold<sum)return;
+  S.gold-=sum; e.lv+=n;
   updateTop();renderShop();flashSave();
 }
 function reforgeEquip(sl){
@@ -1164,35 +1171,66 @@ function reforgeEquip(sl){
 
 // ── 뽑기 / 룰렛 ──
 let lastGacha={gold:'',gem:''};
-function goldRouletteCost(){ return Math.ceil(pureGold(Math.max(1,S.maxStage))*130+100); }
+const ROULETTE_GROWTH=1.015;   // 한 번 돌릴 때마다 가격이 1.5%씩만 계속 증가
+function rouletteBase(){ return pureGold(Math.max(1,S.maxStage))*130+100; }
+// 현재 누적 횟수 + 구매 수량 모드에 맞춘 횟수·총비용
+function rouletteInfo(){ return resolveQty(rouletteBase(), ROULETTE_GROWTH, S.rouletteSpins||0, S.gold); }
 function spinGoldRoulette(){
-  const cost=goldRouletteCost(); if(S.gold<cost)return;
-  S.gold-=cost; const r=Math.random(); let msg;
-  if(r<0.40){ const g=Math.ceil(cost*0.5); S.gold+=g; msg='💰 +'+fmt(g)+' (꽝)'; }
-  else if(r<0.70){ const g=Math.ceil(cost*2);  S.gold+=g; msg='💰 +'+fmt(g); }
-  else if(r<0.85){ const g=Math.ceil(cost*5);  S.gold+=g; msg='🎉 잭팟! 💰 +'+fmt(g); }
-  else if(r<0.95){ const g=1+Math.floor(Math.random()*2); S.gems+=g; msg='💎 +'+g; }
-  else { skillState.berserk.buff=Math.max(skillState.berserk.buff,12); updateSkills(); msg='⚡ 광폭화 12초!'; }
+  const {n,sum}=rouletteInfo(); if(n<1||S.gold<sum)return;
+  S.gold-=sum; S.rouletteSpins=(S.rouletteSpins||0)+n;
+  const avg=sum/n; let addGold=0,addGem=0,buff=0,jack=0;
+  for(let i=0;i<n;i++){
+    const r=Math.random();
+    if(r<0.45) addGold+=avg*0.3;            // 꽝(본전 손해)
+    else if(r<0.75) addGold+=avg*1.5;       // 소폭 이득
+    else if(r<0.88){ addGold+=avg*3; jack++; } // 잭팟
+    else if(r<0.97) addGem+=1+Math.floor(Math.random()*2); // 정수
+    else buff=Math.max(buff,12);            // 광폭화 버프
+  }
+  addGold=Math.ceil(addGold);
+  if(addGold>0)S.gold+=addGold;
+  if(addGem>0)S.gems+=addGem;
+  if(buff>0){ skillState.berserk.buff=Math.max(skillState.berserk.buff,buff); updateSkills(); }
+  let msg=(n>1?('×'+n+' '):'')+'💰 +'+fmt(addGold);
+  if(addGem>0)msg+='  💎 +'+addGem;
+  if(jack>0)msg+='  🎉×'+jack;
+  if(buff>0)msg+='  ⚡';
   lastGacha.gold=msg; floatNum('🎰 '+msg,true,'#ffce54');
   updateTop();renderShop();flashSave();
 }
 const GEM_GACHA_COST=3;
+function gemGachaInfo(){ return resolveQty(GEM_GACHA_COST,1,0,S.gems); }
 function spinGemGacha(){
-  if(S.gems<GEM_GACHA_COST)return;
-  S.gems-=GEM_GACHA_COST; const r=Math.random(); let msg;
-  if(r<0.30){ const g=Math.ceil(pureGold(Math.max(1,S.maxStage))*goldMult()*800); S.gold+=g; msg='💰 +'+fmt(g); }
-  else if(r<0.55){ S.gems+=2; msg='💎 +2 (환급)'; }
-  else if(r<0.75){
-    const rc=RELICS[Math.floor(Math.random()*RELICS.length)];
-    if(!S.relics)S.relics={}; S.relics[rc.id]=(S.relics[rc.id]||0)+1;
-    msg=rc.ico+' '+rc.nm+' Lv.'+S.relics[rc.id];
+  const {n,sum}=gemGachaInfo(); if(n<1||S.gems<sum)return;
+  S.gems-=sum;
+  let addGold=0,addGem=0,relicN=0,equipN=0,jack=0; let lastRelic=null;
+  for(let i=0;i<n;i++){
+    const r=Math.random();
+    if(r<0.30) addGold+=pureGold(Math.max(1,S.maxStage))*goldMult()*800;
+    else if(r<0.55) addGem+=2;
+    else if(r<0.75){
+      const rc=RELICS[Math.floor(Math.random()*RELICS.length)];
+      if(!S.relics)S.relics={}; S.relics[rc.id]=(S.relics[rc.id]||0)+1;
+      relicN++; lastRelic={ico:rc.ico,nm:rc.nm,lv:S.relics[rc.id]};
+    }
+    else if(r<0.92){
+      const owned=EQUIP_SLOTS.filter(s=>S.equip&&S.equip[s.id]&&S.equip[s.id].lv>0);
+      if(owned.length){ const sl=owned[Math.floor(Math.random()*owned.length)]; S.equip[sl.id].lv+=2; equipN++; }
+      else addGem+=2;
+    }
+    else { addGem+=5; jack++; }
   }
-  else if(r<0.92){
-    const owned=EQUIP_SLOTS.filter(s=>S.equip&&S.equip[s.id]&&S.equip[s.id].lv>0);
-    if(owned.length){ const sl=owned[Math.floor(Math.random()*owned.length)]; S.equip[sl.id].lv+=2; msg='🔨 '+sl.nm+' +2 강화!'; }
-    else { S.gems+=2; msg='💎 +2 (장비 없음 환급)'; }
-  }
-  else { S.gems+=5; msg='🎉 잭팟! 💎 +5'; }
+  addGold=Math.ceil(addGold);
+  if(addGold>0)S.gold+=addGold;
+  if(addGem>0)S.gems+=addGem;
+  const parts=[];
+  if(addGold>0)parts.push('💰 +'+fmt(addGold));
+  if(addGem>0)parts.push('💎 +'+addGem);
+  if(relicN>0)parts.push('📜 ×'+relicN);
+  if(equipN>0)parts.push('🔨 +'+(equipN*2));
+  if(jack>0)parts.push('🎉×'+jack);
+  const msg=(n>1?('×'+n+' '):'')+(parts.join('  ')||'꽝');
+  if(relicN===1&&n===1&&lastRelic)floatNum(lastRelic.ico+' '+lastRelic.nm+' Lv.'+lastRelic.lv+'!',true,'#ffd86b');
   lastGacha.gem=msg; floatNum('🎁 '+msg,true,'#7ee0ff');
   updateTop();renderShop();flashSave();
 }
@@ -1235,7 +1273,7 @@ let activeTab='hero';
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   activeTab=t.dataset.tab;
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===t));
-  $('buyMaxBtn').style.display=(activeTab==='hero'||activeTab==='up')?'':'none';
+  $('buyMaxBtn').style.display=(activeTab==='hero'||activeTab==='up'||activeTab==='forge'||activeTab==='gacha')?'':'none';
   renderShop();
 });
 function renderShop(){
@@ -1305,14 +1343,14 @@ function renderShop(){
       const e=(S.equip&&S.equip[sl.id])||{lv:0,rar:0};
       if(e.lv>0){
         const rar=RARITIES[e.rar||0];
-        const upCost=forgeUpCost(sl), okU=S.gold>=upCost;
+        const {n,sum}=forgeUpInfo(sl); const okU=S.gold>=sum;
         const cur=equipStatVal(sl), per=sl.per*rar.mult;
         list.appendChild(card({
           ico:sl.ico,
           nm:`<span style="color:${rar.col}">[${rar.nm}] ${sl.nm}</span> Lv.${e.lv}`,
           sub:'현재 '+sl.fmt(cur),
-          lvl:`강화 시 +${Math.round(per*100)}%p (다음 ${sl.fmt(cur+per)})`,
-          cost:'💰 '+fmt(upCost), costCls:okU?'ok':'no',
+          lvl:`강화 ×${n} → +${Math.round(per*n*100)}%p (도달 ${sl.fmt(cur+per*n)})`,
+          cost:'💰 '+fmt(sum)+(n>1?' ·×'+n:''), costCls:okU?'ok':'no',
           onclick:()=>upgradeEquip(sl)
         }));
         const okR=S.gems>=REFORGE_COST;
@@ -1336,31 +1374,32 @@ function renderShop(){
     });
     const info=document.createElement('div');
     info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.7';
-    info.innerHTML=`🔨 <b>대장간</b><br>`+
+    info.innerHTML=`🔨 <b>대장간</b> (상단 <b>구매 수량</b> 버튼으로 강화 1·10·100·MAX)<br>`+
       `· 무기·갑옷·장신구를 <b>제작</b>하고 골드로 <b>강화</b>합니다<br>`+
-      `· <b>재련</b>으로 등급을 올리면 레벨당 효과가 커집니다<br>`+
+      `· 강화 비용은 레벨당 <b>조금씩만 완만하게 증가</b>해요<br>`+
+      `· <b>재련</b>(💎)으로 등급을 올리면 레벨당 효과가 커집니다<br>`+
       `· 장비 효과는 항상 적용되며 <b style="color:var(--gold)">환생해도 사라지지 않아요</b>`;
     list.appendChild(info);
   }else if(activeTab==='gacha'){
-    const gc=goldRouletteCost(), okG=S.gold>=gc;
+    const ri=rouletteInfo(); const okG=ri.n>=1&&S.gold>=ri.sum;
     list.appendChild(card({
       ico:'🎰', nm:'행운의 룰렛',
       sub:'골드를 걸고 한 방! 잭팟·정수·버프 가능',
-      lvl:(lastGacha.gold?('🕘 최근: '+lastGacha.gold):'40% 꽝 · 30% 2배 · 15% 5배 · 10% 💎 · 5% ⚡'),
-      cost:'💰 '+fmt(gc), costCls:okG?'ok':'no', onclick:spinGoldRoulette
+      lvl:(lastGacha.gold?('🕘 최근: '+lastGacha.gold):'45% 꽝 · 30% 1.5배 · 13% 잭팟 · 9% 💎 · 3% ⚡'),
+      cost:'💰 '+fmt(ri.sum)+(ri.n>1?' ·×'+ri.n:''), costCls:okG?'ok':'no', onclick:spinGoldRoulette
     }));
-    const okX=S.gems>=GEM_GACHA_COST;
+    const gi=gemGachaInfo(); const okX=gi.n>=1&&S.gems>=gi.sum;
     list.appendChild(card({
       ico:'🎁', nm:'운명의 뽑기',
       sub:'정수로 뽑기! 유물·장비 강화·대량 골드·정수',
       lvl:(lastGacha.gem?('🕘 최근: '+lastGacha.gem):'유물 / 장비 +2 / 대량 골드 / 정수 잭팟'),
-      cost:'💎 '+GEM_GACHA_COST, costCls:'gem '+(okX?'ok':'no'), onclick:spinGemGacha
+      cost:'💎 '+fmt(gi.sum)+(gi.n>1?' ·×'+gi.n:''), costCls:'gem '+(okX?'ok':'no'), onclick:spinGemGacha
     }));
     const info=document.createElement('div');
     info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.7';
-    info.innerHTML=`🎰 <b>뽑기</b><br>`+
+    info.innerHTML=`🎰 <b>뽑기</b> (상단 <b>구매 수량</b> 버튼으로 1·10·100·MAX 적용)<br>`+
       `· <b>룰렛</b>은 골드를, <b>뽑기</b>는 정수를 사용합니다<br>`+
-      `· 비용은 현재 최고 스테이지(${S.maxStage})에 맞춰 커집니다<br>`+
+      `· 룰렛은 돌릴수록 비용이 <b>아주 조금씩 계속 증가</b>합니다<br>`+
       `· 운이 좋으면 잭팟·유물·장비 강화가 한 번에!`;
     list.appendChild(info);
   }else if(activeTab==='research'){
@@ -1558,6 +1597,7 @@ function load(){
       S.bossCleared=d.bossCleared||{};
       S.exped=d.exped||{}; S.expedDone=d.expedDone||0;
       S.lastDaily=d.lastDaily||0;
+      S.rouletteSpins=d.rouletteSpins||0;
       S.prestiges=d.prestiges||0;
       S.bestStage=Math.max(d.bestStage||1,d.maxStage||1,d.stage||1);
     }catch(e){ S=defaultState(); }
