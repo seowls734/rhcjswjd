@@ -312,6 +312,16 @@ const HEROES=[
   {id:'beyond',   nm:'피안의 존재', ico:'🕊️', dps:1.5e44, cost:6.6e65},
   {id:'truth',    nm:'진리의 서',   ico:'📖', dps:8.8e44, cost:9.2e66},
   {id:'oneness',  nm:'근원의 하나', ico:'⭕', dps:5.3e45, cost:1.3e68},
+  {id:'eternity', nm:'영원의 수레', ico:'🔄', dps:3.2e46, cost:1.8e69},
+  {id:'paradox',  nm:'역설의 군주', ico:'🪞', dps:1.9e47, cost:2.5e70},
+  {id:'genome',   nm:'근원의 설계자',ico:'🧬', dps:1.1e48, cost:3.5e71},
+  {id:'aurora',   nm:'극광의 신',   ico:'🎇', dps:6.6e48, cost:4.9e72},
+  {id:'monolith', nm:'태초의 석판', ico:'🧱', dps:4.0e49, cost:6.8e73},
+  {id:'yinyang',  nm:'음양의 군주', ico:'☯️', dps:2.4e50, cost:9.5e74},
+  {id:'zodiac',   nm:'천공의 인장', ico:'🔯', dps:1.4e51, cost:1.3e76},
+  {id:'om',       nm:'근원의 음',   ico:'🕉️', dps:8.5e51, cost:1.8e77},
+  {id:'mirage',   nm:'환영의 군주', ico:'🪅', dps:5.1e52, cost:2.5e78},
+  {id:'lunar',    nm:'초월의 달',   ico:'🌒', dps:3.1e53, cost:3.5e79},
 ];
 // ── 강화(골드) ──
 const UPGRADES=[
@@ -485,6 +495,16 @@ const HERO_PERKS={
   beyond:  {nm:'피안의 인도',type:'gemFind',  per:0.05, every:10, fmt:v=>'보스 처치 시 정수 확률 +'+Math.round(v*100)+'%'},
   truth:   {nm:'진리 해석',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
   oneness: {nm:'합일의 권능',type:'allDmg',   per:0.50, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  eternity:{nm:'영원의 가호',type:'allDmg',   per:0.50, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  paradox: {nm:'역설 연산',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  genome:  {nm:'설계 오류',  type:'critDmg',  per:2,    every:25, fmt:v=>'치명타 피해 +'+Math.round(v*100)+'%'},
+  aurora:  {nm:'극광의 축복',type:'gold',     per:0.30, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  monolith:{nm:'태초의 일격',type:'bossDmg',  per:0.70, every:20, fmt:v=>'보스에게 주는 피해 +'+Math.round(v*100)+'%'},
+  yinyang: {nm:'음양 조화',  type:'allDmg',   per:0.50, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  zodiac:  {nm:'별자리 가호',type:'crit',     per:0.05, every:20, fmt:v=>'클릭 치명타 확률 +'+Math.round(v*100)+'%'},
+  om:      {nm:'근원의 공명',type:'gemFind',  per:0.05, every:10, fmt:v=>'보스 처치 시 정수 확률 +'+Math.round(v*100)+'%'},
+  mirage:  {nm:'환영 가속',  type:'dps',      per:0.50, every:40, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  lunar:   {nm:'월광 강림',  type:'allDmg',   per:0.55, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
 };
 function perkSteps(have,every){ return have>0?1+Math.floor((have-1)/every):0; }
 
@@ -507,7 +527,8 @@ const ACHIEVEMENTS=[
   {id:'h30', nm:'우주적 군세',   desc:'서로 다른 동료 30종 보유', gem:150,chk:s=>heroTypes(s)>=30},
   {id:'h40', nm:'창세의 군단',   desc:'서로 다른 동료 40종 보유', gem:400,chk:s=>heroTypes(s)>=40},
   {id:'h50', nm:'절대의 군세',   desc:'서로 다른 동료 50종 보유', gem:1000,chk:s=>heroTypes(s)>=50},
-  {id:'h60', nm:'근원의 군세',   desc:'모든 동료 60종 보유',      gem:2500,chk:s=>heroTypes(s)>=60},
+  {id:'h60', nm:'근원의 군세',   desc:'서로 다른 동료 60종 보유', gem:2500,chk:s=>heroTypes(s)>=60},
+  {id:'h70', nm:'초월의 군세',   desc:'모든 동료 70종 보유',      gem:6000,chk:s=>heroTypes(s)>=70},
   {id:'p1',  nm:'환생자',        desc:'환생 1회 달성',  gem:2,  chk:s=>(s.prestiges||0)>=1},
   {id:'p5',  nm:'윤회의 길',     desc:'환생 5회 달성',  gem:12, chk:s=>(s.prestiges||0)>=5},
   {id:'p15', nm:'영원의 순례자', desc:'환생 15회 달성', gem:40, chk:s=>(s.prestiges||0)>=15},
