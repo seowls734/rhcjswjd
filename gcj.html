@@ -121,9 +121,8 @@
   .skillBtn:active{transform:scale(.95)}
 
   /* ── 상점 ── */
-  #shopTabs{display:flex;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
-  #shopTabs::-webkit-scrollbar{display:none}
-  .tab{flex:0 0 auto;padding:11px 13px;text-align:center;font-size:13px;font-weight:700;color:var(--dim);
+  #shopTabs{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .tab{flex:1 1 auto;padding:7px 6px;text-align:center;font-size:12px;font-weight:700;color:var(--dim);
     cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
   .tab.active{color:var(--txt);border-bottom-color:var(--gold)}
   #shopList{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
@@ -176,6 +175,7 @@
     #stage{min-height:0}
     #mob{font-size:90px}
     .res{min-width:46%}
+    .tab{padding:6px 3px;font-size:11px}
   }
 </style>
 </head>
@@ -1685,4 +1685,4 @@ $('saveStat').textContent='💾 자동 저장 중 · 최고 스테이지 '+S.max
 setInterval(updateTop,250);
 </script>
 </body>
-</html   
+</html    

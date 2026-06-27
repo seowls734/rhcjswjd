@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../../../SIWOO"
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "gqc"
+	}
+}
