@@ -169,13 +169,22 @@
   @media(max-width:680px){
     /* 모바일: 바깥(#main) 스크롤을 없애 전투 영역 탭이 스크롤로 새지 않게 한다.
        전투 영역은 고정 높이로 항상 보이고, 스크롤은 상점 목록(#shopList) 내부에서만 발생 */
-    #main{flex-direction:column;overflow:hidden}
-    #combat{flex:none;height:46vh;min-height:260px}
-    #shop{flex:1;min-height:120px}
+    /* 상단 자원 바: 4개를 한 줄로 압축(기존 2줄 → 1줄)해 세로 공간 확보 */
+    #topbar{padding:6px;gap:5px}
+    .res{flex:1 1 0;min-width:0;padding:5px 3px;border-radius:8px}
+    .res .v{font-size:13px}
+    .res .k{font-size:8px;letter-spacing:.3px;margin-top:1px}
+    #main{flex-direction:column;overflow:hidden;gap:8px;padding:8px}
+    #combat{flex:none;height:40vh;min-height:210px;padding:10px}
+    #shop{flex:1;min-height:150px}
     #stage{min-height:0}
-    #mob{font-size:90px}
-    .res{min-width:46%}
+    #mob{font-size:74px}
+    #hpWrap{margin-top:8px}
+    #killCount{margin-top:4px}
+    #skillBar{margin-top:6px}
     .tab{padding:6px 3px;font-size:11px}
+    #footer{padding:7px 8px;gap:6px}
+    .btn{padding:8px 10px;font-size:11px}
   }
 </style>
 </head>
