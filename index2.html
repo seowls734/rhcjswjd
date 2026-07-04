@@ -45,6 +45,15 @@
   #explain .quiz .qhint{margin-top:8px;font-size:12px;color:var(--dim);cursor:pointer;text-decoration:underline dotted}
   #explain .quiz .qhintbody{display:none;margin-top:6px;font-size:12px;color:var(--dim)}
   #explain .quiz .qhintbody.show{display:block}
+  #stepnav{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:10px;
+    border-bottom:1px solid var(--line)}
+  #stepnav .stepbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:6px 12px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+  #stepnav .stepbtn:disabled{opacity:.35;cursor:default}
+  #stepnav .stepind{flex:1;text-align:center;font-size:12px;color:var(--dim);font-weight:700;letter-spacing:.5px}
+  #stepnav .dots{display:flex;gap:5px;justify-content:center}
+  #stepnav .dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+  #stepnav .dot.on{background:var(--accent)}
 
   #lab{flex:1;display:flex;flex-direction:column;min-width:0}
   #lab h4{font-size:12px;color:var(--dim);margin-bottom:6px;letter-spacing:.5px}
@@ -142,8 +151,8 @@
       <div id="glossaryList"></div>
     </div>
     <div id="navBtns">
-      <button class="btn" id="prevBtn">← 이전 단계</button>
-      <button class="btn" id="nextBtn">다음 단계 →</button>
+      <button class="btn" id="prevBtn">← 이전 레슨</button>
+      <button class="btn" id="nextBtn">다음 레슨 →</button>
     </div>
   </div>
 </div>
@@ -997,28 +1006,54 @@ function quizBlockHTML(quiz){
   </div>`;
 }
 
+// 레슨 설명(html)을 <h3> 단위로 쪼개서 한 번에 하나씩 보여주기 위한 함수
+function splitSteps(html){
+  return html.split(/(?=<h3[ >])/).map(s=>s.trim()).filter(s=>s);
+}
+
 let currentQuiz=null;
+let lessonSteps=[];
+let lessonStep=0;
+
+function renderStep(){
+  const l=LESSONS[cur];
+  const steps=lessonSteps;
+  const isLast=lessonStep===steps.length-1;
+  const dots=steps.map((_,idx)=>`<span class="dot${idx===lessonStep?' on':''}"></span>`).join('');
+  const nav=`<div id="stepnav">
+    <button class="stepbtn" id="stepPrev" ${lessonStep===0?'disabled':''}>◀ 이전 설명</button>
+    <div class="stepind">STEP ${lessonStep+1} / ${steps.length}<div class="dots">${dots}</div></div>
+    <button class="stepbtn" id="stepNext" ${isLast?'disabled':''}>다음 설명 ▶</button>
+  </div>`;
+  document.getElementById('explain').innerHTML=nav+steps[lessonStep]+(isLast?quizBlockHTML(l.quiz):'');
+
+  document.getElementById('stepPrev').onclick=()=>{ if(lessonStep>0){ lessonStep--; renderStep(); } };
+  document.getElementById('stepNext').onclick=()=>{ if(lessonStep<steps.length-1){ lessonStep++; renderStep(); } };
+
+  const startBtn=document.getElementById('quizStartBtn');
+  if(startBtn)startBtn.onclick=()=>{ document.getElementById('editor').value=l.quiz.starter; document.getElementById('editor').focus(); };
+  const hintToggle=document.getElementById('hintToggle');
+  if(hintToggle)hintToggle.onclick=()=>document.getElementById('hintBody').classList.toggle('show');
+}
+
 function goto(i){
   practicing=false;
   document.getElementById('prevBtn').style.display='';
   cur=i;
   const l=LESSONS[i];
   currentQuiz=l.quiz;
+  lessonSteps=splitSteps(l.html);
+  lessonStep=0;
   document.getElementById('hTitle').textContent=(i+1)+'. '+l.title;
   document.getElementById('hSub').textContent=l.sub;
-  document.getElementById('explain').innerHTML=l.html+quizBlockHTML(l.quiz);
+  renderStep();
   document.getElementById('editor').value=l.code;
   document.getElementById('output').innerHTML='<div class="ph line">// 실행 결과가 여기 표시됩니다</div>';
   document.getElementById('gradeResult').className='';
   document.getElementById('gradeResult').textContent='';
   [...listEl.children].forEach(el=>el.classList.toggle('active',+el.dataset.i===i));
   document.getElementById('prevBtn').disabled=i===0;
-  document.getElementById('nextBtn').textContent=(i===LESSONS.length-1)?'처음으로 ↺':'다음 단계 →';
-
-  const startBtn=document.getElementById('quizStartBtn');
-  if(startBtn)startBtn.onclick=()=>{ document.getElementById('editor').value=l.quiz.starter; document.getElementById('editor').focus(); };
-  const hintToggle=document.getElementById('hintToggle');
-  if(hintToggle)hintToggle.onclick=()=>document.getElementById('hintBody').classList.toggle('show');
+  document.getElementById('nextBtn').textContent=(i===LESSONS.length-1)?'처음으로 ↺':'다음 레슨 →';
 }
 
 let lastLogs=[];
