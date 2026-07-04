@@ -117,6 +117,35 @@
   .gterm .gdetail code{background:var(--panel);border:1px solid var(--line);border-radius:5px;
     padding:1px 6px;font-family:Consolas,monospace;color:var(--accent)}
 
+  /* ── 시험 ── */
+  #examSetupView,#examResultView{display:none;flex-direction:column;flex:1;padding:16px 22px;overflow:hidden}
+  #examSetupView.show,#examResultView.show{display:flex}
+  #examSetupHead h3{font-size:15px;margin-bottom:10px}
+  #examSetupBtns{display:flex;gap:8px;margin-bottom:12px}
+  #examLessonList{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+  .examLessonRow{display:flex;align-items:center;gap:10px;background:var(--panel2);
+    border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;font-size:13px}
+  .examLessonRow:hover{border-color:var(--accent)}
+  .examLessonRow input{width:16px;height:16px;flex:none}
+  .examLessonRow .elCount{margin-left:auto;font-size:11.5px;color:var(--dim)}
+  #examStartBar{display:flex;align-items:center;gap:14px;margin-top:12px;padding-top:12px;
+    border-top:1px solid var(--line)}
+  #examStartCount{font-size:12.5px;color:var(--dim);font-weight:700}
+  #examStartBtn{background:var(--good);color:#0d0f1a;border:none}
+  #examStartBtn:disabled{opacity:.4;cursor:default}
+  #examResultBody{flex:1;overflow-y:auto}
+  #examResultBody h2{font-size:22px;margin-bottom:6px}
+  #examResultBody .escore{font-size:15px;color:var(--accent);font-weight:700;margin-bottom:14px}
+  .ereview{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 14px;margin-bottom:8px}
+  .ereview.wrong{border-color:var(--bad)}
+  .ereview.right{border-color:var(--good)}
+  .ereview .erhead{font-size:12px;font-weight:700;margin-bottom:4px}
+  .ereview.wrong .erhead{color:var(--bad)}
+  .ereview.right .erhead{color:var(--good)}
+  .ereview .erq{font-size:12.5px;color:var(--txt);line-height:1.6}
+  #examResultBtns{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+
   ::-webkit-scrollbar{width:8px}
   ::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
 
@@ -134,7 +163,10 @@
   <div id="sidebar">
     <h1 id="lessonListToggle">🧩 코딩 기초 <span id="lessonListArrow">▾</span></h1>
     <div id="lessonList"></div>
-    <div class="lesson" id="glossaryBtn" style="border-top:1px solid var(--line);margin-top:auto;color:var(--accent2)">
+    <div class="lesson" id="examBtn" style="border-top:1px solid var(--line);margin-top:auto;color:var(--good)">
+      <span class="num">🧪</span><span class="txt">시험 보기</span>
+    </div>
+    <div class="lesson" id="glossaryBtn" style="color:var(--accent2)">
       <span class="num">📖</span><span class="txt">용어 사전 전체보기</span>
     </div>
   </div>
@@ -163,6 +195,28 @@
         <button class="btn" id="glossaryClose">✕ 닫고 레슨으로</button>
       </div>
       <div id="glossaryList"></div>
+    </div>
+    <div id="examSetupView">
+      <div id="examSetupHead">
+        <h3>🧪 시험 볼 레슨을 선택하세요 (복수 선택 가능)</h3>
+        <div id="examSetupBtns">
+          <button class="btn" id="examSelectAll">전체 선택</button>
+          <button class="btn" id="examSelectNone">전체 해제</button>
+          <button class="btn" id="examSetupClose">✕ 닫고 레슨으로</button>
+        </div>
+      </div>
+      <div id="examLessonList"></div>
+      <div id="examStartBar">
+        <span id="examStartCount">0문제 선택됨</span>
+        <button class="btn" id="examStartBtn" disabled>🚀 시험 시작</button>
+      </div>
+    </div>
+    <div id="examResultView">
+      <div id="examResultBody"></div>
+      <div id="examResultBtns">
+        <button class="btn" id="examRetryBtn">🔁 같은 범위로 다시 보기</button>
+        <button class="btn" id="examBackBtn">✕ 닫고 레슨으로</button>
+      </div>
     </div>
     <div id="navBtns">
       <button class="btn" id="prevBtn">← 이전 레슨</button>
@@ -1686,6 +1740,11 @@ document.getElementById('explain').addEventListener('click',e=>{
 
 let cur=0;
 let practicing=false;
+let examMode=false;
+let examQuestions=[];
+let examIndex=0;
+let examResults=[];
+let examSelectedIndices=[];
 const listEl=document.getElementById('lessonList');
 LESSONS.forEach((l,i)=>{
   const d=document.createElement('div');
@@ -1841,18 +1900,24 @@ function checkAnswer(){
     const quiz=currentQuiz;
     if(!quiz){ return; }
     const pass=quiz.check(lastLogs);
+    if(examMode){ examResults[examIndex]=pass; }
     res.className=pass?'ok':'no';
     res.innerHTML=pass
-      ?'🎉 정답이에요! 다음 단계로 넘어가도 좋아요.'
-      :'❌ 아직이에요.<br>'+diagnoseFailure();
+      ?'🎉 정답이에요!'+(examMode?' "다음 문제"를 눌러 계속하세요.':' 다음 단계로 넘어가도 좋아요.')
+      :'❌ 아직이에요.<br>'+diagnoseFailure()+(examMode?'<br><br>시험에서는 틀려도 "다음 문제"로 넘어갈 수 있어요. (마지막 채점 결과가 점수에 반영돼요)':'');
   });
 }
 
 document.getElementById('runBtn').onclick=()=>runCode();
 document.getElementById('checkBtn').onclick=checkAnswer;
-document.getElementById('resetBtn').onclick=()=>{ document.getElementById('editor').value=practicing?currentQuiz.starter:LESSONS[cur].code; document.getElementById('gradeResult').className=''; };
-document.getElementById('prevBtn').onclick=()=>{ if(!practicing&&cur>0)goto(cur-1); };
-document.getElementById('nextBtn').onclick=()=>{ if(practicing){ openGlossary(); } else { goto((cur+1)%LESSONS.length); } };
+document.getElementById('resetBtn').onclick=()=>{ document.getElementById('editor').value=(practicing||examMode)?currentQuiz.starter:LESSONS[cur].code; document.getElementById('gradeResult').className=''; };
+document.getElementById('prevBtn').onclick=()=>{ if(!practicing&&!examMode&&cur>0)goto(cur-1); };
+document.getElementById('nextBtn').onclick=()=>{
+  if(examMode){
+    if(examIndex<examQuestions.length-1){ examIndex++; showExamQuestion(); }
+    else { finishExam(); }
+  } else if(practicing){ openGlossary(); } else { goto((cur+1)%LESSONS.length); }
+};
 document.getElementById('editor').addEventListener('keydown',e=>{
   if(e.key==='Tab'){ e.preventDefault();
     const t=e.target, s=t.selectionStart, v=t.value;
@@ -1934,6 +1999,142 @@ document.getElementById('glossarySearch').addEventListener('input',e=>renderGlos
 document.getElementById('lessonListToggle').onclick=()=>{
   document.getElementById('lessonList').classList.toggle('collapsed');
   document.getElementById('lessonListArrow').classList.toggle('collapsed');
+};
+
+// ── 시험 ──
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function renderExamLessonList(){
+  const list=document.getElementById('examLessonList');
+  list.innerHTML=LESSONS.map((l,i)=>{
+    const n=getQuizzes(l).length;
+    return `<label class="examLessonRow"><input type="checkbox" data-i="${i}"><span>${i+1}. ${l.title}</span><span class="elCount">${n}문제</span></label>`;
+  }).join('');
+  list.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change',updateExamStartBar));
+  updateExamStartBar();
+}
+
+function updateExamStartBar(){
+  const checked=[...document.querySelectorAll('#examLessonList input:checked')].map(cb=>+cb.dataset.i);
+  const total=checked.reduce((n,i)=>n+getQuizzes(LESSONS[i]).length,0);
+  document.getElementById('examStartCount').textContent=`${checked.length}개 레슨 · ${total}문제 선택됨`;
+  document.getElementById('examStartBtn').disabled=checked.length===0;
+}
+
+function openExamSetup(){
+  document.getElementById('content').style.display='none';
+  document.getElementById('navBtns').style.display='none';
+  document.getElementById('glossaryView').classList.remove('show');
+  document.getElementById('examResultView').classList.remove('show');
+  document.getElementById('examSetupView').classList.add('show');
+  document.getElementById('hTitle').textContent='🧪 시험 보기';
+  document.getElementById('hSub').textContent='시험 볼 레슨을 골라서 실력을 확인해보세요';
+  renderExamLessonList();
+}
+
+function closeExamSetup(){
+  document.getElementById('examSetupView').classList.remove('show');
+  document.getElementById('content').style.display='';
+  document.getElementById('navBtns').style.display='';
+  examMode=false;
+  goto(cur);
+}
+
+function startExam(){
+  const checked=[...document.querySelectorAll('#examLessonList input:checked')].map(cb=>+cb.dataset.i);
+  if(checked.length===0)return;
+  examSelectedIndices=checked;
+  buildAndRunExam();
+}
+
+function buildAndRunExam(){
+  const pool=[];
+  examSelectedIndices.forEach(i=>{
+    const l=LESSONS[i];
+    getQuizzes(l).forEach(q=>pool.push({lessonTitle:l.title, quiz:q}));
+  });
+  examQuestions=shuffle(pool);
+  examIndex=0;
+  examResults=new Array(examQuestions.length).fill(false);
+  examMode=true;
+  document.getElementById('examSetupView').classList.remove('show');
+  document.getElementById('examResultView').classList.remove('show');
+  document.getElementById('content').style.display='';
+  document.getElementById('navBtns').style.display='';
+  showExamQuestion();
+}
+
+function showExamQuestion(){
+  const eq=examQuestions[examIndex];
+  currentQuizList=[eq.quiz];
+  quizIdx=0;
+  currentQuiz=eq.quiz;
+  document.getElementById('hTitle').textContent=`🧪 시험 문제 ${examIndex+1} / ${examQuestions.length}`;
+  document.getElementById('hSub').textContent='['+eq.lessonTitle+'] 관련 문제예요';
+  document.getElementById('explain').innerHTML=quizBlockHTML(currentQuizList, 0);
+  annotateKeyterms(document.getElementById('explain'));
+  document.getElementById('editor').value=eq.quiz.starter;
+  document.getElementById('output').innerHTML='<div class="ph line">// 실행 결과가 여기 표시됩니다</div>';
+  clearGrade();
+  const startBtn=document.getElementById('quizStartBtn');
+  if(startBtn)startBtn.onclick=()=>{ document.getElementById('editor').value=eq.quiz.starter; document.getElementById('editor').focus(); };
+  const hintToggle=document.getElementById('hintToggle');
+  if(hintToggle)hintToggle.onclick=()=>document.getElementById('hintBody').classList.toggle('show');
+  document.getElementById('prevBtn').style.display='none';
+  document.getElementById('nextBtn').textContent=(examIndex===examQuestions.length-1)?'🏁 시험 종료 & 결과보기':'다음 문제 →';
+}
+
+function finishExam(){
+  const score=examResults.filter(Boolean).length;
+  const total=examQuestions.length;
+  const pct=Math.round(score/total*100);
+  document.getElementById('content').style.display='none';
+  document.getElementById('navBtns').style.display='none';
+  document.getElementById('examResultView').classList.add('show');
+  document.getElementById('hTitle').textContent='🧪 시험 결과';
+  document.getElementById('hSub').textContent='';
+  const reviewHtml=examQuestions.map((eq,i)=>{
+    const ok=examResults[i];
+    return `<div class="ereview ${ok?'right':'wrong'}">
+      <div class="erhead">${ok?'✅ 정답':'❌ 오답'} · [${eq.lessonTitle}]</div>
+      <div class="erq">${eq.quiz.q}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('examResultBody').innerHTML=`
+    <h2>${pct}점</h2>
+    <div class="escore">${total}문제 중 ${score}문제 정답</div>
+    ${reviewHtml}
+  `;
+  examMode=false;
+}
+
+document.getElementById('examBtn').onclick=openExamSetup;
+document.getElementById('examSetupClose').onclick=closeExamSetup;
+document.getElementById('examSelectAll').onclick=()=>{
+  document.querySelectorAll('#examLessonList input').forEach(cb=>cb.checked=true);
+  updateExamStartBar();
+};
+document.getElementById('examSelectNone').onclick=()=>{
+  document.querySelectorAll('#examLessonList input').forEach(cb=>cb.checked=false);
+  updateExamStartBar();
+};
+document.getElementById('examStartBtn').onclick=startExam;
+document.getElementById('examBackBtn').onclick=()=>{
+  document.getElementById('examResultView').classList.remove('show');
+  document.getElementById('content').style.display='';
+  document.getElementById('navBtns').style.display='';
+  goto(cur);
+};
+document.getElementById('examRetryBtn').onclick=()=>{
+  document.getElementById('examResultView').classList.remove('show');
+  buildAndRunExam();
 };
 
 goto(0);
