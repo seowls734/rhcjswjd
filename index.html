@@ -673,8 +673,10 @@ function defaultState(){
     autoProgress:true, killsThisStage:0, lastSeen:Date.now(),
     totalKills:0, prestiges:0, bestStage:1,
     achClaimed:{}, bossCleared:{}, exped:{}, expedDone:0, lastDaily:0, rouletteSpins:0,
+    endingSeen:false,
   };
 }
+const FINAL_STAGE=500;
 
 // ── 숫자 포맷 ──
 const SUF=['','K','M','B','T','Qa','Qi','Sx','Sp','Oc','No','Dc','Ud','Dd',
@@ -935,6 +937,7 @@ function onKill(){
         if(!S.relics)S.relics={}; S.relics[rc.id]=(S.relics[rc.id]||0)+1;
         floatNum(rc.ico+' '+rc.nm+' Lv.'+S.relics[rc.id]+'!',true,'#ffd86b');
       }
+      if(S.stage>=FINAL_STAGE&&!S.endingSeen){ S.endingSeen=true; setTimeout(showEnding,300); }
     }
     // 대천사+정수의 원석: 추가 정수 확률
     const gf=gemFindChance();
@@ -1718,6 +1721,17 @@ function openModal(title,body,btns){
   $('modalBg').classList.add('show');
 }
 function closeModal(){$('modalBg').classList.remove('show');}
+// ── 엔딩: 스테이지 500(무한의 끝) 보스 격파 시 1회 출력 ──
+function showEnding(){
+  openModal('👑 THE END — 무한의 끝',
+    `수백의 스테이지, 수천 번의 환생, 셀 수 없는 검격 끝에<br>`+
+    `당신은 마침내 <b style="color:var(--gold)">스테이지 ${FINAL_STAGE}</b>의 주인을 무너뜨렸습니다.<br><br>`+
+    `던전의 가장 깊은 곳에서 침묵이 흐릅니다.<br>`+
+    `더 이상 오를 곳이 없어 보였지만... 던전은 끝나지 않습니다.<br>`+
+    `당신의 전설은 계속됩니다. 원한다면 이대로 계속 나아가세요.<br><br>`+
+    `<span class="big">🏆 방치의 던전 — CLEAR 🏆</span>`,
+    [{t:'계속 모험하기',cls:'',fn:closeModal}]);
+}
 
 // ── 저장 / 불러오기 ──
 let saveFlash=0;
