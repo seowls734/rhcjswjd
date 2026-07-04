@@ -17,7 +17,12 @@
   /* ── 사이드바 ── */
   #sidebar{width:220px;flex:none;background:var(--panel);border-right:1px solid var(--line);
     display:flex;flex-direction:column;overflow-y:auto;height:100vh}
-  #sidebar h1{font-size:15px;padding:16px 14px;border-bottom:1px solid var(--line)}
+  #sidebar h1{font-size:15px;padding:16px 14px;border-bottom:1px solid var(--line);
+    cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none}
+  #sidebar h1:hover{background:var(--panel2)}
+  #lessonListArrow{font-size:11px;color:var(--dim);transition:transform .15s;display:inline-block}
+  #lessonListArrow.collapsed{transform:rotate(-90deg)}
+  #lessonList.collapsed{display:none}
   .lesson{padding:12px 14px;cursor:pointer;font-size:13px;color:var(--dim);border-left:3px solid transparent}
   .lesson:hover{background:var(--panel2);color:var(--txt)}
   .lesson.active{background:var(--panel2);color:var(--accent);border-left-color:var(--accent);font-weight:700}
@@ -127,7 +132,7 @@
 <body>
 <div id="app">
   <div id="sidebar">
-    <h1>🧩 코딩 기초</h1>
+    <h1 id="lessonListToggle">🧩 코딩 기초 <span id="lessonListArrow">▾</span></h1>
     <div id="lessonList"></div>
     <div class="lesson" id="glossaryBtn" style="border-top:1px solid var(--line);margin-top:auto;color:var(--accent2)">
       <span class="num">📖</span><span class="txt">용어 사전 전체보기</span>
@@ -1451,6 +1456,61 @@ const GLOSSARY=[
   {t:'패키지 매니저',c:'npm 등',d:'다른 사람이 만든 코드(라이브러리)를 손쉽게 설치/관리해주는 도구.'},
   {t:'라이브러리 / 프레임워크',c:'library / framework',d:'미리 만들어진 기능 모음. 가져다 쓰면 처음부터 다 만들 필요가 없다.'},
 ]},
+{cat:'⚙️ ES6+ 문법 심화',items:[
+  {t:'var',c:'var',d:'let/const가 생기기 전에 쓰던 예전 변수 선언 방식. 블록 스코프를 무시하는 등 문제가 있어 요즘은 잘 안 씀.'},
+  {t:'호이스팅',c:'hoisting',d:'변수/함수 선언이 코드 실행 전에 미리 위로 끌어올려지는 것처럼 동작하는 자바스크립트의 특성.'},
+  {t:'TDZ (일시적 사각지대)',c:'temporal dead zone',d:'let/const로 선언한 변수를, 선언되기 전 줄에서 사용하려 하면 오류가 나는 구간.'},
+  {t:'즉시 실행 함수',c:'IIFE',d:'정의하자마자 바로 실행되는 함수. <code>(function(){...})()</code> 형태로, 변수를 외부에서 안 보이게 감출 때 쓴다.'},
+  {t:'기본 매개변수',c:'default parameter',d:'함수 호출 시 인자를 안 넘기면 자동으로 쓰일 기본값. <code>function f(x=10){}</code>'},
+  {t:'나머지 매개변수',c:'rest parameter (...args)',d:'함수에 몇 개가 들어올지 모르는 인자들을 배열 하나로 모아 받는 문법. <code>function f(...args){}</code>'},
+  {t:'계산된 속성명',c:'computed property name',d:'객체를 만들 때 속성 이름을 변수 값으로 동적으로 정하는 문법. <code>{[key]: value}</code>'},
+  {t:'옵셔널 체이닝',c:'?.',d:'객체 속성이 없거나 null/undefined일 때 오류 대신 undefined를 돌려주는 안전한 접근 문법. <code>obj?.a?.b</code>'},
+  {t:'널 병합 연산자',c:'??',d:'왼쪽 값이 null이나 undefined일 때만 오른쪽 값을 사용하는 연산자. <code>a ?? "기본값"</code>'},
+  {t:'논리 할당 연산자',c:'||= &&= ??=',d:'조건에 따라 값이 있을 때만 대입하는 축약 문법. 예: <code>x ??= 10</code>은 x가 없을 때만 10을 넣음.'},
+  {t:'태그된 템플릿 리터럴',c:'tagged template',d:'템플릿 리터럴 앞에 함수를 붙여서, 문자열 조립 방식을 직접 커스터마이징하는 고급 문법.'},
+  {t:'제너레이터 함수',c:'function*',d:'실행을 중간에 멈췄다가(yield) 나중에 이어서 실행할 수 있는 특별한 함수.'},
+  {t:'yield',c:'yield',d:'제너레이터 함수 안에서 값을 하나 내보내고 실행을 잠시 멈추는 키워드.'},
+  {t:'이터레이터',c:'iterator',d:'배열처럼 값을 하나씩 순서대로 꺼낼 수 있게 해주는 규칙(프로토콜)을 따르는 객체.'},
+  {t:'Symbol',c:'Symbol',d:'절대 겹치지 않는 고유한 값을 만드는 자료형. 객체의 속성 key를 남들과 절대 안 겹치게 만들 때 사용.'},
+  {t:'BigInt',c:'BigInt',d:'일반 숫자로 표현할 수 없는 아주 큰 정수를 다루기 위한 자료형. 숫자 뒤에 n을 붙임 (예: 10n).'},
+  {t:'Proxy',c:'Proxy',d:'객체에 접근하거나 값을 바꿀 때 중간에서 동작을 가로채 커스터마이징할 수 있게 해주는 객체.'},
+  {t:'getter / setter',c:'get / set',d:'속성처럼 보이지만 실제로는 함수인 값. 읽을 때(get)와 쓸 때(set) 원하는 코드를 실행할 수 있다.'},
+  {t:'static 메서드',c:'static',d:'인스턴스가 아니라 클래스 자체에 바로 붙어있는 메서드. <code>클래스명.메서드()</code> 형태로 호출.'},
+  {t:'private 필드',c:'#field',d:'클래스 밖에서는 접근할 수 없도록 감춘 속성. 이름 앞에 <code>#</code>을 붙여서 만든다.'},
+  {t:'strict mode',c:"'use strict'",d:'실수하기 쉬운 문법을 금지해서 더 안전한 코드를 쓰도록 강제하는 모드.'},
+]},
+{cat:'🧬 고차 함수 & 고급 객체',items:[
+  {t:'call / apply / bind',c:'call() apply() bind()',d:'함수 안의 this가 무엇을 가리킬지 직접 지정해서 함수를 실행하는 방법들.'},
+  {t:'화살표 함수의 this',c:'lexical this',d:'화살표 함수는 자신만의 this를 만들지 않고, 함수가 정의된 바깥의 this를 그대로 사용한다.'},
+  {t:'Object.keys/values/entries',c:'Object.keys()',d:'객체의 key 목록, value 목록, [key,value] 쌍 목록을 각각 배열로 뽑아주는 메서드.'},
+  {t:'Object.assign',c:'Object.assign()',d:'여러 객체의 속성을 하나의 객체로 합쳐주는 메서드.'},
+  {t:'Object.freeze',c:'Object.freeze()',d:'객체의 속성을 더 이상 바꾸거나 추가/삭제할 수 없게 잠그는 메서드.'},
+  {t:'Array.from',c:'Array.from()',d:'배열이 아닌 것(문자열, 유사배열 등)을 진짜 배열로 바꿔주는 메서드.'},
+  {t:'Array.isArray',c:'Array.isArray()',d:'주어진 값이 배열인지 아닌지 true/false로 확인해주는 메서드.'},
+  {t:'WeakMap / WeakSet',c:'WeakMap / WeakSet',d:'Map/Set과 비슷하지만, 더 이상 안 쓰이는 객체를 메모리에서 자동으로 정리(가비지 컬렉션)해주는 특수 자료구조.'},
+  {t:'프로토타입',c:'prototype',d:'객체가 다른 객체의 속성/메서드를 물려받을 수 있게 해주는 자바스크립트만의 상속 방식.'},
+]},
+{cat:'🖱️ DOM & 이벤트',items:[
+  {t:'DOM 요소 선택',c:'querySelector / getElementById',d:'HTML 문서 안에서 특정 태그(요소)를 찾아 자바스크립트로 다룰 수 있게 가져오는 함수.'},
+  {t:'이벤트 리스너',c:'addEventListener',d:'클릭, 키 입력 같은 이벤트가 발생했을 때 실행할 함수를 등록하는 방법.'},
+  {t:'이벤트 버블링',c:'event bubbling',d:'자식 요소에서 발생한 이벤트가 부모 요소로 점점 퍼져 올라가며 전달되는 현상.'},
+  {t:'preventDefault',c:'e.preventDefault()',d:'이벤트의 기본 동작(링크 이동, 폼 제출 등)을 막는 메서드.'},
+  {t:'stopPropagation',c:'e.stopPropagation()',d:'이벤트가 부모 요소로 더 이상 전달(버블링)되지 않도록 막는 메서드.'},
+  {t:'DOM 조작',c:'innerHTML / textContent',d:'선택한 요소의 내용을 자바스크립트로 읽거나 바꾸는 방법.'},
+]},
+{cat:'🌍 브라우저 API & 비동기 심화',items:[
+  {t:'setTimeout / setInterval',c:'setTimeout() / setInterval()',d:'일정 시간 뒤에 한 번(setTimeout) 또는 반복해서(setInterval) 코드를 실행하는 타이머 함수.'},
+  {t:'이벤트 루프',c:'event loop',d:'자바스크립트가 동기 코드, 비동기 콜백, 타이머 등을 순서대로 처리하도록 관리하는 내부 동작 원리.'},
+  {t:'마이크로태스크 / 매크로태스크',c:'microtask / macrotask',d:'Promise의 콜백(마이크로태스크)이 setTimeout 콜백(매크로태스크)보다 먼저 실행되는 우선순위 개념.'},
+  {t:'fetch API',c:'fetch()',d:'브라우저에서 서버로 데이터를 요청(HTTP 통신)할 때 쓰는 대표적인 함수. Promise를 돌려준다.'},
+  {t:'localStorage / sessionStorage',c:'localStorage',d:'브라우저에 데이터를 문자열로 저장해두는 저장소. localStorage는 계속 남고, sessionStorage는 탭을 닫으면 사라진다.'},
+  {t:'쿠키',c:'cookie',d:'브라우저에 작은 정보를 저장해두고 서버에 요청할 때마다 자동으로 함께 전달되는 데이터.'},
+]},
+{cat:'🧩 모듈 & 정규표현식',items:[
+  {t:'모듈',c:'module',d:'코드를 파일 단위로 나누어 관리하고, 필요한 부분만 다른 파일에서 가져다 쓸 수 있게 하는 방식.'},
+  {t:'import / export',c:'import / export',d:'다른 파일에서 만든 변수/함수를 내보내고(export), 가져와서(import) 쓰는 문법.'},
+  {t:'정규표현식',c:'RegExp',d:'문자열에서 특정 패턴(형식)을 찾거나 검사할 때 쓰는 특수한 문법. 이메일 형식 검사 등에 자주 쓰인다.'},
+]},
 ];
 
 // ── 용어별 실전 연습문제 (용어 사전에서 바로 풀어볼 수 있게) ──
@@ -1870,6 +1930,11 @@ function closeGlossary(){
 document.getElementById('glossaryBtn').onclick=openGlossary;
 document.getElementById('glossaryClose').onclick=closeGlossary;
 document.getElementById('glossarySearch').addEventListener('input',e=>renderGlossary(e.target.value));
+
+document.getElementById('lessonListToggle').onclick=()=>{
+  document.getElementById('lessonList').classList.toggle('collapsed');
+  document.getElementById('lessonListArrow').classList.toggle('collapsed');
+};
 
 goto(0);
 </script>
