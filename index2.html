@@ -1156,6 +1156,7 @@ function goto(i){
 }
 
 let lastLogs=[];
+let lastRawLogs=[];
 function runCode(){
   const out=document.getElementById('output');
   out.innerHTML='';
@@ -1170,6 +1171,7 @@ function runCode(){
   }catch(e){
     logs.push({t:'⚠️ 오류: '+e.message, err:true});
   }
+  lastRawLogs=logs;
   lastLogs=logs.filter(l=>!l.err).map(l=>l.t);
   if(logs.length===0){ out.innerHTML='<div class="ph line">// 출력된 내용이 없습니다 (console.log를 사용해보세요)</div>'; return; }
   logs.forEach(l=>{
@@ -1180,6 +1182,21 @@ function runCode(){
   });
 }
 
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function diagnoseFailure(){
+  const errLog=lastRawLogs.find(l=>l.err);
+  if(errLog){
+    return `🔍 코드 실행 중 오류가 발생했어요:<br><code>${escapeHtml(errLog.t)}</code><br>오류 메시지에 나온 위치(변수명/문법)를 다시 확인해보세요.`;
+  }
+  if(lastLogs.length===0){
+    return '🔍 <code>console.log</code>로 출력된 내용이 하나도 없어요. 문제에서 요구하는 값을 console.log로 출력했는지 확인해보세요.';
+  }
+  return `🔍 실행은 됐지만 원하는 결과가 아니에요.<br>지금 출력된 값: <code>${escapeHtml(lastLogs.join(' / '))}</code><br>문제가 요구하는 값과 비교해보고, 힌트를 참고해서 다시 시도해보세요.`;
+}
+
 function checkAnswer(){
   runCode();
   const quiz=currentQuiz;
@@ -1187,7 +1204,9 @@ function checkAnswer(){
   if(!quiz){ return; }
   const pass=quiz.check(lastLogs);
   res.className=pass?'ok':'no';
-  res.textContent=pass?'🎉 정답이에요! 다음 단계로 넘어가도 좋아요.':'❌ 아직이에요. 힌트를 참고해서 다시 시도해보세요.';
+  res.innerHTML=pass
+    ?'🎉 정답이에요! 다음 단계로 넘어가도 좋아요.'
+    :'❌ 아직이에요.<br>'+diagnoseFailure();
 }
 
 document.getElementById('runBtn').onclick=runCode;
