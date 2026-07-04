@@ -45,6 +45,8 @@
   #explain .quiz .qhint{margin-top:8px;font-size:12px;color:var(--dim);cursor:pointer;text-decoration:underline dotted}
   #explain .quiz .qhintbody{display:none;margin-top:6px;font-size:12px;color:var(--dim)}
   #explain .quiz .qhintbody.show{display:block}
+  #explain .quiz .qnav{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  #explain .quiz .qnav .qind{font-size:11.5px;color:var(--dim);font-weight:700}
   #explain code.kterm{cursor:pointer;border-bottom:1px dashed var(--accent)}
   #explain code.kterm:hover{background:rgba(126,224,255,.18)}
   #kdetailPanel{display:none;margin-top:14px;padding:12px 14px;border-radius:10px;
@@ -189,12 +191,26 @@ const LESSONS=[
     코드를 몰라도 되니, 일단 <b>▶ 실행</b> 버튼만 눌러보세요!</div>
   `,
   code:`// 이 글자들이 "코드"예요.\n// 오른쪽 위 초록색 ▶ 실행 버튼을 눌러보세요!\n\nconsole.log("안녕하세요! 나의 첫 코드입니다.");`,
-  quiz:{
-    q:'화면(아래 실행 결과 창)에 정확히 이 문장이 나오도록 <code>console.log</code>를 써보세요:<br><b>나는 코딩을 시작했다!</b>',
-    starter:`// 아래에 코드를 작성해보세요\n`,
-    hint:'console.log("나는 코딩을 시작했다!"); 처럼 큰따옴표 안에 문장을 그대로 넣으면 돼요.',
-    check:logs=>logs.some(t=>t.includes('나는 코딩을 시작했다!')),
-  }
+  quizzes:[
+    {
+      q:'화면(아래 실행 결과 창)에 정확히 이 문장이 나오도록 <code>console.log</code>를 써보세요:<br><b>나는 코딩을 시작했다!</b>',
+      starter:`// 아래에 코드를 작성해보세요\n`,
+      hint:'console.log("나는 코딩을 시작했다!"); 처럼 큰따옴표 안에 문장을 그대로 넣으면 돼요.',
+      check:logs=>logs.some(t=>t.includes('나는 코딩을 시작했다!')),
+    },
+    {
+      q:'<b>"안녕 세계"</b>가 화면에 나오도록 console.log를 써보세요.',
+      starter:`// "안녕 세계"를 출력해보세요\n`,
+      hint:'console.log("안녕 세계");',
+      check:logs=>logs.some(t=>t.includes('안녕 세계')),
+    },
+    {
+      q:'첫 줄에는 <b>"Hello"</b>, 둘째 줄에는 <b>"World"</b>가 각각 나오도록 console.log를 두 번 써보세요.',
+      starter:`// 두 줄로 나눠서 Hello, World를 출력해보세요\n`,
+      hint:'console.log("Hello"); 그리고 다음 줄에 console.log("World");',
+      check:logs=>logs.some(t=>t.includes('Hello'))&&logs.some(t=>t.includes('World')),
+    },
+  ]
 },
 {
   title:'첫 줄 써보기 (console.log)',
@@ -214,12 +230,26 @@ const LESSONS=[
     틀려도 아무 일도 일어나지 않으니 마음껏 눌러봐도 괜찮아요!</div>
   `,
   code:`console.log("나는 지금 코딩을 배우고 있어요!");\nconsole.log("숫자도 보여줄 수 있어요:", 100);\nconsole.log("여러 개를 한 번에 보여줄 수도 있어요:", "안녕", 1, 2, 3);`,
-  quiz:{
-    q:'<code>console.log</code>를 두 번 사용해서, 첫 줄에는 <b>10</b>을, 둘째 줄에는 <b>20</b>을 각각 출력해보세요.',
-    starter:`// 두 줄로 나눠서 10과 20을 출력해보세요\n`,
-    hint:'console.log(10); 그리고 다음 줄에 console.log(20); 을 각각 따로 써보세요.',
-    check:logs=>logs.some(t=>t.trim()==='10')&&logs.some(t=>t.trim()==='20'),
-  }
+  quizzes:[
+    {
+      q:'<code>console.log</code>를 두 번 사용해서, 첫 줄에는 <b>10</b>을, 둘째 줄에는 <b>20</b>을 각각 출력해보세요.',
+      starter:`// 두 줄로 나눠서 10과 20을 출력해보세요\n`,
+      hint:'console.log(10); 그리고 다음 줄에 console.log(20); 을 각각 따로 써보세요.',
+      check:logs=>logs.some(t=>t.trim()==='10')&&logs.some(t=>t.trim()==='20'),
+    },
+    {
+      q:'문자열과 숫자를 함께 출력해보세요: <b>"합계:"</b> 라는 글자와 <b>3+4</b>의 계산 결과를 한 줄에 출력해보세요.',
+      starter:`// "합계:" 와 3+4의 결과를 함께 출력해보세요\n`,
+      hint:'console.log("합계:", 3+4); → "합계: 7"',
+      check:logs=>logs.some(t=>t.includes('합계:')&&t.includes('7')),
+    },
+    {
+      q:'<code>console.log</code> 한 번으로 <b>1, 2, 3</b> 세 개의 숫자를 한꺼번에 출력해보세요.',
+      starter:`// 1, 2, 3을 한 번의 console.log로 출력해보세요\n`,
+      hint:'console.log(1, 2, 3);',
+      check:logs=>logs.some(t=>t.includes('1')&&t.includes('2')&&t.includes('3')),
+    },
+  ]
 },
 {
   title:'변수 (Variable)',
@@ -235,12 +265,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 처음엔 <b>const</b>를 기본으로 쓰고, 값이 꼭 바뀌어야 할 때만 <b>let</b>을 사용하세요.</div>
   `,
   code:`let name = "홍길동";\nconst age = 12;\n\nconsole.log("이름:", name);\nconsole.log("나이:", age);\n\n// 아래 줄을 바꿔서 실행해보세요!\nname = "김철수";\nconsole.log("변경된 이름:", name);`,
-  quiz:{
-    q:'<code>let</code>로 <b>age</b>라는 변수를 만들어 <b>15</b>를 저장하고, <code>console.log(age)</code>로 출력해보세요.',
-    starter:`// age 변수를 만들고 15를 저장한 뒤 출력해보세요\nlet age = ;\n`,
-    hint:'let age = 15; 라고 쓰고, 그 다음 줄에 console.log(age); 를 추가하세요.',
-    check:logs=>logs.some(t=>t.trim()==='15'),
-  }
+  quizzes:[
+    {
+      q:'<code>let</code>로 <b>age</b>라는 변수를 만들어 <b>15</b>를 저장하고, <code>console.log(age)</code>로 출력해보세요.',
+      starter:`// age 변수를 만들고 15를 저장한 뒤 출력해보세요\nlet age = ;\n`,
+      hint:'let age = 15; 라고 쓰고, 그 다음 줄에 console.log(age); 를 추가하세요.',
+      check:logs=>logs.some(t=>t.trim()==='15'),
+    },
+    {
+      q:'<code>const</code>로 <b>name</b> 변수를 만들어 <b>"김코딩"</b>을 저장하고 출력해보세요.',
+      starter:`// name 변수를 만들고 "김코딩"을 저장한 뒤 출력해보세요\n`,
+      hint:'const name = "김코딩"; console.log(name);',
+      check:logs=>logs.some(t=>t.includes('김코딩')),
+    },
+    {
+      q:'<code>let count = 0;</code>으로 시작해서, <code>count = count + 1</code>을 한 번 실행한 뒤 count를 출력해보세요. (정답: 1)',
+      starter:`let count = 0;\n\n// count에 1을 더한 뒤 출력해보세요\n`,
+      hint:'count = count + 1; console.log(count); → 1',
+      check:logs=>logs.some(t=>t.trim()==='1'),
+    },
+  ]
 },
 {
   title:'자료형 (Data Type)',
@@ -256,12 +300,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 문자열끼리는 <code>+</code>로 이어붙일 수 있어요. <code>"안녕"+"하세요"</code></div>
   `,
   code:`const num = 42;\nconst str = "코딩";\nconst bool = true;\n\nconsole.log(typeof num, num);\nconsole.log(typeof str, str);\nconsole.log(typeof bool, bool);\n\nconsole.log("문자열 합치기:", "코딩" + "기초");`,
-  quiz:{
-    q:'<code>typeof 10</code>의 결과를 <code>console.log</code>로 출력해보세요. (숫자의 자료형이 뭔지 확인하는 문제예요)',
-    starter:`// typeof 10 의 결과를 출력해보세요\n`,
-    hint:'console.log(typeof 10); 이라고 써보세요. 결과로 "number"가 나와야 해요.',
-    check:logs=>logs.some(t=>t.includes('number')),
-  }
+  quizzes:[
+    {
+      q:'<code>typeof 10</code>의 결과를 <code>console.log</code>로 출력해보세요. (숫자의 자료형이 뭔지 확인하는 문제예요)',
+      starter:`// typeof 10 의 결과를 출력해보세요\n`,
+      hint:'console.log(typeof 10); 이라고 써보세요. 결과로 "number"가 나와야 해요.',
+      check:logs=>logs.some(t=>t.includes('number')),
+    },
+    {
+      q:'<code>typeof "hello"</code>의 결과를 출력해보세요.',
+      starter:`// typeof "hello" 의 결과를 출력해보세요\n`,
+      hint:'console.log(typeof "hello"); → "string"',
+      check:logs=>logs.some(t=>t.includes('string')),
+    },
+    {
+      q:'<code>typeof true</code>의 결과를 출력해보세요.',
+      starter:`// typeof true 의 결과를 출력해보세요\n`,
+      hint:'console.log(typeof true); → "boolean"',
+      check:logs=>logs.some(t=>t.includes('boolean')),
+    },
+  ]
 },
 {
   title:'조건문 (if)',
@@ -277,12 +335,26 @@ const LESSONS=[
     <div class="tip">💡 팁: <code>if (조건) {...} else if (조건) {...} else {...}</code> 형태로 여러 상황을 나눌 수 있어요.</div>
   `,
   code:`const score = 85;\n\nif (score >= 90) {\n  console.log("A등급");\n} else if (score >= 80) {\n  console.log("B등급");\n} else {\n  console.log("C등급 이하");\n}\n\n// score 값을 바꿔서 결과가 어떻게 달라지는지 확인해보세요!`,
-  quiz:{
-    q:'변수 <code>num = 7</code>일 때, num이 짝수면 <b>"짝수"</b>, 홀수면 <b>"홀수"</b>를 출력하는 코드를 작성해보세요. (힌트: <code>num % 2 === 0</code>이면 짝수예요)',
-    starter:`const num = 7;\n\n// if문으로 짝수/홀수를 판단해서 출력해보세요\n`,
-    hint:'if (num % 2 === 0) { console.log("짝수"); } else { console.log("홀수"); }',
-    check:logs=>logs.some(t=>t.includes('홀수')),
-  }
+  quizzes:[
+    {
+      q:'변수 <code>num = 7</code>일 때, num이 짝수면 <b>"짝수"</b>, 홀수면 <b>"홀수"</b>를 출력하는 코드를 작성해보세요. (힌트: <code>num % 2 === 0</code>이면 짝수예요)',
+      starter:`const num = 7;\n\n// if문으로 짝수/홀수를 판단해서 출력해보세요\n`,
+      hint:'if (num % 2 === 0) { console.log("짝수"); } else { console.log("홀수"); }',
+      check:logs=>logs.some(t=>t.includes('홀수')),
+    },
+    {
+      q:'<code>age = 17</code>일 때, 18 이상이면 <b>"성인"</b>, 아니면 <b>"미성년자"</b>를 출력해보세요.',
+      starter:`const age = 17;\n\n// if문을 작성해보세요\n`,
+      hint:'if (age >= 18) { console.log("성인"); } else { console.log("미성년자"); }',
+      check:logs=>logs.some(t=>t.includes('미성년자')),
+    },
+    {
+      q:'<code>score = 95</code>일 때, 90 이상이면 <b>"A"</b>, 아니면 <b>"B"</b>를 출력해보세요.',
+      starter:`const score = 95;\n\n// if문을 작성해보세요\n`,
+      hint:'if (score >= 90) { console.log("A"); } else { console.log("B"); }',
+      check:logs=>logs.some(t=>t.trim()==='A'),
+    },
+  ]
 },
 {
   title:'반복문 (for / while)',
@@ -295,12 +367,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 반복문 안에서 변수를 잘못 바꾸면 <b>무한 루프</b>에 빠질 수 있으니 조건과 증감을 항상 확인하세요.</div>
   `,
   code:`// 1부터 5까지 출력\nfor (let i = 1; i <= 5; i++) {\n  console.log("i =", i);\n}\n\n// 구구단 2단\nlet n = 1;\nwhile (n <= 9) {\n  console.log("2 x " + n + " = " + (2*n));\n  n++;\n}`,
-  quiz:{
-    q:'<code>for</code>문을 사용해서 1부터 3까지의 숫자를 한 줄씩 출력해보세요. (결과: 1, 2, 3이 각각 다른 줄에 나와야 해요)',
-    starter:`// for문으로 1부터 3까지 출력해보세요\n`,
-    hint:'for (let i = 1; i <= 3; i++) { console.log(i); }',
-    check:logs=>logs.some(t=>t.trim()==='1')&&logs.some(t=>t.trim()==='2')&&logs.some(t=>t.trim()==='3'),
-  }
+  quizzes:[
+    {
+      q:'<code>for</code>문을 사용해서 1부터 3까지의 숫자를 한 줄씩 출력해보세요. (결과: 1, 2, 3이 각각 다른 줄에 나와야 해요)',
+      starter:`// for문으로 1부터 3까지 출력해보세요\n`,
+      hint:'for (let i = 1; i <= 3; i++) { console.log(i); }',
+      check:logs=>logs.some(t=>t.trim()==='1')&&logs.some(t=>t.trim()==='2')&&logs.some(t=>t.trim()==='3'),
+    },
+    {
+      q:'<code>for</code>문으로 1부터 5까지의 합을 구해서 출력해보세요. (정답: 15)',
+      starter:`// 1부터 5까지 합을 구해 출력해보세요\n`,
+      hint:'let sum=0; for(let i=1;i<=5;i++){ sum+=i; } console.log(sum);',
+      check:logs=>logs.some(t=>t.trim()==='15'),
+    },
+    {
+      q:'<code>while</code>문으로 <b>"반복"</b>이라는 글자를 정확히 3번 출력해보세요.',
+      starter:`let count = 0;\n\n// while문으로 "반복"을 3번 출력해보세요\n`,
+      hint:'while(count<3){ console.log("반복"); count++; }',
+      check:logs=>logs.filter(t=>t.trim()==='반복').length===3,
+    },
+  ]
 },
 {
   title:'함수 (Function)',
@@ -316,12 +402,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 함수 이름은 <b>동사</b>로 시작하면 읽기 좋아요. 예: <code>calculateSum</code>, <code>getName</code></div>
   `,
   code:`function add(a, b) {\n  return a + b;\n}\n\nfunction greet(name) {\n  return "안녕, " + name + "!";\n}\n\nconsole.log(add(3, 4));\nconsole.log(greet("코딩기초"));`,
-  quiz:{
-    q:'두 수를 더해서 결과를 돌려주는 함수 <code>add(a, b)</code>를 만들고, <code>console.log(add(2, 3))</code>으로 결과를 출력해보세요.',
-    starter:`// add 함수를 만들고 add(2, 3)의 결과를 출력해보세요\nfunction add(a, b) {\n\n}\n`,
-    hint:'function add(a, b) { return a + b; } 그 다음 console.log(add(2, 3)); 을 추가하세요. 결과는 5가 나와야 해요.',
-    check:logs=>logs.some(t=>t.trim()==='5'),
-  }
+  quizzes:[
+    {
+      q:'두 수를 더해서 결과를 돌려주는 함수 <code>add(a, b)</code>를 만들고, <code>console.log(add(2, 3))</code>으로 결과를 출력해보세요.',
+      starter:`// add 함수를 만들고 add(2, 3)의 결과를 출력해보세요\nfunction add(a, b) {\n\n}\n`,
+      hint:'function add(a, b) { return a + b; } 그 다음 console.log(add(2, 3)); 을 추가하세요. 결과는 5가 나와야 해요.',
+      check:logs=>logs.some(t=>t.trim()==='5'),
+    },
+    {
+      q:'두 수를 빼서 결과를 돌려주는 함수 <code>subtract(a, b)</code>를 만들고, <code>subtract(10, 4)</code>를 출력해보세요. (정답: 6)',
+      starter:`function subtract(a, b) {\n\n}\n\nconsole.log(subtract(10, 4));\n`,
+      hint:'function subtract(a, b) { return a - b; }',
+      check:logs=>logs.some(t=>t.trim()==='6'),
+    },
+    {
+      q:'이름을 받아 <b>"안녕 " + 이름</b>을 돌려주는 함수 <code>greet(name)</code>을 만들고, <code>greet("철수")</code>를 출력해보세요.',
+      starter:`function greet(name) {\n\n}\n\nconsole.log(greet("철수"));\n`,
+      hint:'function greet(name) { return "안녕 " + name; }',
+      check:logs=>logs.some(t=>t.includes('안녕')&&t.includes('철수')),
+    },
+  ]
 },
 {
   title:'배열 (Array)',
@@ -338,12 +438,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 배열 순회는 <code>for</code>문 대신 <code>forEach</code>나 <code>for...of</code>를 쓰면 더 간결해요.</div>
   `,
   code:`const fruits = ["사과", "바나나", "포도"];\n\nconsole.log("전체:", fruits);\nconsole.log("첫번째:", fruits[0]);\nconsole.log("개수:", fruits.length);\n\nfruits.push("딸기");\nfruits.forEach(f => console.log("과일:", f));`,
-  quiz:{
-    q:'배열 <code>const arr = [1, 2, 3]</code>을 만들고, <code>arr.length</code>(배열의 길이)를 출력해보세요.',
-    starter:`const arr = [1, 2, 3];\n\n// arr의 길이를 출력해보세요\n`,
-    hint:'console.log(arr.length); 결과는 3이 나와야 해요.',
-    check:logs=>logs.some(t=>t.trim()==='3'),
-  }
+  quizzes:[
+    {
+      q:'배열 <code>const arr = [1, 2, 3]</code>을 만들고, <code>arr.length</code>(배열의 길이)를 출력해보세요.',
+      starter:`const arr = [1, 2, 3];\n\n// arr의 길이를 출력해보세요\n`,
+      hint:'console.log(arr.length); 결과는 3이 나와야 해요.',
+      check:logs=>logs.some(t=>t.trim()==='3'),
+    },
+    {
+      q:'배열 <code>const arr = ["a", "b", "c"]</code>에서 인덱스 1번 값을 출력해보세요. (정답: "b")',
+      starter:`const arr = ["a", "b", "c"];\n\n// 인덱스 1번 값을 출력해보세요\n`,
+      hint:'console.log(arr[1]); → "b"',
+      check:logs=>logs.some(t=>t.includes('b')),
+    },
+    {
+      q:'배열 <code>const arr = [1, 2, 3]</code>에 <code>push</code>로 <b>4</b>를 추가한 뒤, 배열의 길이를 출력해보세요. (정답: 4)',
+      starter:`const arr = [1, 2, 3];\n\n// 4를 push하고 길이를 출력해보세요\n`,
+      hint:'arr.push(4); console.log(arr.length); → 4',
+      check:logs=>logs.some(t=>t.trim()==='4'),
+    },
+  ]
 },
 {
   title:'객체 (Object)',
@@ -358,12 +472,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 게임 캐릭터, 학생 정보 등 "속성이 여러 개인 하나의 대상"을 표현할 때 객체가 딱이에요.</div>
   `,
   code:`const student = {\n  name: "코딩이",\n  age: 13,\n  score: 92,\n  intro() {\n    return this.name + "의 점수는 " + this.score + "점";\n  }\n};\n\nconsole.log(student.name);\nconsole.log(student.intro());`,
-  quiz:{
-    q:'객체 <code>const person = { name: "코딩" }</code>을 만들고, <code>person.name</code>을 출력해보세요.',
-    starter:`const person = { name: "코딩" };\n\n// person.name을 출력해보세요\n`,
-    hint:'console.log(person.name); 결과는 "코딩"이 나와야 해요.',
-    check:logs=>logs.some(t=>t.includes('코딩')),
-  }
+  quizzes:[
+    {
+      q:'객체 <code>const person = { name: "코딩" }</code>을 만들고, <code>person.name</code>을 출력해보세요.',
+      starter:`const person = { name: "코딩" };\n\n// person.name을 출력해보세요\n`,
+      hint:'console.log(person.name); 결과는 "코딩"이 나와야 해요.',
+      check:logs=>logs.some(t=>t.includes('코딩')),
+    },
+    {
+      q:'객체 <code>const info = { age: 10 }</code>을 만들고 <code>info.age</code>를 출력해보세요.',
+      starter:`const info = { age: 10 };\n\n// info.age를 출력해보세요\n`,
+      hint:'console.log(info.age); → 10',
+      check:logs=>logs.some(t=>t.trim()==='10'),
+    },
+    {
+      q:'객체 안에 메서드를 넣어보세요: <code>{ greet() { return "hi"; } }</code> 형태로 만들고, <code>obj.greet()</code>를 출력해보세요.',
+      starter:`const obj = {\n  greet() {\n    return "hi";\n  }\n};\n\n// obj.greet()를 출력해보세요\n`,
+      hint:'console.log(obj.greet()); → "hi"',
+      check:logs=>logs.some(t=>t.includes('hi')),
+    },
+  ]
 },
 {
   title:'연산자 (Operator)',
@@ -384,12 +512,26 @@ const LESSONS=[
     <div class="tip">💡 팁: <code>%</code>(나머지)는 "짝수/홀수 판별", "몇 번째마다 반복" 같은 문제에서 정말 자주 쓰여요.</div>
   `,
   code:`console.log("더하기:", 3 + 5);\nconsole.log("나머지:", 7 % 2);\nconsole.log("거듭제곱:", 2 ** 3);\n\nlet x = 10;\nx += 5;\nconsole.log("x += 5 후:", x);\nx++;\nconsole.log("x++ 후:", x);`,
-  quiz:{
-    q:'<code>17 % 5</code>(17을 5로 나눈 나머지)의 결과를 출력해보세요.',
-    starter:`// 17 % 5 결과를 출력해보세요\n`,
-    hint:'console.log(17 % 5); → 17 ÷ 5 = 3 나머지 2, 정답은 2예요.',
-    check:logs=>logs.some(t=>t.trim()==='2'),
-  }
+  quizzes:[
+    {
+      q:'<code>17 % 5</code>(17을 5로 나눈 나머지)의 결과를 출력해보세요.',
+      starter:`// 17 % 5 결과를 출력해보세요\n`,
+      hint:'console.log(17 % 5); → 17 ÷ 5 = 3 나머지 2, 정답은 2예요.',
+      check:logs=>logs.some(t=>t.trim()==='2'),
+    },
+    {
+      q:'<code>5 * 6</code>의 결과를 출력해보세요.',
+      starter:`// 5 * 6 결과를 출력해보세요\n`,
+      hint:'console.log(5 * 6); → 30',
+      check:logs=>logs.some(t=>t.trim()==='30'),
+    },
+    {
+      q:'<code>10 / 4</code>의 결과를 출력해보세요.',
+      starter:`// 10 / 4 결과를 출력해보세요\n`,
+      hint:'console.log(10 / 4); → 2.5',
+      check:logs=>logs.some(t=>t.trim()==='2.5'),
+    },
+  ]
 },
 {
   title:'비교 · 논리 연산자',
@@ -410,12 +552,26 @@ const LESSONS=[
     <div class="tip">💡 팁: <code>"5" == 5</code>는 true지만 <code>"5" === 5</code>는 false예요. 헷갈림을 막으려면 항상 <b>===</b>를 쓰세요.</div>
   `,
   code:`console.log("5" == 5);   // true (값만 비교)\nconsole.log("5" === 5);  // false (타입도 비교)\n\nconst age = 20;\nconsole.log(age > 18 && age < 65);  // 둘 다 참이어야 true\nconsole.log(age < 10 || age > 15);  // 하나만 참이어도 true\nconsole.log(!(age > 18));           // 참/거짓 뒤집기`,
-  quiz:{
-    q:'변수 <code>a = 10</code>, <code>b = "10"</code>일 때, <code>a === b</code>의 결과를 출력해보세요.',
-    starter:`const a = 10;\nconst b = "10";\n\n// a === b 결과를 출력해보세요\n`,
-    hint:'console.log(a === b); → 숫자와 문자열은 타입이 다르므로 결과는 false예요.',
-    check:logs=>logs.some(t=>t.trim()==='false'),
-  }
+  quizzes:[
+    {
+      q:'변수 <code>a = 10</code>, <code>b = "10"</code>일 때, <code>a === b</code>의 결과를 출력해보세요.',
+      starter:`const a = 10;\nconst b = "10";\n\n// a === b 결과를 출력해보세요\n`,
+      hint:'console.log(a === b); → 숫자와 문자열은 타입이 다르므로 결과는 false예요.',
+      check:logs=>logs.some(t=>t.trim()==='false'),
+    },
+    {
+      q:'<code>5 &gt; 3 && 2 &gt; 1</code>의 결과를 출력해보세요.',
+      starter:`// 5 > 3 && 2 > 1 결과를 출력해보세요\n`,
+      hint:'console.log(5 > 3 && 2 > 1); → 둘 다 참이라 true',
+      check:logs=>logs.some(t=>t.trim()==='true'),
+    },
+    {
+      q:'<code>5 &gt; 10 || 3 &gt; 1</code>의 결과를 출력해보세요.',
+      starter:`// 5 > 10 || 3 > 1 결과를 출력해보세요\n`,
+      hint:'console.log(5 > 10 || 3 > 1); → 하나만 참이어도 true',
+      check:logs=>logs.some(t=>t.trim()==='true'),
+    },
+  ]
 },
 {
   title:'문자열 다루기 (String)',
@@ -435,12 +591,26 @@ const LESSONS=[
     <div class="tip">💡 팁: <code>"안녕 " + name + "!"</code> 보다 <code>\`안녕 \${name}!\`</code>이 훨씬 읽기 편해요.</div>
   `,
   code:`const msg = "Hello Coding";\n\nconsole.log("길이:", msg.length);\nconsole.log("포함?:", msg.includes("Coding"));\nconsole.log("자르기:", msg.slice(0, 5));\nconsole.log("대문자:", msg.toUpperCase());\n\nconst name = "코딩이";\nconsole.log(\`안녕, \${name}! 반가워요.\`);`,
-  quiz:{
-    q:'문자열 <code>const word = "JavaScript"</code>의 길이(<code>length</code>)를 출력해보세요.',
-    starter:`const word = "JavaScript";\n\n// word의 길이를 출력해보세요\n`,
-    hint:'console.log(word.length); → "JavaScript"는 10글자예요.',
-    check:logs=>logs.some(t=>t.trim()==='10'),
-  }
+  quizzes:[
+    {
+      q:'문자열 <code>const word = "JavaScript"</code>의 길이(<code>length</code>)를 출력해보세요.',
+      starter:`const word = "JavaScript";\n\n// word의 길이를 출력해보세요\n`,
+      hint:'console.log(word.length); → "JavaScript"는 10글자예요.',
+      check:logs=>logs.some(t=>t.trim()==='10'),
+    },
+    {
+      q:'문자열 <code>const str = "banana"</code>에 <b>"an"</b>이 포함되어 있는지 <code>includes</code>로 확인해서 출력해보세요.',
+      starter:`const str = "banana";\n\n// includes로 "an"이 포함되어 있는지 출력해보세요\n`,
+      hint:'console.log(str.includes("an")); → true',
+      check:logs=>logs.some(t=>t.trim()==='true'),
+    },
+    {
+      q:'문자열 <code>const str = "abc"</code>를 <code>toUpperCase()</code>로 대문자로 바꿔 출력해보세요. (정답: "ABC")',
+      starter:`const str = "abc";\n\n// 대문자로 바꿔서 출력해보세요\n`,
+      hint:'console.log(str.toUpperCase()); → "ABC"',
+      check:logs=>logs.some(t=>t.includes('ABC')),
+    },
+  ]
 },
 {
   title:'배열 메서드 심화',
@@ -457,12 +627,26 @@ const LESSONS=[
     <div class="tip">💡 팁: <code>f</code> 자리에는 <code>x => x * 2</code> 처럼 짧은 <b>화살표 함수</b>를 넣는 게 일반적이에요.</div>
   `,
   code:`const nums = [1, 2, 3, 4, 5];\n\nconst doubled = nums.map(n => n * 2);\nconsole.log("2배로:", doubled);\n\nconst evens = nums.filter(n => n % 2 === 0);\nconsole.log("짝수만:", evens);\n\nconst found = nums.find(n => n > 3);\nconsole.log("3보다 큰 첫 값:", found);`,
-  quiz:{
-    q:'배열 <code>const nums = [1,2,3,4,5,6]</code>에서 <code>filter</code>를 사용해 짝수만 골라 출력해보세요. (결과: [2, 4, 6])',
-    starter:`const nums = [1, 2, 3, 4, 5, 6];\n\n// filter로 짝수만 골라 출력해보세요\n`,
-    hint:'console.log(nums.filter(n => n % 2 === 0));',
-    check:logs=>logs.some(t=>t.includes('2')&&t.includes('4')&&t.includes('6')),
-  }
+  quizzes:[
+    {
+      q:'배열 <code>const nums = [1,2,3,4,5,6]</code>에서 <code>filter</code>를 사용해 짝수만 골라 출력해보세요. (결과: [2, 4, 6])',
+      starter:`const nums = [1, 2, 3, 4, 5, 6];\n\n// filter로 짝수만 골라 출력해보세요\n`,
+      hint:'console.log(nums.filter(n => n % 2 === 0));',
+      check:logs=>logs.some(t=>t.includes('2')&&t.includes('4')&&t.includes('6')),
+    },
+    {
+      q:'배열 <code>const nums = [1, 2, 3]</code>의 각 값을 2배로 만들어(<code>map</code>) 출력해보세요. (결과: [2, 4, 6])',
+      starter:`const nums = [1, 2, 3];\n\n// map으로 각 값을 2배로 만들어 출력해보세요\n`,
+      hint:'console.log(nums.map(n => n * 2));',
+      check:logs=>logs.some(t=>t.includes('2')&&t.includes('4')&&t.includes('6')),
+    },
+    {
+      q:'배열 <code>const nums = [5, 10, 15]</code>에서 <code>find</code>로 8보다 큰 첫 번째 값을 찾아 출력해보세요. (정답: 10)',
+      starter:`const nums = [5, 10, 15];\n\n// find로 8보다 큰 첫 값을 출력해보세요\n`,
+      hint:'console.log(nums.find(n => n > 8)); → 10',
+      check:logs=>logs.some(t=>t.trim()==='10'),
+    },
+  ]
 },
 {
   title:'삼항연산자 & null/undefined',
@@ -479,12 +663,26 @@ const LESSONS=[
     <div class="tip">💡 팁: <code>undefined</code>는 "깜빡하고 안 넣음", <code>null</code>은 "일부러 비워둠"이라고 기억하면 헷갈리지 않아요.</div>
   `,
   code:`const age = 20;\nconst msg = age >= 18 ? "성인입니다" : "미성년자입니다";\nconsole.log(msg);\n\nlet a;\nconsole.log(a);           // undefined\n\nlet b = null;\nconsole.log(b);           // null\n\nconsole.log("abc" * 2);   // NaN`,
-  quiz:{
-    q:'삼항연산자를 사용해서, <code>score = 40</code>일 때 60 이상이면 <b>"합격"</b>, 아니면 <b>"불합격"</b>을 출력해보세요.',
-    starter:`const score = 40;\n\n// 삼항연산자로 합격/불합격을 출력해보세요\n`,
-    hint:'console.log(score >= 60 ? "합격" : "불합격");',
-    check:logs=>logs.some(t=>t.includes('불합격')),
-  }
+  quizzes:[
+    {
+      q:'삼항연산자를 사용해서, <code>score = 40</code>일 때 60 이상이면 <b>"합격"</b>, 아니면 <b>"불합격"</b>을 출력해보세요.',
+      starter:`const score = 40;\n\n// 삼항연산자로 합격/불합격을 출력해보세요\n`,
+      hint:'console.log(score >= 60 ? "합격" : "불합격");',
+      check:logs=>logs.some(t=>t.includes('불합격')),
+    },
+    {
+      q:'변수만 선언하고(<code>let x;</code>) 값을 넣지 않은 상태에서 <code>typeof x</code>를 출력해보세요. (정답: "undefined")',
+      starter:`let x;\n\n// typeof x를 출력해보세요\n`,
+      hint:'console.log(typeof x); → "undefined"',
+      check:logs=>logs.some(t=>t.includes('undefined')),
+    },
+    {
+      q:'삼항연산자로 <code>num = 8</code>이 짝수면 <b>"짝"</b>, 홀수면 <b>"홀"</b>을 출력해보세요.',
+      starter:`const num = 8;\n\n// 삼항연산자로 출력해보세요\n`,
+      hint:'console.log(num % 2 === 0 ? "짝" : "홀");',
+      check:logs=>logs.some(t=>t.trim()==='짝'),
+    },
+  ]
 },
 {
   title:'화살표 함수 & 스코프',
@@ -501,12 +699,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 함수나 if/for 블록 <b>안에서</b> let/const로 만든 변수는 블록 <b>밖에서는</b> 사용할 수 없어요.</div>
   `,
   code:`const add = (a, b) => a + b;\nconst square = x => x * x;\n\nconsole.log(add(2, 3));\nconsole.log(square(5));\n\nif (true) {\n  let insideVar = "나는 블록 안에만 있어요";\n  console.log(insideVar);\n}\n// console.log(insideVar); // 여기서 쓰면 오류가 나요! (스코프 밖이라서)`,
-  quiz:{
-    q:'화살표 함수로 <code>triple</code>이라는, 숫자를 3배로 만드는 함수를 만들고 <code>triple(4)</code>를 출력해보세요.',
-    starter:`// triple 화살표 함수를 만들고 triple(4)를 출력해보세요\nconst triple = x => ;\n`,
-    hint:'const triple = x => x * 3; 그 다음 console.log(triple(4)); → 결과는 12예요.',
-    check:logs=>logs.some(t=>t.trim()==='12'),
-  }
+  quizzes:[
+    {
+      q:'화살표 함수로 <code>triple</code>이라는, 숫자를 3배로 만드는 함수를 만들고 <code>triple(4)</code>를 출력해보세요.',
+      starter:`// triple 화살표 함수를 만들고 triple(4)를 출력해보세요\nconst triple = x => ;\n`,
+      hint:'const triple = x => x * 3; 그 다음 console.log(triple(4)); → 결과는 12예요.',
+      check:logs=>logs.some(t=>t.trim()==='12'),
+    },
+    {
+      q:'화살표 함수로 <code>double</code>(숫자를 2배로 만드는 함수)을 만들고 <code>double(5)</code>를 출력해보세요.',
+      starter:`const double = x => ;\n\nconsole.log(double(5));\n`,
+      hint:'const double = x => x * 2; → double(5)는 10',
+      check:logs=>logs.some(t=>t.trim()==='10'),
+    },
+    {
+      q:'<code>if(true){ let a=5; }</code> 블록 밖에서 <code>typeof a</code>를 출력해보세요. 스코프 밖이라 값이 없다는 걸 확인하는 문제예요. (정답: "undefined")',
+      starter:`if (true) {\n  let a = 5;\n}\n\n// 블록 밖에서 typeof a를 출력해보세요\n`,
+      hint:'console.log(typeof a); → 블록 안에서만 존재하는 변수라 밖에서는 "undefined"',
+      check:logs=>logs.some(t=>t.includes('undefined')),
+    },
+  ]
 },
 {
   title:'구조분해할당 & 스프레드',
@@ -523,12 +735,26 @@ const LESSONS=[
     <div class="tip">💡 팁: <code>const copy = [...arr]</code>처럼 쓰면 원본은 그대로 두고 새 배열을 복사할 수 있어요.</div>
   `,
   code:`const [first, second] = ["사과", "바나나"];\nconsole.log(first, second);\n\nconst person = { name: "코딩이", age: 13 };\nconst { name, age } = person;\nconsole.log(name, age);\n\nconst arr1 = [1, 2];\nconst arr2 = [...arr1, 3, 4];\nconsole.log(arr2);`,
-  quiz:{
-    q:'객체 <code>const info = { city: "서울", year: 2026 }</code>에서 구조분해할당으로 <code>city</code> 값을 꺼내 출력해보세요.',
-    starter:`const info = { city: "서울", year: 2026 };\n\n// 구조분해할당으로 city를 꺼내 출력해보세요\n`,
-    hint:'const { city } = info; console.log(city); → 결과는 "서울"이에요.',
-    check:logs=>logs.some(t=>t.includes('서울')),
-  }
+  quizzes:[
+    {
+      q:'객체 <code>const info = { city: "서울", year: 2026 }</code>에서 구조분해할당으로 <code>city</code> 값을 꺼내 출력해보세요.',
+      starter:`const info = { city: "서울", year: 2026 };\n\n// 구조분해할당으로 city를 꺼내 출력해보세요\n`,
+      hint:'const { city } = info; console.log(city); → 결과는 "서울"이에요.',
+      check:logs=>logs.some(t=>t.includes('서울')),
+    },
+    {
+      q:'배열 <code>const [x, y] = [5, 9]</code>로 구조분해할당을 한 뒤, <code>x+y</code>를 출력해보세요. (정답: 14)',
+      starter:`const [x, y] = [5, 9];\n\n// x+y를 출력해보세요\n`,
+      hint:'console.log(x + y); → 14',
+      check:logs=>logs.some(t=>t.trim()==='14'),
+    },
+    {
+      q:'배열 <code>const arr = [1, 2]</code>을 스프레드로 펼쳐 <b>3</b>을 추가한 새 배열을 만들고, 그 배열의 길이를 출력해보세요. (정답: 3)',
+      starter:`const arr = [1, 2];\n\n// 스프레드로 3을 추가한 새 배열을 만들고 길이를 출력해보세요\n`,
+      hint:'const arr2=[...arr, 3]; console.log(arr2.length); → 3',
+      check:logs=>logs.some(t=>t.trim()==='3'),
+    },
+  ]
 },
 {
   title:'에러 처리 (try/catch)',
@@ -544,12 +770,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 사용자 입력, 네트워크 요청처럼 "실패할 수도 있는" 작업에는 try/catch를 꼭 감싸주는 게 안전해요.</div>
   `,
   code:`try {\n  const result = mysteryFunction(); // 존재하지 않는 함수라 오류가 남\n  console.log(result);\n} catch (e) {\n  console.log("오류가 발생했지만 프로그램은 안 멈춰요:", e.message);\n}\nconsole.log("이 코드는 계속 실행돼요!");`,
-  quiz:{
-    q:'아래 코드를 <code>try/catch</code>로 감싸서, 오류가 나도 <b>"에러를 잡았어요"</b>가 출력되게 만들어보세요: <code>undefinedFn();</code>',
-    starter:`// try/catch로 감싸서 에러를 잡아보세요\nundefinedFn();\n`,
-    hint:'try { undefinedFn(); } catch (e) { console.log("에러를 잡았어요"); }',
-    check:logs=>logs.some(t=>t.includes('에러를 잡았어요')),
-  }
+  quizzes:[
+    {
+      q:'아래 코드를 <code>try/catch</code>로 감싸서, 오류가 나도 <b>"에러를 잡았어요"</b>가 출력되게 만들어보세요: <code>undefinedFn();</code>',
+      starter:`// try/catch로 감싸서 에러를 잡아보세요\nundefinedFn();\n`,
+      hint:'try { undefinedFn(); } catch (e) { console.log("에러를 잡았어요"); }',
+      check:logs=>logs.some(t=>t.includes('에러를 잡았어요')),
+    },
+    {
+      q:'<code>JSON.parse("{bad json")</code>를 try/catch로 감싸서, 오류가 나면 <b>"파싱 실패"</b>를 출력해보세요.',
+      starter:`// try/catch로 감싸보세요\nJSON.parse("{bad json");\n`,
+      hint:'try { JSON.parse("{bad json"); } catch(e) { console.log("파싱 실패"); }',
+      check:logs=>logs.some(t=>t.includes('파싱 실패')),
+    },
+    {
+      q:'<code>b = 0</code>일 때, b가 0이면 <code>throw new Error("0으로 나눌 수 없음")</code>으로 직접 오류를 던지고, try/catch로 그 오류 메시지를 출력해보세요.',
+      starter:`const b = 0;\n\ntry {\n  // b가 0이면 오류를 던져보세요\n} catch (e) {\n  console.log(e.message);\n}\n`,
+      hint:'if(b===0) throw new Error("0으로 나눌 수 없음"); 을 try 블록 안에 넣으세요.',
+      check:logs=>logs.some(t=>t.includes('0으로 나눌 수 없음')),
+    },
+  ]
 },
 {
   title:'클래스 (Class) — 객체지향 기초',
@@ -566,12 +806,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 클래스는 게임 캐릭터, 학생 명부처럼 "같은 모양, 다른 값"을 가진 여러 데이터를 만들 때 유용해요.</div>
   `,
   code:`class Student {\n  constructor(name, score) {\n    this.name = name;\n    this.score = score;\n  }\n  intro() {\n    return this.name + "의 점수는 " + this.score + "점";\n  }\n}\n\nconst s1 = new Student("철수", 90);\nconst s2 = new Student("영희", 95);\n\nconsole.log(s1.intro());\nconsole.log(s2.intro());`,
-  quiz:{
-    q:'<code>Animal</code> 클래스를 만들어 <code>name</code>을 저장하고, <code>new Animal("고양이")</code>로 객체를 만든 뒤 <code>.name</code>을 출력해보세요.',
-    starter:`class Animal {\n  constructor(name) {\n    this.name = name;\n  }\n}\n\n// Animal 객체를 만들고 name을 출력해보세요\n`,
-    hint:'const a = new Animal("고양이"); console.log(a.name);',
-    check:logs=>logs.some(t=>t.includes('고양이')),
-  }
+  quizzes:[
+    {
+      q:'<code>Animal</code> 클래스를 만들어 <code>name</code>을 저장하고, <code>new Animal("고양이")</code>로 객체를 만든 뒤 <code>.name</code>을 출력해보세요.',
+      starter:`class Animal {\n  constructor(name) {\n    this.name = name;\n  }\n}\n\n// Animal 객체를 만들고 name을 출력해보세요\n`,
+      hint:'const a = new Animal("고양이"); console.log(a.name);',
+      check:logs=>logs.some(t=>t.includes('고양이')),
+    },
+    {
+      q:'<code>Car</code> 클래스를 만들어 <code>brand</code>를 저장하고, <code>new Car("현대")</code>의 <code>.brand</code>를 출력해보세요.',
+      starter:`class Car {\n  constructor(brand) {\n    this.brand = brand;\n  }\n}\n\n// Car 객체를 만들고 brand를 출력해보세요\n`,
+      hint:'const c = new Car("현대"); console.log(c.brand);',
+      check:logs=>logs.some(t=>t.includes('현대')),
+    },
+    {
+      q:'<code>Person</code> 클래스에 <code>name</code>을 저장하고, <code>sayHi()</code> 메서드가 <b>"안녕 " + this.name</b>을 돌려주게 만든 뒤, <code>new Person("영희").sayHi()</code>를 출력해보세요.',
+      starter:`class Person {\n  constructor(name) {\n    this.name = name;\n  }\n  sayHi() {\n\n  }\n}\n\n// new Person("영희").sayHi()를 출력해보세요\n`,
+      hint:'sayHi() { return "안녕 " + this.name; } 그다음 console.log(new Person("영희").sayHi());',
+      check:logs=>logs.some(t=>t.includes('안녕')&&t.includes('영희')),
+    },
+  ]
 },
 {
   title:'조건문 심화 (switch문)',
@@ -590,12 +844,26 @@ const LESSONS=[
     <div class="tip">💡 팁: switch는 "===" 방식으로 정확히 비교해요. 범위 비교(90점 이상 등)에는 안 맞고, if/else가 더 적합해요.</div>
   `,
   code:`const grade = "B";\n\nswitch (grade) {\n  case "A":\n    console.log("최우수");\n    break;\n  case "B":\n    console.log("우수");\n    break;\n  case "C":\n    console.log("보통");\n    break;\n  default:\n    console.log("등급 없음");\n}\n\n// grade 값을 "A"나 "D"로 바꿔서 결과가 어떻게 달라지는지 확인해보세요!`,
-  quiz:{
-    q:'변수 <code>day = "월"</code>일 때, switch문으로 "월"이면 <b>"평일 시작!"</b>을, 그 외 값이면(default) <b>"평일 아님"</b>을 출력해보세요.',
-    starter:`const day = "월";\n\n// switch문을 작성해보세요\n`,
-    hint:'switch(day){ case "월": console.log("평일 시작!"); break; default: console.log("평일 아님"); }',
-    check:logs=>logs.some(t=>t.includes('평일 시작!')),
-  }
+  quizzes:[
+    {
+      q:'변수 <code>day = "월"</code>일 때, switch문으로 "월"이면 <b>"평일 시작!"</b>을, 그 외 값이면(default) <b>"평일 아님"</b>을 출력해보세요.',
+      starter:`const day = "월";\n\n// switch문을 작성해보세요\n`,
+      hint:'switch(day){ case "월": console.log("평일 시작!"); break; default: console.log("평일 아님"); }',
+      check:logs=>logs.some(t=>t.includes('평일 시작!')),
+    },
+    {
+      q:'변수 <code>fruit = "사과"</code>일 때, switch문으로 "사과"면 <b>"빨간 과일"</b>을, 그 외에는 <b>"모름"</b>을 출력해보세요.',
+      starter:`const fruit = "사과";\n\n// switch문을 작성해보세요\n`,
+      hint:'switch(fruit){ case "사과": console.log("빨간 과일"); break; default: console.log("모름"); }',
+      check:logs=>logs.some(t=>t.includes('빨간 과일')),
+    },
+    {
+      q:'변수 <code>num = 2</code>일 때, switch문으로 1이면 <b>"하나"</b>, 2이면 <b>"둘"</b>, 그 외엔 <b>"기타"</b>를 출력해보세요.',
+      starter:`const num = 2;\n\n// switch문을 작성해보세요\n`,
+      hint:'switch(num){ case 1: console.log("하나"); break; case 2: console.log("둘"); break; default: console.log("기타"); }',
+      check:logs=>logs.some(t=>t.trim()==='둘'),
+    },
+  ]
 },
 {
   title:'반복문 심화 (중첩 반복 & break/continue)',
@@ -613,12 +881,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 중첩 반복문에서 break는 <b>자신을 감싸고 있는 가장 가까운</b> 반복문만 멈춰요. 바깥 반복문까지 한 번에 멈추진 않아요.</div>
   `,
   code:`// 구구단 2단~4단 (중첩 반복문)\nfor (let dan = 2; dan <= 4; dan++) {\n  console.log("--- " + dan + "단 ---");\n  for (let i = 1; i <= 9; i++) {\n    console.log(dan + " x " + i + " = " + (dan*i));\n  }\n}\n\n// continue 예시: 3의 배수만 건너뛰기\nfor (let i = 1; i <= 6; i++) {\n  if (i % 3 === 0) continue;\n  console.log("continue 예시:", i);\n}`,
-  quiz:{
-    q:'중첩 for문으로 <b>2x2</b>부터 <b>3x3</b>까지, "행,열" 형태로 <code>console.log</code> 출력해보세요. (결과 예: 1,1 / 1,2 / 2,1 / 2,2 처럼 행이 1~2, 열이 1~2)',
-    starter:`// 중첩 for문으로 행,열을 출력해보세요 (행: 1~2, 열: 1~2)\n`,
-    hint:'for(let r=1;r<=2;r++){ for(let c=1;c<=2;c++){ console.log(r+","+c); } }',
-    check:logs=>logs.some(t=>t.trim()==='1,1')&&logs.some(t=>t.trim()==='2,2'),
-  }
+  quizzes:[
+    {
+      q:'중첩 for문으로 <b>2x2</b>부터 <b>3x3</b>까지, "행,열" 형태로 <code>console.log</code> 출력해보세요. (결과 예: 1,1 / 1,2 / 2,1 / 2,2 처럼 행이 1~2, 열이 1~2)',
+      starter:`// 중첩 for문으로 행,열을 출력해보세요 (행: 1~2, 열: 1~2)\n`,
+      hint:'for(let r=1;r<=2;r++){ for(let c=1;c<=2;c++){ console.log(r+","+c); } }',
+      check:logs=>logs.some(t=>t.trim()==='1,1')&&logs.some(t=>t.trim()==='2,2'),
+    },
+    {
+      q:'1부터 5까지 중 <code>continue</code>로 짝수를 건너뛰고, 홀수(1, 3, 5)만 출력해보세요.',
+      starter:`// 짝수는 건너뛰고 홀수만 출력해보세요\n`,
+      hint:'for(let i=1;i<=5;i++){ if(i%2===0) continue; console.log(i); }',
+      check:logs=>logs.some(t=>t.trim()==='1')&&logs.some(t=>t.trim()==='3')&&logs.some(t=>t.trim()==='5')&&!logs.some(t=>t.trim()==='2'),
+    },
+    {
+      q:'중첩 for문으로 1~2 (행) x 1~3 (열)의 모든 조합이 몇 개인지 세어서 출력해보세요. (정답: 6)',
+      starter:`let count = 0;\n\n// 중첩 for문으로 조합 개수를 세어 출력해보세요\n`,
+      hint:'for(let r=1;r<=2;r++){ for(let c=1;c<=3;c++){ count++; } } console.log(count); → 6',
+      check:logs=>logs.some(t=>t.trim()==='6'),
+    },
+  ]
 },
 {
   title:'배열 메서드 더 알아보기 (reduce, sort)',
@@ -636,12 +918,26 @@ const LESSONS=[
     <div class="tip">💡 팁: reduce는 처음엔 어렵게 느껴져요. "누적값에 지금 값을 계속 더해나간다"고 천천히 되새기며 연습해보세요.</div>
   `,
   code:`const nums = [3, 1, 4, 1, 5];\n\nconst sum = nums.reduce((acc, n) => acc + n, 0);\nconsole.log("합계:", sum);\n\nconst max = nums.reduce((acc, n) => n > acc ? n : acc, nums[0]);\nconsole.log("최댓값:", max);\n\nconst sorted = [...nums].sort((a, b) => a - b);\nconsole.log("오름차순 정렬:", sorted);`,
-  quiz:{
-    q:'배열 <code>const nums = [10, 20, 30]</code>의 합계를 <code>reduce</code>로 구해서 출력해보세요. (정답: 60)',
-    starter:`const nums = [10, 20, 30];\n\n// reduce로 합계를 구해 출력해보세요\n`,
-    hint:'console.log(nums.reduce((acc,n)=>acc+n, 0));',
-    check:logs=>logs.some(t=>t.trim()==='60'),
-  }
+  quizzes:[
+    {
+      q:'배열 <code>const nums = [10, 20, 30]</code>의 합계를 <code>reduce</code>로 구해서 출력해보세요. (정답: 60)',
+      starter:`const nums = [10, 20, 30];\n\n// reduce로 합계를 구해 출력해보세요\n`,
+      hint:'console.log(nums.reduce((acc,n)=>acc+n, 0));',
+      check:logs=>logs.some(t=>t.trim()==='60'),
+    },
+    {
+      q:'배열 <code>const nums = [5, 3, 8, 1]</code>에서 <code>reduce</code>로 최댓값을 구해 출력해보세요. (정답: 8)',
+      starter:`const nums = [5, 3, 8, 1];\n\n// reduce로 최댓값을 구해 출력해보세요\n`,
+      hint:'console.log(nums.reduce((acc,n)=> n>acc?n:acc, nums[0])); → 8',
+      check:logs=>logs.some(t=>t.trim()==='8'),
+    },
+    {
+      q:'배열 <code>const nums = [30, 10, 20]</code>을 <code>sort</code>로 오름차순 정렬해서 출력해보세요. (결과: [10, 20, 30])',
+      starter:`const nums = [30, 10, 20];\n\n// 오름차순으로 정렬해서 출력해보세요\n`,
+      hint:'console.log(nums.sort((a,b)=>a-b));',
+      check:logs=>logs.some(t=>t.includes('10')&&t.includes('20')&&t.includes('30')),
+    },
+  ]
 },
 {
   title:'클로저 (Closure)',
@@ -661,12 +957,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 클로저는 "함수가 태어난 곳의 변수를 배낭처럼 메고 다닌다"고 상상하면 이해가 쉬워요.</div>
   `,
   code:`function makeCounter() {\n  let count = 0;\n  return function () {\n    count++;\n    return count;\n  };\n}\n\nconst counter1 = makeCounter();\nconsole.log(counter1()); // 1\nconsole.log(counter1()); // 2\nconsole.log(counter1()); // 3\n\nconst counter2 = makeCounter(); // 완전히 새로운 count\nconsole.log(counter2()); // 1 (counter1과 별개!)`,
-  quiz:{
-    q:'<code>makeCounter</code>로 만든 <code>counter</code>를 <b>두 번</b> 호출해서, 두 번째 호출 결과(2)를 출력해보세요.',
-    starter:`function makeCounter() {\n  let count = 0;\n  return function () {\n    count++;\n    return count;\n  };\n}\n\nconst counter = makeCounter();\n// counter()를 두 번 호출하고, 두 번째 결과를 출력해보세요\n`,
-    hint:'counter(); console.log(counter()); → 첫 호출은 1, 두 번째 호출 결과 2가 출력돼요.',
-    check:logs=>logs.some(t=>t.trim()==='2'),
-  }
+  quizzes:[
+    {
+      q:'<code>makeCounter</code>로 만든 <code>counter</code>를 <b>두 번</b> 호출해서, 두 번째 호출 결과(2)를 출력해보세요.',
+      starter:`function makeCounter() {\n  let count = 0;\n  return function () {\n    count++;\n    return count;\n  };\n}\n\nconst counter = makeCounter();\n// counter()를 두 번 호출하고, 두 번째 결과를 출력해보세요\n`,
+      hint:'counter(); console.log(counter()); → 첫 호출은 1, 두 번째 호출 결과 2가 출력돼요.',
+      check:logs=>logs.some(t=>t.trim()==='2'),
+    },
+    {
+      q:'<code>makeAdder(x)</code>가 <code>y => x+y</code>를 돌려주는 함수라고 할 때, <code>makeAdder(5)</code>로 만든 함수에 3을 넣어 출력해보세요. (정답: 8)',
+      starter:`function makeAdder(x) {\n  return function (y) {\n    return x + y;\n  };\n}\n\nconst add5 = makeAdder(5);\n// add5(3)을 출력해보세요\n`,
+      hint:'console.log(add5(3)); → 5+3 = 8',
+      check:logs=>logs.some(t=>t.trim()==='8'),
+    },
+    {
+      q:'<code>makeCounter()</code>로 새로운 <code>counter2</code>를 만들어서 처음 한 번 호출해보세요. counter1과 별개로 1부터 시작하는지 확인하는 문제예요. (정답: 1)',
+      starter:`function makeCounter() {\n  let count = 0;\n  return function () {\n    count++;\n    return count;\n  };\n}\n\nconst counter1 = makeCounter();\ncounter1(); counter1(); // counter1은 이미 두 번 호출됨\n\nconst counter2 = makeCounter();\n// counter2()를 처음 호출해서 출력해보세요\n`,
+      hint:'console.log(counter2()); → counter1과 완전히 별개라서 1부터 시작해요.',
+      check:logs=>logs.some(t=>t.trim()==='1'),
+    },
+  ]
 },
 {
   title:'Set과 Map',
@@ -687,12 +997,26 @@ const LESSONS=[
     <div class="tip">💡 팁: "중복 제거"가 필요하면 Set, "key-value 저장소인데 객체보다 유연하게 쓰고 싶다"면 Map을 떠올리세요.</div>
   `,
   code:`// Set으로 중복 제거\nconst nums = [1, 2, 2, 3, 3, 3];\nconst uniqueSet = new Set(nums);\nconsole.log("중복 제거:", [...uniqueSet]);\nconsole.log("개수:", uniqueSet.size);\n\n// Map 사용\nconst scores = new Map();\nscores.set("철수", 90);\nscores.set("영희", 95);\nconsole.log(scores.get("철수"));`,
-  quiz:{
-    q:'배열 <code>[1,1,2,2,3]</code>을 <code>Set</code>으로 중복 제거한 뒤, <code>size</code>(개수)를 출력해보세요. (정답: 3)',
-    starter:`const arr = [1, 1, 2, 2, 3];\n\n// Set으로 중복을 제거하고 개수를 출력해보세요\n`,
-    hint:'const s = new Set(arr); console.log(s.size);',
-    check:logs=>logs.some(t=>t.trim()==='3'),
-  }
+  quizzes:[
+    {
+      q:'배열 <code>[1,1,2,2,3]</code>을 <code>Set</code>으로 중복 제거한 뒤, <code>size</code>(개수)를 출력해보세요. (정답: 3)',
+      starter:`const arr = [1, 1, 2, 2, 3];\n\n// Set으로 중복을 제거하고 개수를 출력해보세요\n`,
+      hint:'const s = new Set(arr); console.log(s.size);',
+      check:logs=>logs.some(t=>t.trim()==='3'),
+    },
+    {
+      q:'<code>const s = new Set([1,2,3])</code>을 만들고, <code>s.has(2)</code>가 있는지 확인해서 출력해보세요. (정답: true)',
+      starter:`const s = new Set([1, 2, 3]);\n\n// s.has(2)를 출력해보세요\n`,
+      hint:'console.log(s.has(2)); → true',
+      check:logs=>logs.some(t=>t.trim()==='true'),
+    },
+    {
+      q:'<code>Map</code>을 만들어 key <b>"a"</b>에 <b>100</b>을 저장하고, <code>get</code>으로 꺼내 출력해보세요.',
+      starter:`const m = new Map();\n\n// "a"에 100을 저장하고 꺼내서 출력해보세요\n`,
+      hint:'m.set("a", 100); console.log(m.get("a")); → 100',
+      check:logs=>logs.some(t=>t.trim()==='100'),
+    },
+  ]
 },
 {
   title:'JSON 다루기',
@@ -710,12 +1034,26 @@ const LESSONS=[
     <div class="tip">💡 팁: <code>localStorage</code>에 데이터를 저장할 때도, 객체를 저장하려면 먼저 stringify로 문자열로 바꿔야 해요.</div>
   `,
   code:`const student = { name: "코딩이", age: 13 };\n\nconst json = JSON.stringify(student);\nconsole.log("객체 → 문자열:", json);\nconsole.log(typeof json);\n\nconst back = JSON.parse(json);\nconsole.log("문자열 → 객체:", back);\nconsole.log(back.name);`,
-  quiz:{
-    q:'객체 <code>const info = { city: "서울" }</code>을 <code>JSON.stringify</code>로 문자열로 바꿔서 출력해보세요.',
-    starter:`const info = { city: "서울" };\n\n// JSON.stringify로 문자열로 바꿔서 출력해보세요\n`,
-    hint:'console.log(JSON.stringify(info)); → {"city":"서울"} 형태의 문자열이 나와요.',
-    check:logs=>logs.some(t=>t.includes('city')&&t.includes('서울')),
-  }
+  quizzes:[
+    {
+      q:'객체 <code>const info = { city: "서울" }</code>을 <code>JSON.stringify</code>로 문자열로 바꿔서 출력해보세요.',
+      starter:`const info = { city: "서울" };\n\n// JSON.stringify로 문자열로 바꿔서 출력해보세요\n`,
+      hint:'console.log(JSON.stringify(info)); → {"city":"서울"} 형태의 문자열이 나와요.',
+      check:logs=>logs.some(t=>t.includes('city')&&t.includes('서울')),
+    },
+    {
+      q:'JSON 문자열 <code>\'{"x":5}\'</code>를 <code>JSON.parse</code>로 객체로 되돌린 뒤, <code>.x</code>를 출력해보세요. (정답: 5)',
+      starter:`const json = '{"x":5}';\n\n// JSON.parse로 객체로 바꾸고 x를 출력해보세요\n`,
+      hint:'const obj = JSON.parse(json); console.log(obj.x); → 5',
+      check:logs=>logs.some(t=>t.trim()==='5'),
+    },
+    {
+      q:'배열 <code>[1, 2, 3]</code>을 <code>JSON.stringify</code>로 문자열로 바꿔 출력해보세요.',
+      starter:`const arr = [1, 2, 3];\n\n// JSON.stringify로 문자열로 바꿔서 출력해보세요\n`,
+      hint:'console.log(JSON.stringify(arr)); → "[1,2,3]"',
+      check:logs=>logs.some(t=>t.includes('1')&&t.includes('2')&&t.includes('3')),
+    },
+  ]
 },
 {
   title:'비동기 프로그래밍 (Promise) 기초',
@@ -736,12 +1074,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 아래 예제에서 "3번째 줄"이 "시작"보다 늦게 찍히는 걸 확인해보세요. setTimeout은 "잠시 후에 실행해줘"라는 비동기 명령이에요.</div>
   `,
   code:`console.log("1. 시작");\n\nconst promise = new Promise((resolve) => {\n  setTimeout(() => {\n    resolve("서버에서 받은 데이터");\n  }, 100);\n});\n\npromise.then((result) => {\n  console.log("3. 성공:", result);\n});\n\nconsole.log("2. Promise를 걸어두고 일단 다음 코드부터 실행!");`,
-  quiz:{
-    q:'아래 Promise가 성공하면 <code>.then</code>으로 결과 <b>"완료!"</b>를 출력해보세요.',
-    starter:`const p = new Promise((resolve) => {\n  resolve("완료!");\n});\n\n// .then으로 결과를 출력해보세요\n`,
-    hint:'p.then(result => console.log(result));',
-    check:logs=>logs.some(t=>t.includes('완료!')),
-  }
+  quizzes:[
+    {
+      q:'아래 Promise가 성공하면 <code>.then</code>으로 결과 <b>"완료!"</b>를 출력해보세요.',
+      starter:`const p = new Promise((resolve) => {\n  resolve("완료!");\n});\n\n// .then으로 결과를 출력해보세요\n`,
+      hint:'p.then(result => console.log(result));',
+      check:logs=>logs.some(t=>t.includes('완료!')),
+    },
+    {
+      q:'<code>Promise.resolve(42)</code>의 결과를 <code>.then</code>으로 받아 출력해보세요. (정답: 42)',
+      starter:`// Promise.resolve(42)의 결과를 .then으로 출력해보세요\n`,
+      hint:'Promise.resolve(42).then(v => console.log(v));',
+      check:logs=>logs.some(t=>t.trim()==='42'),
+    },
+    {
+      q:'아래 Promise가 실패(reject)하면 <code>.catch</code>로 <b>"실패"</b>를 출력해보세요.',
+      starter:`const p = new Promise((resolve, reject) => {\n  reject("실패");\n});\n\n// .catch로 결과를 출력해보세요\n`,
+      hint:'p.catch(e => console.log(e));',
+      check:logs=>logs.some(t=>t.includes('실패')),
+    },
+  ]
 },
 {
   title:'async / await',
@@ -758,12 +1110,26 @@ const LESSONS=[
     <div class="tip">💡 팁: await은 반드시 async 함수 안에서만 쓸 수 있어요. 최상위(함수 밖)에서 바로 쓰면 오류가 나요.</div>
   `,
   code:`function getData() {\n  return new Promise((resolve) => {\n    setTimeout(() => resolve("서버 데이터"), 100);\n  });\n}\n\nasync function main() {\n  console.log("1. 데이터 요청 시작");\n  const result = await getData();\n  console.log("2. 받은 데이터:", result);\n  console.log("3. 끝!");\n}\n\nmain();`,
-  quiz:{
-    q:'아래 <code>getName</code> 함수가 돌려주는 Promise 결과를 <code>async/await</code>로 받아서 출력해보세요.',
-    starter:`function getName() {\n  return Promise.resolve("코딩이");\n}\n\nasync function main() {\n  // await으로 결과를 받아 출력해보세요\n}\n\nmain();\n`,
-    hint:'const name = await getName(); console.log(name); 을 main 함수 안에 넣으세요.',
-    check:logs=>logs.some(t=>t.includes('코딩이')),
-  }
+  quizzes:[
+    {
+      q:'아래 <code>getName</code> 함수가 돌려주는 Promise 결과를 <code>async/await</code>로 받아서 출력해보세요.',
+      starter:`function getName() {\n  return Promise.resolve("코딩이");\n}\n\nasync function main() {\n  // await으로 결과를 받아 출력해보세요\n}\n\nmain();\n`,
+      hint:'const name = await getName(); console.log(name); 을 main 함수 안에 넣으세요.',
+      check:logs=>logs.some(t=>t.includes('코딩이')),
+    },
+    {
+      q:'아래 <code>getNum</code> 함수가 돌려주는 Promise 결과를 await으로 받아, <b>2배</b>로 만들어 출력해보세요. (정답: 14)',
+      starter:`function getNum() {\n  return Promise.resolve(7);\n}\n\nasync function main() {\n  // await으로 결과를 받아 2배로 출력해보세요\n}\n\nmain();\n`,
+      hint:'const n = await getNum(); console.log(n * 2); → 14',
+      check:logs=>logs.some(t=>t.trim()==='14'),
+    },
+    {
+      q:'<code>async function getX(){ return 100; }</code>는 사실 <code>Promise.resolve(100)</code>과 같아요. await으로 결과를 받아 출력해보세요.',
+      starter:`async function getX() {\n  return 100;\n}\n\nasync function main() {\n  // await으로 getX()의 결과를 출력해보세요\n}\n\nmain();\n`,
+      hint:'const x = await getX(); console.log(x); → 100',
+      check:logs=>logs.some(t=>t.trim()==='100'),
+    },
+  ]
 },
 {
   title:'재귀함수 (Recursion)',
@@ -783,12 +1149,26 @@ const LESSONS=[
     <div class="tip">💡 팁: 재귀함수를 짤 때는 항상 "① 언제 멈출지" 부터 먼저 정하고, "② 한 단계씩 어떻게 줄여나갈지"를 생각하세요.</div>
   `,
   code:`function factorial(n) {\n  if (n <= 1) return 1;       // 종료 조건\n  return n * factorial(n - 1); // 재귀 호출\n}\n\nconsole.log(factorial(5)); // 5*4*3*2*1 = 120\n\nfunction countDown(n) {\n  if (n <= 0) {\n    console.log("발사!");\n    return;\n  }\n  console.log(n);\n  countDown(n - 1);\n}\ncountDown(3);`,
-  quiz:{
-    q:'재귀함수 <code>sumTo(n)</code>을 만들어 1부터 n까지의 합을 구하고, <code>sumTo(4)</code>를 출력해보세요. (정답: 10)',
-    starter:`function sumTo(n) {\n  // 종료 조건과 재귀 호출을 작성해보세요\n}\n\nconsole.log(sumTo(4));\n`,
-    hint:'if(n<=1) return 1; return n + sumTo(n-1); → sumTo(4) = 4+3+2+1 = 10',
-    check:logs=>logs.some(t=>t.trim()==='10'),
-  }
+  quizzes:[
+    {
+      q:'재귀함수 <code>sumTo(n)</code>을 만들어 1부터 n까지의 합을 구하고, <code>sumTo(4)</code>를 출력해보세요. (정답: 10)',
+      starter:`function sumTo(n) {\n  // 종료 조건과 재귀 호출을 작성해보세요\n}\n\nconsole.log(sumTo(4));\n`,
+      hint:'if(n<=1) return 1; return n + sumTo(n-1); → sumTo(4) = 4+3+2+1 = 10',
+      check:logs=>logs.some(t=>t.trim()==='10'),
+    },
+    {
+      q:'재귀함수 <code>factorial(n)</code>을 만들어 <code>factorial(4)</code>를 출력해보세요. (정답: 24, 4*3*2*1)',
+      starter:`function factorial(n) {\n  // 종료 조건과 재귀 호출을 작성해보세요\n}\n\nconsole.log(factorial(4));\n`,
+      hint:'if(n<=1) return 1; return n * factorial(n-1); → 24',
+      check:logs=>logs.some(t=>t.trim()==='24'),
+    },
+    {
+      q:'재귀함수 <code>countDown(n)</code>을 만들어, n이 0 이하이면 <b>"발사!"</b>를 출력하고 멈추게, 아니면 n을 출력하고 <code>countDown(n-1)</code>을 호출하도록 만든 뒤 <code>countDown(2)</code>를 실행해보세요.',
+      starter:`function countDown(n) {\n  // 종료 조건과 재귀 호출을 작성해보세요\n}\n\ncountDown(2);\n`,
+      hint:'if(n<=0){ console.log("발사!"); return; } console.log(n); countDown(n-1);',
+      check:logs=>logs.some(t=>t.includes('발사!')),
+    },
+  ]
 },
 ];
 
@@ -1093,10 +1473,23 @@ LESSONS.forEach((l,i)=>{
   listEl.appendChild(d);
 });
 
-function quizBlockHTML(quiz){
-  if(!quiz)return '';
+// 레슨은 quizzes(배열) 또는 예전 방식인 quiz(단일 객체)를 가질 수 있어요
+function getQuizzes(l){
+  return l.quizzes || (l.quiz ? [l.quiz] : []);
+}
+
+function quizBlockHTML(list, idx){
+  if(!list || list.length===0)return '';
+  const quiz=list[idx];
+  const multi=list.length>1;
+  const navHtml=multi?`<div class="qnav">
+    <button class="btn" id="quizPrev" ${idx===0?'disabled':''} style="font-size:11px;padding:4px 10px">◀ 이전 문제</button>
+    <span class="qind">문제 ${idx+1} / ${list.length}</span>
+    <button class="btn" id="quizNext" ${idx===list.length-1?'disabled':''} style="font-size:11px;padding:4px 10px">다음 문제 ▶</button>
+  </div>`:'';
   return `<div class="quiz">
     <div class="qh">🧠 문제를 풀어보세요</div>
+    ${navHtml}
     <div class="qb">${quiz.q}</div>
     <button class="btn" id="quizStartBtn" style="margin-top:10px">📝 이 문제로 편집기 초기화</button>
     <div class="qhint" id="hintToggle">힌트 보기 ▾</div>
@@ -1110,6 +1503,8 @@ function splitSteps(html){
 }
 
 let currentQuiz=null;
+let currentQuizList=[];
+let quizIdx=0;
 let lessonSteps=[];
 let lessonStep=0;
 
@@ -1123,16 +1518,26 @@ function renderStep(){
     <div class="stepind">STEP ${lessonStep+1} / ${steps.length}<div class="dots">${dots}</div></div>
     <button class="stepbtn" id="stepNext" ${isLast?'disabled':''}>다음 설명 ▶</button>
   </div>`;
-  document.getElementById('explain').innerHTML=nav+steps[lessonStep]+(isLast?quizBlockHTML(l.quiz):'');
+  document.getElementById('explain').innerHTML=nav+steps[lessonStep]+(isLast?quizBlockHTML(currentQuizList, quizIdx):'');
   annotateKeyterms(document.getElementById('explain'));
 
   document.getElementById('stepPrev').onclick=()=>{ if(lessonStep>0){ lessonStep--; renderStep(); } };
   document.getElementById('stepNext').onclick=()=>{ if(lessonStep<steps.length-1){ lessonStep++; renderStep(); } };
 
+  const qPrev=document.getElementById('quizPrev');
+  if(qPrev)qPrev.onclick=()=>{ if(quizIdx>0){ quizIdx--; currentQuiz=currentQuizList[quizIdx]; clearGrade(); renderStep(); } };
+  const qNext=document.getElementById('quizNext');
+  if(qNext)qNext.onclick=()=>{ if(quizIdx<currentQuizList.length-1){ quizIdx++; currentQuiz=currentQuizList[quizIdx]; clearGrade(); renderStep(); } };
+
   const startBtn=document.getElementById('quizStartBtn');
-  if(startBtn)startBtn.onclick=()=>{ document.getElementById('editor').value=l.quiz.starter; document.getElementById('editor').focus(); };
+  if(startBtn)startBtn.onclick=()=>{ document.getElementById('editor').value=currentQuizList[quizIdx].starter; document.getElementById('editor').focus(); };
   const hintToggle=document.getElementById('hintToggle');
   if(hintToggle)hintToggle.onclick=()=>document.getElementById('hintBody').classList.toggle('show');
+}
+
+function clearGrade(){
+  document.getElementById('gradeResult').className='';
+  document.getElementById('gradeResult').textContent='';
 }
 
 function goto(i){
@@ -1140,7 +1545,9 @@ function goto(i){
   document.getElementById('prevBtn').style.display='';
   cur=i;
   const l=LESSONS[i];
-  currentQuiz=l.quiz;
+  currentQuizList=getQuizzes(l);
+  quizIdx=0;
+  currentQuiz=currentQuizList[0]||null;
   lessonSteps=splitSteps(l.html);
   lessonStep=0;
   document.getElementById('hTitle').textContent=(i+1)+'. '+l.title;
@@ -1148,8 +1555,7 @@ function goto(i){
   renderStep();
   document.getElementById('editor').value=l.code;
   document.getElementById('output').innerHTML='<div class="ph line">// 실행 결과가 여기 표시됩니다</div>';
-  document.getElementById('gradeResult').className='';
-  document.getElementById('gradeResult').textContent='';
+  clearGrade();
   [...listEl.children].forEach(el=>el.classList.toggle('active',+el.dataset.i===i));
   document.getElementById('prevBtn').disabled=i===0;
   document.getElementById('nextBtn').textContent=(i===LESSONS.length-1)?'처음으로 ↺':'다음 레슨 →';
@@ -1157,9 +1563,11 @@ function goto(i){
 
 let lastLogs=[];
 let lastRawLogs=[];
-function runCode(){
+// Promise/async 코드는 console.log가 마이크로태스크(또는 setTimeout)로 나중에 실행되므로,
+// fn() 호출 직후가 아니라 잠시 기다렸다가 결과를 모아서 보여주고 채점해요.
+function runCode(cb){
   const out=document.getElementById('output');
-  out.innerHTML='';
+  out.innerHTML='<div class="ph line">// 실행 중...</div>';
   const logs=[];
   const fakeConsole={
     log:(...args)=>logs.push({t:args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' '),err:false}),
@@ -1171,15 +1579,21 @@ function runCode(){
   }catch(e){
     logs.push({t:'⚠️ 오류: '+e.message, err:true});
   }
-  lastRawLogs=logs;
-  lastLogs=logs.filter(l=>!l.err).map(l=>l.t);
-  if(logs.length===0){ out.innerHTML='<div class="ph line">// 출력된 내용이 없습니다 (console.log를 사용해보세요)</div>'; return; }
-  logs.forEach(l=>{
-    const d=document.createElement('div');
-    d.className='line'+(l.err?' err':'');
-    d.textContent=l.t;
-    out.appendChild(d);
-  });
+  setTimeout(()=>{
+    lastRawLogs=logs;
+    lastLogs=logs.filter(l=>!l.err).map(l=>l.t);
+    if(logs.length===0){ out.innerHTML='<div class="ph line">// 출력된 내용이 없습니다 (console.log를 사용해보세요)</div>'; }
+    else{
+      out.innerHTML='';
+      logs.forEach(l=>{
+        const d=document.createElement('div');
+        d.className='line'+(l.err?' err':'');
+        d.textContent=l.t;
+        out.appendChild(d);
+      });
+    }
+    if(cb)cb();
+  },200);
 }
 
 function escapeHtml(s){
@@ -1198,18 +1612,21 @@ function diagnoseFailure(){
 }
 
 function checkAnswer(){
-  runCode();
-  const quiz=currentQuiz;
   const res=document.getElementById('gradeResult');
-  if(!quiz){ return; }
-  const pass=quiz.check(lastLogs);
-  res.className=pass?'ok':'no';
-  res.innerHTML=pass
-    ?'🎉 정답이에요! 다음 단계로 넘어가도 좋아요.'
-    :'❌ 아직이에요.<br>'+diagnoseFailure();
+  res.className='';
+  res.textContent='';
+  runCode(()=>{
+    const quiz=currentQuiz;
+    if(!quiz){ return; }
+    const pass=quiz.check(lastLogs);
+    res.className=pass?'ok':'no';
+    res.innerHTML=pass
+      ?'🎉 정답이에요! 다음 단계로 넘어가도 좋아요.'
+      :'❌ 아직이에요.<br>'+diagnoseFailure();
+  });
 }
 
-document.getElementById('runBtn').onclick=runCode;
+document.getElementById('runBtn').onclick=()=>runCode();
 document.getElementById('checkBtn').onclick=checkAnswer;
 document.getElementById('resetBtn').onclick=()=>{ document.getElementById('editor').value=practicing?currentQuiz.starter:LESSONS[cur].code; document.getElementById('gradeResult').className=''; };
 document.getElementById('prevBtn').onclick=()=>{ if(!practicing&&cur>0)goto(cur-1); };
@@ -1250,13 +1667,15 @@ function startTermPractice(term){
   document.getElementById('navBtns').style.display='';
   document.getElementById('hTitle').textContent='✏️ 용어 연습: '+term;
   document.getElementById('hSub').textContent='이 용어를 직접 코드로 사용해보세요';
-  document.getElementById('explain').innerHTML=`<h3>${term}</h3>`+quizBlockHTML({q:ex.q,hint:ex.hint});
+  currentQuizList=[{q:ex.q,starter:ex.starter,hint:ex.hint,check:ex.check}];
+  quizIdx=0;
+  currentQuiz=currentQuizList[0];
+  document.getElementById('explain').innerHTML=`<h3>${term}</h3>`+quizBlockHTML(currentQuizList, 0);
   annotateKeyterms(document.getElementById('explain'));
   document.getElementById('editor').value=ex.starter;
   document.getElementById('output').innerHTML='<div class="ph line">// 실행 결과가 여기 표시됩니다</div>';
   document.getElementById('gradeResult').className='';
   document.getElementById('gradeResult').textContent='';
-  currentQuiz={q:ex.q,starter:ex.starter,hint:ex.hint,check:ex.check};
   const startBtn=document.getElementById('quizStartBtn');
   if(startBtn)startBtn.onclick=()=>{ document.getElementById('editor').value=ex.starter; document.getElementById('editor').focus(); };
   const hintToggle=document.getElementById('hintToggle');
