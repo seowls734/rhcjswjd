@@ -217,7 +217,6 @@
     <div id="glossaryView">
       <div id="glossaryHead">
         <input id="glossarySearch" placeholder="🔍 용어 검색 (예: 배열, 함수, 반복문...)">
-        <button class="btn" id="glossaryClose">✕ 닫고 레슨으로</button>
       </div>
       <div id="glossaryList"></div>
     </div>
@@ -225,7 +224,6 @@
       <div id="askHead">
         <input id="askInput" placeholder="🤔 궁금한 걸 물어보세요 (예: 변수가 뭐예요?, 반복문은 언제 써요?)">
         <button class="btn" id="askSubmit">물어보기</button>
-        <button class="btn" id="askClose">✕ 닫고 레슨으로</button>
       </div>
       <div id="askChips"></div>
       <div id="askLog"></div>
@@ -236,7 +234,6 @@
         <div id="examSetupBtns">
           <button class="btn" id="examSelectAll">전체 선택</button>
           <button class="btn" id="examSelectNone">전체 해제</button>
-          <button class="btn" id="examSetupClose">✕ 닫고 레슨으로</button>
         </div>
       </div>
       <div id="examLessonList"></div>
@@ -249,7 +246,6 @@
       <div id="examResultBody"></div>
       <div id="examResultBtns">
         <button class="btn" id="examRetryBtn">🔁 같은 범위로 다시 보기</button>
-        <button class="btn" id="examBackBtn">✕ 닫고 레슨으로</button>
       </div>
     </div>
     <div id="navBtns">
@@ -1927,6 +1923,13 @@ function clearGrade(){
 
 function goto(i){
   practicing=false;
+  examMode=false;
+  document.getElementById('glossaryView').classList.remove('show');
+  document.getElementById('askView').classList.remove('show');
+  document.getElementById('examSetupView').classList.remove('show');
+  document.getElementById('examResultView').classList.remove('show');
+  document.getElementById('content').style.display='';
+  document.getElementById('navBtns').style.display='';
   document.getElementById('prevBtn').style.display='';
   cur=i;
   const l=LESSONS[i];
@@ -2117,14 +2120,7 @@ function openGlossary(){
   document.getElementById('glossarySearch').value='';
   renderGlossary('');
 }
-function closeGlossary(){
-  document.getElementById('content').style.display='';
-  document.getElementById('navBtns').style.display='';
-  document.getElementById('glossaryView').classList.remove('show');
-  goto(cur);
-}
 document.getElementById('glossaryBtn').onclick=openGlossary;
-document.getElementById('glossaryClose').onclick=closeGlossary;
 document.getElementById('glossarySearch').addEventListener('input',e=>renderGlossary(e.target.value));
 
 // ── 질문하기 ──
@@ -2253,14 +2249,7 @@ function openAsk(){
   document.getElementById('askInput').value='';
   document.getElementById('askInput').focus();
 }
-function closeAsk(){
-  document.getElementById('askView').classList.remove('show');
-  document.getElementById('content').style.display='';
-  document.getElementById('navBtns').style.display='';
-  goto(cur);
-}
 document.getElementById('askBtn').onclick=openAsk;
-document.getElementById('askClose').onclick=closeAsk;
 document.getElementById('askSubmit').onclick=askSubmitHandler;
 document.getElementById('askInput').addEventListener('keydown',e=>{ if(e.key==='Enter') askSubmitHandler(); });
 document.getElementById('askChips').addEventListener('click',e=>{
@@ -2312,14 +2301,6 @@ function openExamSetup(){
   document.getElementById('hTitle').textContent='🧪 시험 보기';
   document.getElementById('hSub').textContent='시험 볼 레슨을 골라서 실력을 확인해보세요';
   renderExamLessonList();
-}
-
-function closeExamSetup(){
-  document.getElementById('examSetupView').classList.remove('show');
-  document.getElementById('content').style.display='';
-  document.getElementById('navBtns').style.display='';
-  examMode=false;
-  goto(cur);
 }
 
 function startExam(){
@@ -2391,7 +2372,6 @@ function finishExam(){
 }
 
 document.getElementById('examBtn').onclick=openExamSetup;
-document.getElementById('examSetupClose').onclick=closeExamSetup;
 document.getElementById('examSelectAll').onclick=()=>{
   document.querySelectorAll('#examLessonList input').forEach(cb=>cb.checked=true);
   updateExamStartBar();
@@ -2401,12 +2381,6 @@ document.getElementById('examSelectNone').onclick=()=>{
   updateExamStartBar();
 };
 document.getElementById('examStartBtn').onclick=startExam;
-document.getElementById('examBackBtn').onclick=()=>{
-  document.getElementById('examResultView').classList.remove('show');
-  document.getElementById('content').style.display='';
-  document.getElementById('navBtns').style.display='';
-  goto(cur);
-};
 document.getElementById('examRetryBtn').onclick=()=>{
   document.getElementById('examResultView').classList.remove('show');
   buildAndRunExam();
