@@ -1444,6 +1444,18 @@ const GLOSSARY=[
   {t:'컴파일러 / 인터프리터',c:'compiler / interpreter',d:'사람이 쓴 코드를 컴퓨터가 실행할 수 있는 형태로 바꿔주는 프로그램.'},
   {t:'IDE / 에디터',c:'IDE, editor',d:'코드를 작성하고 실행/디버깅하기 편하게 만든 프로그램. 예: VS Code'},
 ]},
+{cat:'🔣 기호 · 문장부호',items:[
+  {t:'소괄호',c:'( )',d:'함수를 정의하거나 호출할 때 매개변수/인자를 감싸는 기호. 예: function(a, b){}, add(1,2). 연산 순서를 먼저 정할 때도 쓴다: (1+2)*3'},
+  {t:'중괄호',c:'{ }',d:'if/for/함수 등에서 실행할 코드 여러 줄을 하나의 블록으로 묶을 때 쓰거나, 객체(key:value)를 표현할 때 쓰는 기호.'},
+  {t:'대괄호',c:'[ ]',d:'배열을 만들 때(예: [1,2,3]) 쓰거나, 배열의 인덱스·객체의 속성에 접근할 때 쓰는 기호. 예: arr[0], obj["name"]'},
+  {t:'콜론',c:':',d:'객체에서 key와 value를 구분할 때(예: {name: "철수"}), 삼항연산자에서 거짓일 때의 값을 구분할 때(조건 ? A : B) 쓰는 기호.'},
+  {t:'쉼표',c:',',d:'값 여러 개를 나열할 때 구분하는 기호. 배열의 값들, 함수의 여러 인자, 여러 변수를 한 줄에 선언할 때 등에 쓴다.'},
+  {t:'점 표기법',c:'.',d:'객체의 속성이나 메서드에 접근할 때 쓰는 기호. 예: obj.name, arr.length, console.log()'},
+  {t:'따옴표',c:'" \' `',d:'문자열을 감싸는 기호. 큰따옴표(")와 작은따옴표(\')는 기능이 같고, 백틱(`)은 ${}로 변수를 바로 끼워넣을 수 있는 템플릿 리터럴 전용이다.'},
+  {t:'물음표',c:'?',d:'삼항연산자(조건 ? A : B)에서 조건을 표시하거나, 옵셔널 체이닝(obj?.a)처럼 "있으면 접근, 없으면 undefined"를 뜻할 때 쓰는 기호.'},
+  {t:'등호 개수의 차이',c:'= == ===',d:'=는 값을 대입, ==는 자료형을 무시하고 값만 비교(느슨한 비교), ===는 자료형까지 정확히 같은지 비교(엄격한 비교). 보통 ===를 쓰는 게 안전하다.'},
+  {t:'카멜케이스',c:'camelCase',d:'변수/함수 이름을 지을 때 첫 단어는 소문자, 이어지는 단어는 첫 글자만 대문자로 붙여 쓰는 방식. 예: myFirstName. 자바스크립트에서 가장 흔한 이름짓기 규칙.'},
+]},
 {cat:'🔤 값과 자료형',items:[
   {t:'변수',c:'variable',d:'값을 담아두는 상자. 이름을 붙여서(let/const) 나중에 다시 꺼내 쓸 수 있다.'},
   {t:'상수',c:'constant / const',d:'한 번 정하면 바뀌지 않는 값. const로 선언한 변수.'},
@@ -2077,12 +2089,18 @@ function findGlossaryMatch(q){
   }));
   if(candidates.length===0) return null;
   // 질문 속에 등장한 순서대로 여러 용어를 함께 다룬 질문이면, 명확히 매치된(direct) 용어를 모두 반환
-  const directHits=candidates.filter(c=>c.direct);
+  // 단, "코딩에서 ~" 처럼 그냥 배경으로 언급된 범용 용어는 다른 구체적인 용어가 있으면 제외한다
+  const ASK_GENERIC_TERMS=new Set(['코딩 / 프로그래밍','프로그램']);
+  let directHits=candidates.filter(c=>c.direct);
+  if(directHits.length>=2 && directHits.some(c=>!ASK_GENERIC_TERMS.has(c.item.t))){
+    directHits=directHits.filter(c=>!ASK_GENERIC_TERMS.has(c.item.t));
+  }
   if(directHits.length>=2){
     directHits.sort((a,b)=>a.directPos-b.directPos);
     const top=directHits.slice(0,3);
     return {multi:true,items:top.map(c=>c.item),score:Math.max(...top.map(c=>c.score))};
   }
+  if(directHits.length===1) return {item:directHits[0].item,score:directHits[0].score};
   candidates.sort((a,b)=>b.score-a.score);
   return {item:candidates[0].item,score:candidates[0].score};
 }
