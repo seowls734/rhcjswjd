@@ -1610,6 +1610,64 @@ const GLOSSARY=[
   {t:'모듈',c:'module',d:'코드를 파일 단위로 나누어 관리하고, 필요한 부분만 다른 파일에서 가져다 쓸 수 있게 하는 방식.'},
   {t:'import / export',c:'import / export',d:'다른 파일에서 만든 변수/함수를 내보내고(export), 가져와서(import) 쓰는 문법.'},
   {t:'정규표현식',c:'RegExp',d:'문자열에서 특정 패턴(형식)을 찾거나 검사할 때 쓰는 특수한 문법. 이메일 형식 검사 등에 자주 쓰인다.'},
+  {t:'정규식 패턴 / 플래그',c:'/pattern/flags',d:'슬래시(/) 사이에 찾을 패턴을 적고, 뒤에 g(전체 찾기)나 i(대소문자 무시) 같은 플래그를 붙인다.'},
+  {t:'test / match',c:'regex.test() / str.match()',d:'test()는 문자열이 패턴에 맞는지 참/거짓으로, match()는 실제로 일치한 부분을 찾아 알려준다.'},
+]},
+{cat:'🧵 문자열 메서드',items:[
+  {t:'length (문자열 길이)',c:'str.length',d:'문자열이 몇 글자인지 알려주는 속성. 예: "안녕".length → 2'},
+  {t:'slice (문자열 자르기)',c:'str.slice()',d:'문자열의 일부분을 시작~끝 위치로 잘라내어 새 문자열로 돌려준다. 예: "안녕하세요".slice(0,2) → "안녕"'},
+  {t:'split',c:'str.split()',d:'문자열을 기준 문자로 잘라서 배열로 만든다. 예: "a,b,c".split(",") → ["a","b","c"]'},
+  {t:'join',c:'arr.join()',d:'배열의 값들을 기준 문자로 이어붙여 하나의 문자열로 만든다. 예: ["a","b"].join("-") → "a-b"'},
+  {t:'trim',c:'str.trim()',d:'문자열 앞뒤의 불필요한 공백을 제거한다. 예: "  안녕  ".trim() → "안녕"'},
+  {t:'replace / replaceAll',c:'str.replace()',d:'문자열에서 특정 부분을 다른 문자로 바꾼다. replace는 처음 하나만, replaceAll은 전부 바꾼다.'},
+  {t:'includes',c:'str.includes() / arr.includes()',d:'문자열이나 배열 안에 특정 값이 들어있는지 참/거짓으로 확인한다.'},
+  {t:'indexOf',c:'str.indexOf() / arr.indexOf()',d:'값이 처음 나오는 위치(인덱스)를 찾는다. 없으면 -1을 돌려준다.'},
+  {t:'대소문자 변환',c:'toUpperCase() / toLowerCase()',d:'문자열을 전부 대문자 또는 소문자로 바꾼다.'},
+  {t:'repeat',c:'str.repeat()',d:'문자열을 정해진 횟수만큼 반복해서 이어붙인 새 문자열을 만든다.'},
+  {t:'padStart / padEnd',c:'str.padStart() / padEnd()',d:'문자열의 앞이나 뒤를 원하는 길이가 될 때까지 다른 문자로 채운다. 예: "5".padStart(2,"0") → "05"'},
+  {t:'concat (이어붙이기)',c:'str.concat() / arr.concat()',d:'문자열이나 배열 두 개 이상을 이어붙여 새 값을 만든다.'},
+]},
+{cat:'📚 배열 메서드 (추가)',items:[
+  {t:'sort',c:'arr.sort()',d:'배열을 정렬한다. 숫자를 정렬할 때는 (a,b)=>a-b 처럼 비교 함수를 꼭 넣어야 원하는 순서로 정렬된다.'},
+  {t:'reverse',c:'arr.reverse()',d:'배열의 순서를 거꾸로 뒤집는다.'},
+  {t:'splice',c:'arr.splice()',d:'배열의 중간에서 값을 제거하거나 추가하는 메서드. 예: arr.splice(1,2)는 1번 인덱스부터 2개 제거.'},
+  {t:'shift / unshift',c:'arr.shift()/unshift()',d:'배열 맨 앞의 값을 제거(shift)하거나 맨 앞에 값을 추가(unshift)하는 메서드.'},
+  {t:'every / some',c:'arr.every() / arr.some()',d:'every는 배열의 모든 값이 조건을 만족하는지, some은 하나라도 만족하는지 참/거짓으로 확인한다.'},
+  {t:'flat',c:'arr.flat()',d:'배열 안에 배열이 중첩되어 있을 때, 한 겹의 배열로 평평하게 펴주는 메서드.'},
+  {t:'Array.of / 배열 리터럴',c:'[1,2,3]',d:'[ ] 안에 값을 나열해서 바로 배열을 만드는 가장 기본적인 방법.'},
+]},
+{cat:'🔢 Math & Date',items:[
+  {t:'Math.random',c:'Math.random()',d:'0 이상 1 미만의 무작위(랜덤) 소수를 만들어주는 함수. 주사위, 랜덤 뽑기 등에 사용.'},
+  {t:'Math.floor / ceil / round',c:'Math.floor() ceil() round()',d:'소수를 정수로 바꾸는 함수들. floor는 버림, ceil은 올림, round는 반올림.'},
+  {t:'Math.max / min',c:'Math.max() / min()',d:'여러 숫자 중에서 가장 큰 값(max) 또는 가장 작은 값(min)을 찾아주는 함수.'},
+  {t:'Math.abs',c:'Math.abs()',d:'숫자의 절댓값(부호를 뗀 값)을 돌려주는 함수. 예: Math.abs(-5) → 5'},
+  {t:'Date 객체',c:'new Date()',d:'현재 날짜와 시간, 또는 특정 날짜를 다루기 위한 객체. new Date()로 지금 시각을 가져올 수 있다.'},
+]},
+{cat:'🔑 그 외 연산자 & 키워드',items:[
+  {t:'instanceof',c:'instanceof',d:'어떤 값이 특정 클래스로 만들어진 객체인지 확인하는 연산자. 예: arr instanceof Array'},
+  {t:'in 연산자',c:'in',d:'객체 안에 특정 속성(key)이 있는지 확인하는 연산자. 예: "name" in obj'},
+  {t:'delete',c:'delete',d:'객체에서 특정 속성을 완전히 지우는 연산자. 예: delete obj.age'},
+  {t:'void',c:'void',d:'뒤에 오는 식을 실행하지만 결과값은 항상 undefined로 만드는 연산자. 잘 안 쓰이지만 가끔 등장한다.'},
+  {t:'new',c:'new',d:'클래스나 생성자 함수로 새로운 객체(인스턴스)를 만들 때 앞에 붙이는 키워드.'},
+  {t:'return',c:'return',d:'함수를 즉시 끝내고, 뒤에 적은 값을 함수를 호출한 곳으로 돌려주는 키워드. return이 없으면 undefined가 반환된다.'},
+  {t:'단축 평가',c:'short-circuit evaluation',d:'&&나 ||를 계산할 때, 결과가 이미 정해지면 뒤쪽 식은 실행조차 하지 않고 넘어가는 동작 방식.'},
+]},
+{cat:'📈 알고리즘 기초',items:[
+  {t:'알고리즘',c:'algorithm',d:'어떤 문제를 해결하기 위한 순서가 정해진 절차/방법.'},
+  {t:'시간 복잡도',c:'Big O, time complexity',d:'입력 크기가 커질 때 알고리즘 실행 시간이 얼마나 늘어나는지를 나타내는 척도. O(1), O(n), O(n²) 등으로 표기.'},
+  {t:'정렬 알고리즘',c:'sorting algorithm',d:'데이터를 순서(오름차순/내림차순)대로 나열하는 방법들. 버블 정렬, 퀵 정렬 등이 있다.'},
+  {t:'이진 탐색',c:'binary search',d:'정렬된 데이터에서 가운데 값과 비교해가며 범위를 절반씩 좁혀 원하는 값을 빠르게 찾는 방법.'},
+  {t:'해시',c:'hash',d:'데이터를 빠르게 찾을 수 있도록 값을 일정한 규칙으로 변환해 저장하는 방식. 객체나 Map이 내부적으로 활용.'},
+]},
+{cat:'🧪 테스트 & 디버깅 도구',items:[
+  {t:'단위 테스트',c:'unit test',d:'함수 하나하나가 의도한 대로 동작하는지 자동으로 확인하는 작은 테스트 코드.'},
+  {t:'브레이크포인트',c:'breakpoint',d:'코드 실행을 특정 줄에서 잠깐 멈춰서, 그 시점의 변수 값들을 살펴볼 수 있게 하는 디버깅 도구.'},
+  {t:'콘솔 경고 / 표',c:'console.warn() / console.table()',d:'console.warn()은 경고 메시지를, console.table()은 배열/객체를 표 형태로 보기 좋게 출력한다.'},
+]},
+{cat:'🪟 브라우저 전역 객체',items:[
+  {t:'window',c:'window',d:'브라우저 창 자체를 가리키는 최상위 전역 객체. alert, setTimeout 등이 사실 window의 기능이다.'},
+  {t:'document',c:'document',d:'현재 열린 웹페이지(HTML 문서) 전체를 가리키는 객체. DOM을 다룰 때 항상 시작점이 된다.'},
+  {t:'navigator',c:'navigator',d:'브라우저와 기기 정보(예: 사용 언어, 온라인 상태 등)를 담고 있는 객체.'},
 ]},
 ];
 
@@ -2079,7 +2137,8 @@ const FAQ=[
   {kw:['자바스크립트가 뭐','js가 뭐'],a:'자바스크립트(JavaScript)는 웹사이트를 동적으로 움직이게 만드는 코딩 언어예요. 이 앱의 모든 예제와 채점도 자바스크립트로 동작해요.'},
 ];
 const ASK_PARTICLES=['인가요','일까요','일가요','이에요','이란','에게는','에서는','에게','에서','에는','에도','으로','로는','한테','이랑','란','은','는','이','가','을','를','로','와','과','도','만','까지','부터','인가','일까','예요','에요','에','랑','죠','나요'];
-function normalizeAsk(s){ return (s||'').toLowerCase().replace(/[?!.,~\s]+/g,' ').trim(); }
+// '.'은 지우지 않는다 — Math.random, console.log, arr.push() 처럼 마침표가 문법의 일부인 용어가 많기 때문
+function normalizeAsk(s){ return (s||'').toLowerCase().replace(/[?!,~\s]+/g,' ').trim(); }
 // 질문 문장에서 조사/어미를 최대한 떼어내 핵심 명사만 남긴 토큰들을 만든다
 function askTokens(q){
   return q.split(/\s+/).filter(Boolean).map(w=>{
@@ -2087,6 +2146,14 @@ function askTokens(q){
     for(const p of ASK_PARTICLES){ if(base.length>p.length+1 && base.endsWith(p)){ base=base.slice(0,-p.length); break; } }
     return base;
   });
+}
+// 짧은 영단어 코드(in, on 등)가 window, instanceof 같은 다른 단어 "안에" 부분 문자열로
+// 우연히 포함돼서 오매칭되는 걸 막기 위한, 영문 기준 단어 경계 확인 함수
+function escapeReg(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+function wordSubstrMatch(q, needle){
+  if(!needle) return false;
+  const re=new RegExp('(^|[^a-z0-9_])'+escapeReg(needle)+'([^a-z0-9_]|$)','i');
+  return re.test(q);
 }
 function findGlossaryMatch(q){
   const qWords=askTokens(q).filter(w=>w.length>=2);
@@ -2100,7 +2167,7 @@ function findGlossaryMatch(q){
       const hit=t.includes(' ')?q.includes(t):qWords.some(w=>w===t);
       if(hit){ score+=6; const p=q.indexOf(t); if(directPos===-1||(p>=0&&p<directPos)) directPos=p; }
     });
-    if(g.c && g.c.length>=2 && q.includes(g.c.toLowerCase())){
+    if(g.c && g.c.length>=2 && wordSubstrMatch(q, g.c.toLowerCase())){
       score+=6;
       const p=q.indexOf(g.c.toLowerCase());
       if(directPos===-1||(p>=0&&p<directPos)) directPos=p;
