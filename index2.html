@@ -2061,7 +2061,7 @@ function findFaqMatch(q){
   let best=null,bestScore=0;
   FAQ.forEach(f=>{
     let score=0;
-    f.kw.forEach(k=>{ if(q.includes(k.toLowerCase())) score+=2; });
+    f.kw.forEach(k=>{ if(q.includes(k.toLowerCase())) score+=4; });
     if(score>bestScore){ bestScore=score; best=f; }
   });
   return bestScore>0?{item:best,score:bestScore}:null;
