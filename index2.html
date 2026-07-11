@@ -2053,31 +2053,44 @@ function askTokens(q){
   });
 }
 function findGlossaryMatch(q){
-  let best=null,bestScore=0;
   const qWords=askTokens(q).filter(w=>w.length>=2);
+  const candidates=[];
   GLOSSARY.forEach(group=>group.items.forEach(g=>{
-    let score=0;
+    let score=0, directPos=-1;
     const terms=g.t.toLowerCase().split(/[\/,]/).map(s=>s.trim()).filter(Boolean);
     // 용어 자체가 질문 안에 정확히(단어 경계로, 여러 단어짜리 용어는 부분일치로) 등장하면 강한 신호
     terms.forEach(t=>{
       if(t.length<2) return;
-      if(t.includes(' ')){ if(q.includes(t)) score+=6; }
-      else if(qWords.some(w=>w===t)) score+=6;
+      const hit=t.includes(' ')?q.includes(t):qWords.some(w=>w===t);
+      if(hit){ score+=6; const p=q.indexOf(t); if(directPos===-1||(p>=0&&p<directPos)) directPos=p; }
     });
-    if(g.c && g.c.length>=2 && q.includes(g.c.toLowerCase())) score+=6;
+    if(g.c && g.c.length>=2 && q.includes(g.c.toLowerCase())){
+      score+=6;
+      const p=q.indexOf(g.c.toLowerCase());
+      if(directPos===-1||(p>=0&&p<directPos)) directPos=p;
+    }
     // 정의(definition) 문장과 핵심 단어가 2개 이상 겹칠 때만 보조 신호로 반영
     const defWords=g.d.toLowerCase().replace(/[.,()]/g,'').split(/\s+/).filter(w=>w.length>=3);
     const overlap=defWords.filter(w=>qWords.includes(w)).length;
     if(overlap>=2) score+=overlap*2;
-    if(score>bestScore){ bestScore=score; best=g; }
+    if(score>=4) candidates.push({item:g,score,directPos,direct:directPos>=0});
   }));
-  return bestScore>=4?{item:best,score:bestScore}:null;
+  if(candidates.length===0) return null;
+  // 질문 속에 등장한 순서대로 여러 용어를 함께 다룬 질문이면, 명확히 매치된(direct) 용어를 모두 반환
+  const directHits=candidates.filter(c=>c.direct);
+  if(directHits.length>=2){
+    directHits.sort((a,b)=>a.directPos-b.directPos);
+    const top=directHits.slice(0,3);
+    return {multi:true,items:top.map(c=>c.item),score:Math.max(...top.map(c=>c.score))};
+  }
+  candidates.sort((a,b)=>b.score-a.score);
+  return {item:candidates[0].item,score:candidates[0].score};
 }
 function findFaqMatch(q){
   let best=null,bestScore=0;
   FAQ.forEach(f=>{
     let score=0;
-    f.kw.forEach(k=>{ if(q.includes(k.toLowerCase())) score+=4; });
+    f.kw.forEach(k=>{ if(q.includes(k.toLowerCase())) score+=8; });
     if(score>bestScore){ bestScore=score; best=f; }
   });
   return bestScore>0?{item:best,score:bestScore}:null;
@@ -2089,6 +2102,13 @@ function answerAsk(raw){
   const glossMatch=findGlossaryMatch(q);
   if(faqMatch && (!glossMatch || faqMatch.score>=glossMatch.score)){
     return {html:faqMatch.item.a, miss:false};
+  }
+  if(glossMatch && glossMatch.multi){
+    const html=glossMatch.items.map(g=>{
+      const detail=DETAIL[g.t];
+      return `<div class="aterm">${g.t} <span style="color:var(--dim);font-weight:400">(${g.c})</span></div>${detail||g.d}`;
+    }).join('<div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)"></div>');
+    return {html, miss:false};
   }
   if(glossMatch){
     const g=glossMatch.item;
