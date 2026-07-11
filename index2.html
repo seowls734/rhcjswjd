@@ -2104,6 +2104,8 @@ function openAsk(){
   document.getElementById('hSub').textContent='궁금한 코딩 용어나 개념을 자유롭게 물어보세요';
   const chips=['변수가 뭐예요?','반복문은 언제 써요?','함수가 뭐예요?','오류가 나면 어떻게 해요?','배열이 뭐예요?'];
   document.getElementById('askChips').innerHTML=chips.map(c=>`<span class="askChip">${c}</span>`).join('');
+  document.getElementById('askLog').innerHTML='';
+  document.getElementById('askInput').value='';
   document.getElementById('askInput').focus();
 }
 function closeAsk(){
