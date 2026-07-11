@@ -1890,37 +1890,61 @@ function goto(i){
 
 let lastLogs=[];
 let lastRawLogs=[];
-// Promise/async 코드는 console.log가 마이크로태스크(또는 setTimeout)로 나중에 실행되므로,
-// fn() 호출 직후가 아니라 잠시 기다렸다가 결과를 모아서 보여주고 채점해요.
-function runCode(cb){
-  const out=document.getElementById('output');
-  out.innerHTML='<div class="ph line">// 실행 중...</div>';
+let currentRunWorker=null;
+// 사용자 코드를 Web Worker 안에서 실행해요. 메인 화면(UI)과 분리된 스레드라서,
+// while(true){} 같은 무한 루프를 실행해도 사이트 전체가 멈추지 않고,
+// 일정 시간(RUN_TIMEOUT_MS)이 지나면 강제로 중단시킬 수 있어요.
+const RUN_TIMEOUT_MS=4000;
+const RUN_WORKER_SRC=`
+self.onmessage=function(e){
   const logs=[];
   const fakeConsole={
     log:(...args)=>logs.push({t:args.map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' '),err:false}),
     error:(...args)=>logs.push({t:args.map(a=>String(a)).join(' '),err:true}),
   };
   try{
-    const fn=new Function('console', document.getElementById('editor').value);
+    const fn=new Function('console', e.data);
     fn(fakeConsole);
-  }catch(e){
-    logs.push({t:'⚠️ 오류: '+e.message, err:true});
+  }catch(err){
+    logs.push({t:'⚠️ 오류: '+err.message, err:true});
   }
-  setTimeout(()=>{
+  // Promise/async 코드는 console.log가 마이크로태스크(또는 setTimeout)로 나중에 실행되므로,
+  // fn() 호출 직후가 아니라 잠시 기다렸다가 결과를 모아서 보내요.
+  setTimeout(()=>{ self.postMessage(logs); }, 200);
+};
+`;
+function renderRunLogs(out, logs){
+  if(logs.length===0){ out.innerHTML='<div class="ph line">// 출력된 내용이 없습니다 (console.log를 사용해보세요)</div>'; return; }
+  out.innerHTML='';
+  logs.forEach(l=>{
+    const d=document.createElement('div');
+    d.className='line'+(l.err?' err':'');
+    d.textContent=l.t;
+    out.appendChild(d);
+  });
+}
+function runCode(cb){
+  const out=document.getElementById('output');
+  out.innerHTML='<div class="ph line">// 실행 중...</div>';
+  if(currentRunWorker){ currentRunWorker.terminate(); currentRunWorker=null; }
+  const worker=new Worker(URL.createObjectURL(new Blob([RUN_WORKER_SRC],{type:'text/javascript'})));
+  currentRunWorker=worker;
+  const finish=(logs)=>{
+    if(currentRunWorker!==worker) return; // 이미 타임아웃/새 실행으로 정리된 경우 무시
+    currentRunWorker=null;
+    worker.terminate();
     lastRawLogs=logs;
     lastLogs=logs.filter(l=>!l.err).map(l=>l.t);
-    if(logs.length===0){ out.innerHTML='<div class="ph line">// 출력된 내용이 없습니다 (console.log를 사용해보세요)</div>'; }
-    else{
-      out.innerHTML='';
-      logs.forEach(l=>{
-        const d=document.createElement('div');
-        d.className='line'+(l.err?' err':'');
-        d.textContent=l.t;
-        out.appendChild(d);
-      });
-    }
+    renderRunLogs(out, logs);
     if(cb)cb();
-  },200);
+  };
+  const timeoutId=setTimeout(()=>{
+    if(currentRunWorker!==worker) return;
+    finish([{t:'⚠️ 코드 실행이 너무 오래 걸려서 중단했어요. 무한 루프(끝나지 않는 반복문)가 없는지 확인해보세요.', err:true}]);
+  }, RUN_TIMEOUT_MS);
+  worker.onmessage=(e)=>{ clearTimeout(timeoutId); finish(e.data); };
+  worker.onerror=(err)=>{ clearTimeout(timeoutId); finish([{t:'⚠️ 오류: '+err.message, err:true}]); };
+  worker.postMessage(document.getElementById('editor').value);
 }
 
 function escapeHtml(s){
