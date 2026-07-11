@@ -117,6 +117,28 @@
   .gterm .gdetail code{background:var(--panel);border:1px solid var(--line);border-radius:5px;
     padding:1px 6px;font-family:Consolas,monospace;color:var(--accent)}
 
+  /* ── 질문하기 ── */
+  #askView{display:none;flex-direction:column;flex:1;padding:16px 22px;overflow:hidden}
+  #askView.show{display:flex}
+  #askHead{display:flex;gap:10px;margin-bottom:10px}
+  #askInput{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);padding:10px 12px;font-size:13px;outline:none}
+  #askInput:focus{border-color:var(--accent)}
+  #askSubmit{background:var(--accent);color:#0d0f1a;border:none}
+  #askChips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .askChip{background:var(--panel2);border:1px solid var(--line);border-radius:20px;
+    padding:5px 12px;font-size:11.5px;color:var(--dim);cursor:pointer}
+  .askChip:hover{border-color:var(--accent);color:var(--accent)}
+  #askLog{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+  .askQ{align-self:flex-end;max-width:80%;background:var(--accent);color:#0d0f1a;
+    border-radius:12px 12px 2px 12px;padding:9px 13px;font-size:13px;font-weight:700}
+  .askA{align-self:flex-start;max-width:85%;background:var(--panel2);border:1px solid var(--line);
+    border-radius:12px 12px 12px 2px;padding:10px 14px;font-size:13px;line-height:1.65}
+  .askA .aterm{font-size:11.5px;color:var(--accent2);font-weight:700;margin-bottom:4px}
+  .askA code{background:var(--panel);border:1px solid var(--line);border-radius:5px;
+    padding:1px 6px;font-family:Consolas,monospace;color:var(--accent)}
+  .askA.miss{color:var(--dim)}
+
   /* ── 시험 ── */
   #examSetupView,#examResultView{display:none;flex-direction:column;flex:1;padding:16px 22px;overflow:hidden}
   #examSetupView.show,#examResultView.show{display:flex}
@@ -169,6 +191,9 @@
     <div class="lesson" id="glossaryBtn" style="color:var(--accent2)">
       <span class="num">📖</span><span class="txt">용어 사전 전체보기</span>
     </div>
+    <div class="lesson" id="askBtn" style="color:var(--accent)">
+      <span class="num">❓</span><span class="txt">질문하기</span>
+    </div>
   </div>
   <div id="main">
     <div id="header">
@@ -195,6 +220,15 @@
         <button class="btn" id="glossaryClose">✕ 닫고 레슨으로</button>
       </div>
       <div id="glossaryList"></div>
+    </div>
+    <div id="askView">
+      <div id="askHead">
+        <input id="askInput" placeholder="🤔 궁금한 걸 물어보세요 (예: 변수가 뭐예요?, 반복문은 언제 써요?)">
+        <button class="btn" id="askSubmit">물어보기</button>
+        <button class="btn" id="askClose">✕ 닫고 레슨으로</button>
+      </div>
+      <div id="askChips"></div>
+      <div id="askLog"></div>
     </div>
     <div id="examSetupView">
       <div id="examSetupHead">
@@ -1980,6 +2014,9 @@ document.getElementById('glossaryList').addEventListener('click',e=>{
 function openGlossary(){
   document.getElementById('content').style.display='none';
   document.getElementById('navBtns').style.display='none';
+  document.getElementById('askView').classList.remove('show');
+  document.getElementById('examSetupView').classList.remove('show');
+  document.getElementById('examResultView').classList.remove('show');
   document.getElementById('glossaryView').classList.add('show');
   document.getElementById('hTitle').textContent='📖 용어 사전';
   document.getElementById('hSub').textContent='코딩에서 자주 쓰는 용어 '+GLOSSARY_COUNT+'개를 모아뒀어요';
@@ -1995,6 +2032,96 @@ function closeGlossary(){
 document.getElementById('glossaryBtn').onclick=openGlossary;
 document.getElementById('glossaryClose').onclick=closeGlossary;
 document.getElementById('glossarySearch').addEventListener('input',e=>renderGlossary(e.target.value));
+
+// ── 질문하기 ──
+const FAQ=[
+  {kw:['시작','어떻게 배워','처음','뭐부터'],a:'왼쪽 레슨 목록의 1번부터 순서대로 따라가 보세요. 각 레슨은 설명 → 예제 코드 실행 → 연습문제 순서로 되어 있어서, 순서대로만 따라가면 자연스럽게 익혀져요.'},
+  {kw:['오류','에러','안 돼','안돼','실행이 안'],a:'대부분의 오류는 <code>따옴표를 안 닫았거나</code>, <code>괄호 짝이 안 맞거나</code>, <code>세미콜론/콤마를 빼먹은 경우</code>예요. 오류 메시지에 나온 줄 번호 근처를 다시 살펴보세요. 각 레슨의 "자주 하는 실수" 부분도 참고해보세요.'},
+  {kw:['채점','틀렸','통과가 안'],a:'채점하기 버튼은 여러분의 코드를 실행한 뒤, console.log로 출력한 내용이 문제에서 원하는 조건과 맞는지 확인해요. 힌트를 눌러서 정답에 가까운 코드 형태를 참고해보세요.'},
+  {kw:['시험','exam'],a:'왼쪽 목록 아래 "🧪 시험 보기" 버튼을 누르면, 원하는 레슨 범위를 골라서 그 안의 연습문제로 실전 시험을 볼 수 있어요.'},
+  {kw:['용어 사전','용어사전'],a:'왼쪽 목록 아래 "📖 용어 사전 전체보기"를 누르면 이 앱에서 쓰는 모든 용어를 검색하고 볼 수 있어요.'},
+  {kw:['자바스크립트가 뭐','js가 뭐'],a:'자바스크립트(JavaScript)는 웹사이트를 동적으로 움직이게 만드는 코딩 언어예요. 이 앱의 모든 예제와 채점도 자바스크립트로 동작해요.'},
+];
+function normalizeAsk(s){ return (s||'').toLowerCase().replace(/[?!.,~\s]+/g,' ').trim(); }
+function findGlossaryMatch(q){
+  let best=null,bestScore=0;
+  GLOSSARY.forEach(group=>group.items.forEach(g=>{
+    let score=0;
+    const terms=g.t.toLowerCase().split(/[\/,]/).map(s=>s.trim()).filter(Boolean);
+    terms.forEach(t=>{ if(t.length>=2&&q.includes(t)) score+=3; });
+    if(g.c && q.includes(g.c.toLowerCase())) score+=3;
+    const defWords=g.d.toLowerCase().replace(/[.,()]/g,'').split(/\s+/).filter(w=>w.length>1);
+    const qWords=q.split(/\s+/).filter(w=>w.length>1);
+    defWords.forEach(w=>{ if(qWords.includes(w)) score+=1; });
+    if(score>bestScore){ bestScore=score; best=g; }
+  }));
+  return bestScore>0?{item:best,score:bestScore}:null;
+}
+function findFaqMatch(q){
+  let best=null,bestScore=0;
+  FAQ.forEach(f=>{
+    let score=0;
+    f.kw.forEach(k=>{ if(q.includes(k.toLowerCase())) score+=2; });
+    if(score>bestScore){ bestScore=score; best=f; }
+  });
+  return bestScore>0?{item:best,score:bestScore}:null;
+}
+function answerAsk(raw){
+  const q=normalizeAsk(raw);
+  if(!q) return null;
+  const faqMatch=findFaqMatch(q);
+  const glossMatch=findGlossaryMatch(q);
+  if(faqMatch && (!glossMatch || faqMatch.score>=glossMatch.score)){
+    return {html:faqMatch.item.a, miss:false};
+  }
+  if(glossMatch){
+    const g=glossMatch.item;
+    const detail=DETAIL[g.t];
+    return {html:`<div class="aterm">${g.t} <span style="color:var(--dim);font-weight:400">(${g.c})</span></div>${detail||g.d}`, miss:false};
+  }
+  return {html:'음, 정확히 아는 내용이 아니에요 🙏 다른 말로 다시 물어보시거나, "📖 용어 사전"에서 관련 단어를 검색해보세요.', miss:true};
+}
+function askSubmitHandler(){
+  const input=document.getElementById('askInput');
+  const text=input.value.trim();
+  if(!text)return;
+  const log=document.getElementById('askLog');
+  log.insertAdjacentHTML('beforeend', `<div class="askQ">${text.replace(/</g,'&lt;')}</div>`);
+  const res=answerAsk(text);
+  log.insertAdjacentHTML('beforeend', `<div class="askA${res.miss?' miss':''}">${res.html}</div>`);
+  log.scrollTop=log.scrollHeight;
+  input.value='';
+  input.focus();
+}
+function openAsk(){
+  document.getElementById('content').style.display='none';
+  document.getElementById('navBtns').style.display='none';
+  document.getElementById('glossaryView').classList.remove('show');
+  document.getElementById('examSetupView').classList.remove('show');
+  document.getElementById('examResultView').classList.remove('show');
+  document.getElementById('askView').classList.add('show');
+  document.getElementById('hTitle').textContent='❓ 질문하기';
+  document.getElementById('hSub').textContent='궁금한 코딩 용어나 개념을 자유롭게 물어보세요';
+  const chips=['변수가 뭐예요?','반복문은 언제 써요?','함수가 뭐예요?','오류가 나면 어떻게 해요?','배열이 뭐예요?'];
+  document.getElementById('askChips').innerHTML=chips.map(c=>`<span class="askChip">${c}</span>`).join('');
+  document.getElementById('askInput').focus();
+}
+function closeAsk(){
+  document.getElementById('askView').classList.remove('show');
+  document.getElementById('content').style.display='';
+  document.getElementById('navBtns').style.display='';
+  goto(cur);
+}
+document.getElementById('askBtn').onclick=openAsk;
+document.getElementById('askClose').onclick=closeAsk;
+document.getElementById('askSubmit').onclick=askSubmitHandler;
+document.getElementById('askInput').addEventListener('keydown',e=>{ if(e.key==='Enter') askSubmitHandler(); });
+document.getElementById('askChips').addEventListener('click',e=>{
+  const chip=e.target.closest('.askChip');
+  if(!chip)return;
+  document.getElementById('askInput').value=chip.textContent;
+  askSubmitHandler();
+});
 
 document.getElementById('lessonListToggle').onclick=()=>{
   document.getElementById('lessonList').classList.toggle('collapsed');
@@ -2032,6 +2159,7 @@ function openExamSetup(){
   document.getElementById('content').style.display='none';
   document.getElementById('navBtns').style.display='none';
   document.getElementById('glossaryView').classList.remove('show');
+  document.getElementById('askView').classList.remove('show');
   document.getElementById('examResultView').classList.remove('show');
   document.getElementById('examSetupView').classList.add('show');
   document.getElementById('hTitle').textContent='🧪 시험 보기';
