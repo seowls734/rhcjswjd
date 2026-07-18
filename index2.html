@@ -456,7 +456,7 @@ const LESSONS=[
   code:`const score = 85;\n\nif (score >= 90) {\n  console.log("A등급");\n} else if (score >= 80) {\n  console.log("B등급");\n} else {\n  console.log("C등급 이하");\n}\n\n// score 값을 바꿔서 결과가 어떻게 달라지는지 확인해보세요!`,
   quizzes:[
     {
-      q:'변수 <code>num = 7</code>일 때, num이 짝수면 <b>"짝수"</b>, 홀수면 <b>"홀수"</b>를 출력하는 코드를 작성해보세요. (힌트: <code>num % 2 === 0</code>이면 짝수예요)',
+      q:'변수 <code>num = 7</code>일 때, num이 짝수면 <b>"짝수"</b>, 홀수면 <b>"홀수"</b>를 출력하는 코드를 작성해보세요. (힌트: <code>%</code>는 나눗셈의 <b>나머지</b>를 구하는 기호로, <code>num % 2 === 0</code>이면 짝수예요. %는 뒤의 연산자 레슨에서 더 자세히 배워요)',
       starter:`const num = 7;\n\n// if문으로 짝수/홀수를 판단해서 출력해보세요\n`,
       hint:'if (num % 2 === 0) { console.log("짝수"); } else { console.log("홀수"); }',
       check:logs=>logs.some(t=>t.includes('홀수')),
@@ -483,6 +483,9 @@ const LESSONS=[
     <p><code>for (시작; 조건; 증감)</code> 형태로, 조건이 참인 동안 반복합니다.</p>
     <h3>while문</h3>
     <p>조건이 참인 동안 계속 반복합니다. 시작/증감을 직접 관리해야 해요.</p>
+    <h3>반복하면서 값 쌓기 (합계 구하기)</h3>
+    <p>반복문으로 숫자를 <b>더해나가려면</b>, 반복문 <b>밖에</b> 합을 담을 변수를 먼저 만들고(<code>let sum = 0;</code>),
+    반복문 <b>안에서</b> 그 변수에 계속 더해줘요(<code>sum = sum + i;</code>). 이렇게 값을 조금씩 쌓아가는 걸 <b>누적</b>이라고 해요.</p>
     <div class="tip">💡 팁: 반복문 안에서 변수를 잘못 바꾸면 <b>무한 루프</b>에 빠질 수 있으니 조건과 증감을 항상 확인하세요.</div>
     <h3>자주 하는 실수</h3>
     <ul>
@@ -491,7 +494,7 @@ const LESSONS=[
       <li>반복문 안에서 <code>let</code>으로 선언한 변수(<code>i</code> 등)는 반복문 밖에서는 사용할 수 없어요.</li>
     </ul>
   `,
-  code:`// 1부터 5까지 출력\nfor (let i = 1; i <= 5; i++) {\n  console.log("i =", i);\n}\n\n// 구구단 2단\nlet n = 1;\nwhile (n <= 9) {\n  console.log("2 x " + n + " = " + (2*n));\n  n++;\n}`,
+  code:`// 1부터 5까지 출력\nfor (let i = 1; i <= 5; i++) {\n  console.log("i =", i);\n}\n\n// 구구단 2단\nlet n = 1;\nwhile (n <= 9) {\n  console.log("2 x " + n + " = " + (2*n));\n  n++;\n}\n\n// 1부터 5까지 더하기 (값을 누적하기)\nlet sum = 0;\nfor (let i = 1; i <= 5; i++) {\n  sum = sum + i;\n}\nconsole.log("합계:", sum);`,
   quizzes:[
     {
       q:'<code>for</code>문을 사용해서 1부터 3까지의 숫자를 한 줄씩 출력해보세요. (결과: 1, 2, 3이 각각 다른 줄에 나와야 해요)',
@@ -500,9 +503,9 @@ const LESSONS=[
       check:logs=>logs.some(t=>t.trim()==='1')&&logs.some(t=>t.trim()==='2')&&logs.some(t=>t.trim()==='3'),
     },
     {
-      q:'<code>for</code>문으로 1부터 5까지의 합을 구해서 출력해보세요. (정답: 15)',
-      starter:`// 1부터 5까지 합을 구해 출력해보세요\n`,
-      hint:'let sum=0; for(let i=1;i<=5;i++){ sum+=i; } console.log(sum);',
+      q:'<code>for</code>문으로 1부터 5까지의 합을 구해서 출력해보세요. (정답: 15) — 위에서 배운 것처럼 <code>let sum = 0;</code>을 반복문 밖에 두고 안에서 더해가세요.',
+      starter:`let sum = 0;\n\n// for문으로 sum에 1부터 5까지 더한 뒤, sum을 출력해보세요\n`,
+      hint:'let sum=0; for(let i=1;i<=5;i++){ sum = sum + i; } console.log(sum);',
       check:logs=>logs.some(t=>t.trim()==='15'),
     },
     {
@@ -551,6 +554,48 @@ const LESSONS=[
       starter:`function greet(name) {\n\n}\n\nconsole.log(greet("철수"));\n`,
       hint:'function greet(name) { return "안녕 " + name; }',
       check:logs=>logs.some(t=>t.includes('안녕')&&t.includes('철수')),
+    },
+  ]
+},
+{
+  title:'화살표 함수 & 스코프',
+  sub:'함수를 짧게 쓰는 법과 변수가 보이는 범위',
+  html:`
+    <h3>화살표 함수 (Arrow Function)</h3>
+    <p><code>function</code> 키워드 대신 <code>=&gt;</code>(화살표)로 함수를 더 짧게 쓸 수 있어요.</p>
+    <ul>
+      <li><code>function add(a,b){ return a+b; }</code></li>
+      <li>= <code>const add = (a,b) => a + b;</code> (중괄호+return 생략 가능)</li>
+    </ul>
+    <h3>스코프 (Scope) — 변수가 보이는 범위</h3>
+    <p>중괄호 <code>{ }</code> 안에서 만든 변수는 그 <b>안에서만</b> 사용할 수 있어요. 이걸 스코프라고 해요.</p>
+    <div class="tip">💡 팁: 함수나 if/for 블록 <b>안에서</b> let/const로 만든 변수는 블록 <b>밖에서는</b> 사용할 수 없어요.</div>
+    <h3>자주 하는 실수</h3>
+    <ul>
+      <li>화살표 함수에서 중괄호 <code>{ }</code>를 쓰면 <b>반드시 return을 직접 써야</b> 해요. 중괄호 없이 한 줄로 쓸 때만 return이 자동 생략돼요.</li>
+      <li>매개변수가 하나면 괄호를 생략할 수 있어요(<code>x => x*2</code>). 하지만 매개변수가 없거나 둘 이상이면 괄호가 꼭 필요해요(<code>() => 1</code>, <code>(a,b) => a+b</code>).</li>
+      <li>블록 스코프 밖에서 안쪽 변수를 쓰려고 하면 <b>"정의되지 않음" 오류</b>가 나요. 필요한 변수는 블록 바깥에서 미리 선언하세요.</li>
+    </ul>
+  `,
+  code:`const add = (a, b) => a + b;\nconst square = x => x * x;\n\nconsole.log(add(2, 3));\nconsole.log(square(5));\n\nif (true) {\n  let insideVar = "나는 블록 안에만 있어요";\n  console.log(insideVar);\n}\n// console.log(insideVar); // 여기서 쓰면 오류가 나요! (스코프 밖이라서)`,
+  quizzes:[
+    {
+      q:'화살표 함수로 <code>triple</code>이라는, 숫자를 3배로 만드는 함수를 만들고 <code>triple(4)</code>를 출력해보세요.',
+      starter:`// triple 화살표 함수를 만들고 triple(4)를 출력해보세요\nconst triple = x => ;\n`,
+      hint:'const triple = x => x * 3; 그 다음 console.log(triple(4)); → 결과는 12예요.',
+      check:logs=>logs.some(t=>t.trim()==='12'),
+    },
+    {
+      q:'화살표 함수로 <code>double</code>(숫자를 2배로 만드는 함수)을 만들고 <code>double(5)</code>를 출력해보세요.',
+      starter:`const double = x => ;\n\nconsole.log(double(5));\n`,
+      hint:'const double = x => x * 2; → double(5)는 10',
+      check:logs=>logs.some(t=>t.trim()==='10'),
+    },
+    {
+      q:'<code>if(true){ let a=5; }</code> 블록 밖에서 <code>typeof a</code>를 출력해보세요. 스코프 밖이라 값이 없다는 걸 확인하는 문제예요. (정답: "undefined")',
+      starter:`if (true) {\n  let a = 5;\n}\n\n// 블록 밖에서 typeof a를 출력해보세요\n`,
+      hint:'console.log(typeof a); → 블록 안에서만 존재하는 변수라 밖에서는 "undefined"',
+      check:logs=>logs.some(t=>t.includes('undefined')),
     },
   ]
 },
@@ -858,48 +903,6 @@ const LESSONS=[
   ]
 },
 {
-  title:'화살표 함수 & 스코프',
-  sub:'함수를 짧게 쓰는 법과 변수가 보이는 범위',
-  html:`
-    <h3>화살표 함수 (Arrow Function)</h3>
-    <p><code>function</code> 키워드 대신 <code>=&gt;</code>(화살표)로 함수를 더 짧게 쓸 수 있어요.</p>
-    <ul>
-      <li><code>function add(a,b){ return a+b; }</code></li>
-      <li>= <code>const add = (a,b) => a + b;</code> (중괄호+return 생략 가능)</li>
-    </ul>
-    <h3>스코프 (Scope) — 변수가 보이는 범위</h3>
-    <p>중괄호 <code>{ }</code> 안에서 만든 변수는 그 <b>안에서만</b> 사용할 수 있어요. 이걸 스코프라고 해요.</p>
-    <div class="tip">💡 팁: 함수나 if/for 블록 <b>안에서</b> let/const로 만든 변수는 블록 <b>밖에서는</b> 사용할 수 없어요.</div>
-    <h3>자주 하는 실수</h3>
-    <ul>
-      <li>화살표 함수에서 중괄호 <code>{ }</code>를 쓰면 <b>반드시 return을 직접 써야</b> 해요. 중괄호 없이 한 줄로 쓸 때만 return이 자동 생략돼요.</li>
-      <li>객체를 바로 돌려주는 화살표 함수는 <code>x => {name: x}</code>가 아니라 <code>x => ({name: x})</code>처럼 <b>괄호로 감싸야</b> 해요. 안 그러면 중괄호를 코드 블록으로 착각해요.</li>
-      <li>블록 스코프 밖에서 안쪽 변수를 쓰려고 하면 <b>"정의되지 않음" 오류</b>가 나요. 필요한 변수는 블록 바깥에서 미리 선언하세요.</li>
-    </ul>
-  `,
-  code:`const add = (a, b) => a + b;\nconst square = x => x * x;\n\nconsole.log(add(2, 3));\nconsole.log(square(5));\n\nif (true) {\n  let insideVar = "나는 블록 안에만 있어요";\n  console.log(insideVar);\n}\n// console.log(insideVar); // 여기서 쓰면 오류가 나요! (스코프 밖이라서)`,
-  quizzes:[
-    {
-      q:'화살표 함수로 <code>triple</code>이라는, 숫자를 3배로 만드는 함수를 만들고 <code>triple(4)</code>를 출력해보세요.',
-      starter:`// triple 화살표 함수를 만들고 triple(4)를 출력해보세요\nconst triple = x => ;\n`,
-      hint:'const triple = x => x * 3; 그 다음 console.log(triple(4)); → 결과는 12예요.',
-      check:logs=>logs.some(t=>t.trim()==='12'),
-    },
-    {
-      q:'화살표 함수로 <code>double</code>(숫자를 2배로 만드는 함수)을 만들고 <code>double(5)</code>를 출력해보세요.',
-      starter:`const double = x => ;\n\nconsole.log(double(5));\n`,
-      hint:'const double = x => x * 2; → double(5)는 10',
-      check:logs=>logs.some(t=>t.trim()==='10'),
-    },
-    {
-      q:'<code>if(true){ let a=5; }</code> 블록 밖에서 <code>typeof a</code>를 출력해보세요. 스코프 밖이라 값이 없다는 걸 확인하는 문제예요. (정답: "undefined")',
-      starter:`if (true) {\n  let a = 5;\n}\n\n// 블록 밖에서 typeof a를 출력해보세요\n`,
-      hint:'console.log(typeof a); → 블록 안에서만 존재하는 변수라 밖에서는 "undefined"',
-      check:logs=>logs.some(t=>t.includes('undefined')),
-    },
-  ]
-},
-{
   title:'구조분해할당 & 스프레드',
   sub:'배열/객체에서 값을 쏙쏙 꺼내는 문법',
   html:`
@@ -952,6 +955,10 @@ const LESSONS=[
       <li><code>try</code> — 오류가 날 수도 있는 코드를 넣는 곳</li>
       <li><code>catch (e)</code> — 오류가 났을 때 처리할 코드, <code>e.message</code>로 오류 내용 확인</li>
     </ul>
+    <h3>직접 오류 던지기 (throw)</h3>
+    <p>오류는 저절로 나기도 하지만, 내가 <b>일부러</b> 낼 수도 있어요. <code>throw new Error("메시지")</code>라고 쓰면
+    "메시지"라는 내용의 오류를 직접 만들어 던져요. 던져진 오류는 <code>catch (e)</code>가 붙잡고, <code>e.message</code>로 그 메시지를 꺼내볼 수 있어요.</p>
+    <p>예를 들어 "0으로 나누기"처럼 <b>있으면 안 되는 상황</b>을 발견했을 때, 조용히 넘어가지 않고 <code>throw</code>로 확실히 알릴 수 있어요.</p>
     <div class="tip">💡 팁: 사용자 입력, 네트워크 요청처럼 "실패할 수도 있는" 작업에는 try/catch를 꼭 감싸주는 게 안전해요.</div>
     <h3>자주 하는 실수</h3>
     <ul>
@@ -960,7 +967,7 @@ const LESSONS=[
       <li><code>catch(e)</code>의 <code>e</code>를 무시하고 그냥 <code>console.log("오류남")</code>만 쓰면, 정작 무엇이 문제였는지 알 수 없어요. <code>e.message</code>를 함께 출력하는 습관을 들이세요.</li>
     </ul>
   `,
-  code:`try {\n  const result = mysteryFunction(); // 존재하지 않는 함수라 오류가 남\n  console.log(result);\n} catch (e) {\n  console.log("오류가 발생했지만 프로그램은 안 멈춰요:", e.message);\n}\nconsole.log("이 코드는 계속 실행돼요!");`,
+  code:`try {\n  const result = mysteryFunction(); // 존재하지 않는 함수라 오류가 남\n  console.log(result);\n} catch (e) {\n  console.log("오류가 발생했지만 프로그램은 안 멈춰요:", e.message);\n}\nconsole.log("이 코드는 계속 실행돼요!");\n\n// 직접 오류를 던져보기 (throw)\ntry {\n  throw new Error("내가 만든 오류!");\n} catch (e) {\n  console.log("잡은 오류 메시지:", e.message);\n}`,
   quizzes:[
     {
       q:'아래 코드를 <code>try/catch</code>로 감싸서, 오류가 나도 <b>"에러를 잡았어요"</b>가 출력되게 만들어보세요: <code>undefinedFn();</code>',
@@ -969,10 +976,10 @@ const LESSONS=[
       check:logs=>logs.some(t=>t.includes('에러를 잡았어요')),
     },
     {
-      q:'<code>JSON.parse("{bad json")</code>를 try/catch로 감싸서, 오류가 나면 <b>"파싱 실패"</b>를 출력해보세요.',
-      starter:`// try/catch로 감싸보세요\nJSON.parse("{bad json");\n`,
-      hint:'try { JSON.parse("{bad json"); } catch(e) { console.log("파싱 실패"); }',
-      check:logs=>logs.some(t=>t.includes('파싱 실패')),
+      q:'아래 코드는 값이 없는(<code>undefined</code>) 변수의 속성에 접근하려다 오류가 나요. <code>try/catch</code>로 감싸서, 오류가 나면 <b>"오류 처리 완료"</b>를 출력해보세요.',
+      starter:`let user;\n\n// 아래 줄을 try/catch로 감싸보세요\nconsole.log(user.name);\n`,
+      hint:'try { console.log(user.name); } catch(e) { console.log("오류 처리 완료"); }',
+      check:logs=>logs.some(t=>t.includes('오류 처리 완료')),
     },
     {
       q:'<code>b = 0</code>일 때, b가 0이면 <code>throw new Error("0으로 나눌 수 없음")</code>으로 직접 오류를 던지고, try/catch로 그 오류 메시지를 출력해보세요.',
